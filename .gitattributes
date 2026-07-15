@@ -1,0 +1,5 @@
+# Normalise text files, but force LF on shell scripts so the Docker entrypoint
+# never gets CRLF line endings (which break the shebang inside the container).
+* text=auto eol=lf
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf

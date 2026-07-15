@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}CIRCLO — rent from people near you{% endblock %}
+
+{% block content %}
+<section class="text-center py-12">
+  <h1 class="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+    Rent what you need. Earn from what you own.
+  </h1>
+  <p class="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+    A peer-to-peer rental marketplace for the twin cities. Identity-verified users,
+    security deposits, and a before/after evidence trail on every rental.
+  </p>
+
+  <div class="mt-8 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2
+              text-sm font-medium text-emerald-700 ring-1 ring-emerald-200">
+    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+    Foundation is live — features coming milestone by milestone
+  </div>
+
+  <!-- HTMX smoke-test: proves the CDN script loaded and the app answers /health -->
+  <div class="mt-10">
+    <button
+      class="rounded-lg bg-slate-900 px-4 py-2 text-white text-sm font-medium hover:bg-slate-700"
+      hx-get="{{ url_for('web.health') }}"
+      hx-target="#health-result"
+      hx-swap="innerHTML">
+      Check system health
+    </button>
+    <pre id="health-result" class="mt-4 text-sm text-slate-500"></pre>
+  </div>
+</section>
+{% endblock %}

@@ -1,1 +1,91 @@
-# Circlo
+# CIRCLO
+
+A peer-to-peer rental marketplace for Pakistan (Islamabad & Rawalpindi). Item
+owners list under-used things; renters book them for short periods. CIRCLO holds
+the payment + security deposit, verifies identity, keeps a before/after evidence
+trail, and takes a 20% commission.
+
+This repo is the **web app + backend API** (built API-first so a separate mobile
+app can reuse the same backend). See [`CIRCLO_Technical_Blueprint.md`](CIRCLO_Technical_Blueprint.md)
+for the full architecture and [`PROGRESS.md`](PROGRESS.md) for current status.
+
+## Stack
+
+Python 3.12 · Flask (app-factory + blueprints) · SQLAlchemy + Flask-Migrate ·
+PostgreSQL · Jinja2 + HTMX + Tailwind (CDN) · boto3 → MinIO (local) / R2 (prod) ·
+Docker Compose · Gunicorn.
+
+## Repository layout
+
+```
+app/
+  __init__.py     application factory
+  config.py       Config / DevConfig / ProdConfig (all values from env vars)
+  extensions.py   db, migrate, login_manager
+  models/         SQLAlchemy models (M1+)
+  services/       business logic — reused by web + future /api/v1
+    storage.py    S3-compatible storage (MinIO/R2) + presigned URLs
+  web/            Jinja routes + templates (home, /health)
+  api/            /api/v1 JSON routes (M6)
+  admin/          admin panel (later)
+migrations/       Alembic
+docker/           entrypoint (waits for DB, migrates, ensures buckets)
+tests/            smoke tests
+```
+
+## Run it (Docker — recommended)
+
+Requires Docker Desktop. From the repo root:
+
+```bash
+cp .env.example .env
+docker-compose up --build
+```
+
+The entrypoint waits for Postgres, applies migrations, and creates the MinIO
+buckets automatically — no manual steps. Then open:
+
+- Home page: <http://localhost:5000/>
+- Health check: <http://localhost:5000/health> → `{"status":"ok"}`
+- MinIO console: <http://localhost:9001> (login with `STORAGE_ACCESS_KEY` /
+  `STORAGE_SECRET_KEY` from your `.env`)
+
+### Ports already in use?
+
+Every host port is overridable in `.env` — the app still works because the
+containers talk to each other over the internal network regardless:
+
+```env
+APP_HOST_PORT=5001
+POSTGRES_HOST_PORT=55432
+MINIO_HOST_PORT=9002
+MINIO_CONSOLE_HOST_PORT=9003
+```
+
+## Database migrations
+
+Migrations run automatically on container start. To create a new one after
+adding/altering a model (from M1 onward):
+
+```bash
+docker-compose exec app flask db migrate -m "describe change"
+docker-compose exec app flask db upgrade
+```
+
+## Tests
+
+Smoke tests need no database or Docker:
+
+```bash
+pip install -r requirements.txt pytest
+pytest
+```
+
+## Configuration
+
+Nothing environment-specific is hard-coded. Every value (secret key, database
+DSN, storage endpoint + keys, host ports) comes from environment variables loaded
+via `python-dotenv` into a `Config` class. `APP_ENV=development|production`
+selects `DevConfig`/`ProdConfig`. Only object **keys** are stored in the DB;
+URLs are built at runtime with presigned-URL helpers in `app/services/storage.py`.
+Copy `.env.example` → `.env`; the real `.env` is git-ignored.

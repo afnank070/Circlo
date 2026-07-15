@@ -1,0 +1,8 @@
+Single-database configuration for Flask-Migrate (Alembic).
+
+The database URL is supplied at runtime by the Flask app config (env vars) — see
+env.py. No migration versions exist yet: M0 defines no tables. From M1, add a
+model under app/models/, import it in app/models/__init__.py, then run:
+
+    flask db migrate -m "add user"
+    flask db upgrade

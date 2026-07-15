@@ -1,0 +1,15 @@
+"""SQLAlchemy models package.
+
+M0 defines no domain tables yet — the models layer is scaffolded so that
+Alembic autogenerate has a single import point. Real models (User,
+IdentityDocument, Listing, Booking, ...) land from M1 onward per blueprint §5.
+
+To add a model: create ``app/models/<name>.py`` and import it below so that
+``flask db migrate`` can detect it.
+"""
+from __future__ import annotations
+
+# Example (M1+):
+# from .user import User  # noqa: F401
+
+__all__: list[str] = []
