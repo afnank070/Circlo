@@ -126,10 +126,14 @@
           <div class="flex flex-1 flex-col p-4">
             <div class="flex items-center justify-between gap-2">
               <span class="text-xs font-medium uppercase tracking-wide text-teal-700">{{ listing.category.name }}</span>
+              {% if listing.owner_rating is not none %}
               <span class="inline-flex items-center gap-1 text-sm font-semibold text-navy-800">
                 <svg class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
                 {{ "%.1f"|format(listing.owner_rating) }}
               </span>
+              {% else %}
+              <span class="text-xs font-semibold text-teal-700">New</span>
+              {% endif %}
             </div>
 
             <h3 class="mt-1 font-sora text-base font-semibold leading-snug text-navy-900 line-clamp-2">{{ listing.title }}</h3>

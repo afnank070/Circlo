@@ -22,10 +22,12 @@ app/
   __init__.py     application factory
   config.py       Config / DevConfig / ProdConfig (all values from env vars)
   extensions.py   db, migrate, login_manager
-  models/         SQLAlchemy models (M1+)
+  models/         SQLAlchemy models (User, Category, Listing, ListingImage)
   services/       business logic — reused by web + future /api/v1
+    auth.py       signup / authenticate / user lookup
+    listings.py   browse/search + owner create/edit/delete
     storage.py    S3-compatible storage (MinIO/R2) + presigned URLs
-  web/            Jinja routes + templates (home, /health)
+  web/            Jinja routes + templates (browse, auth, owner listings, /health)
   api/            /api/v1 JSON routes (M6)
   admin/          admin panel (later)
 migrations/       Alembic
@@ -49,6 +51,20 @@ buckets automatically — no manual steps. Then open:
 - Health check: <http://localhost:5000/health> → `{"status":"ok"}`
 - MinIO console: <http://localhost:9001> (login with `STORAGE_ACCESS_KEY` /
   `STORAGE_SECRET_KEY` from your `.env`)
+
+## Accounts & demo data
+
+Seed demo owners + categories + listings (idempotent — re-runnable):
+
+```bash
+docker-compose exec app flask seed
+```
+
+This creates one demo owner per listing, all sharing the password `circlo123`
+with emails like `sara.malik@demo.circlo.pk`. Log in as any of them to edit their
+listings, or sign up for a fresh account at <http://localhost:5000/signup> and
+list your own items via **+ List an item**. (Identity verification — phone OTP,
+email, CNIC/selfie review — is deferred; `verification_status` exists for it.)
 
 ### Ports already in use?
 
@@ -74,11 +90,17 @@ docker-compose exec app flask db upgrade
 
 ## Tests
 
-Smoke tests need no database or Docker:
+Smoke tests need no database or Docker (in-memory SQLite):
 
 ```bash
 pip install -r requirements.txt pytest
 pytest
+```
+
+Or run them inside the app container:
+
+```bash
+docker-compose exec app python -m pytest -q
 ```
 
 ## Configuration

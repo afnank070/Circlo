@@ -1,18 +1,35 @@
-"""Listings service — read-only browse/search/detail logic.
+"""Listings service — browse/search/detail plus owner create/edit/delete logic.
 
-All query logic lives here (not in routes) so the future ``/api/v1`` can reuse it
-verbatim (blueprint §4). Routes are thin adapters that call these functions and
-render HTML; the API will call the same functions and return JSON.
+All query and mutation logic lives here (not in routes) so the future ``/api/v1``
+can reuse it verbatim (blueprint §4). Routes are thin adapters that call these
+functions and render HTML; the API will call the same functions and return JSON.
+
+Images go to S3-compatible storage through the storage service; only the object
+**key** is persisted (blueprint §9).
 """
 from __future__ import annotations
 
+import uuid
+
 from sqlalchemy import or_
+from werkzeug.datastructures import FileStorage
 
 from app.extensions import db
-from app.models import Category, Listing
+from app.models import Category, Listing, ListingImage
+from app.services import storage
 
 # Only listings in this status are shown to renters.
 BROWSABLE_STATUS = "active"
+
+# Guardrails for owner uploads.
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+_EXT_FOR_TYPE = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+}
+MAX_IMAGES_PER_LISTING = 8
 
 
 def all_categories() -> list[Category]:
@@ -51,3 +68,109 @@ def get_listing(listing_id: int) -> Listing | None:
     Routes decide how to handle a miss (the web route aborts with 404).
     """
     return db.session.get(Listing, listing_id)
+
+
+def get_category(category_id: int) -> Category | None:
+    return db.session.get(Category, category_id)
+
+
+def listings_for_owner(owner) -> list[Listing]:
+    """Every listing owned by ``owner`` (any status), newest first."""
+    return (
+        Listing.query.filter(Listing.owner_id == owner.id)
+        .order_by(Listing.created_at.desc())
+        .all()
+    )
+
+
+# --- Owner mutations --------------------------------------------------------
+def _store_images(listing: Listing, files, *, start_order: int = 0) -> int:
+    """Upload valid image files for ``listing`` and attach ListingImage rows.
+
+    Silently skips empty file inputs and non-image types (the route validates and
+    surfaces user-facing messages). Returns the number of images stored. Enforces
+    :data:`MAX_IMAGES_PER_LISTING` across the listing's existing + new images.
+    """
+    stored = 0
+    order = start_order
+    existing = len(listing.images)
+    for f in files:
+        if not isinstance(f, FileStorage) or not f.filename:
+            continue
+        if existing + stored >= MAX_IMAGES_PER_LISTING:
+            break
+        content_type = (f.mimetype or "").lower()
+        if content_type not in ALLOWED_IMAGE_TYPES:
+            continue
+        ext = _EXT_FOR_TYPE[content_type]
+        key = f"listings/{listing.id}/{uuid.uuid4().hex}.{ext}"
+        storage.upload_fileobj(f.stream, key, content_type=content_type)
+        listing.images.append(ListingImage(object_key=key, sort_order=order))
+        order += 1
+        stored += 1
+    return stored
+
+
+def create_listing(*, owner, title: str, description: str, category_id: int,
+                   city: str, area: str, price_per_day, deposit_amount,
+                   images=None) -> Listing:
+    """Create an ``active`` listing owned by ``owner`` and store any images.
+
+    The listing is flushed first so it has an id to key images under, then images
+    are uploaded and the whole thing is committed atomically.
+    """
+    listing = Listing(
+        owner_id=owner.id,
+        title=title.strip(),
+        description=(description or "").strip(),
+        category_id=category_id,
+        city=city.strip(),
+        area=area.strip(),
+        price_per_day=price_per_day,
+        deposit_amount=deposit_amount,
+        status=BROWSABLE_STATUS,
+    )
+    db.session.add(listing)
+    db.session.flush()  # assign listing.id for image keys
+
+    if images:
+        _store_images(listing, images)
+
+    db.session.commit()
+    return listing
+
+
+def update_listing(listing: Listing, *, title: str, description: str,
+                   category_id: int, city: str, area: str, price_per_day,
+                   deposit_amount, new_images=None,
+                   remove_image_ids=None) -> Listing:
+    """Update a listing's fields, optionally removing and/or adding images."""
+    listing.title = title.strip()
+    listing.description = (description or "").strip()
+    listing.category_id = category_id
+    listing.city = city.strip()
+    listing.area = area.strip()
+    listing.price_per_day = price_per_day
+    listing.deposit_amount = deposit_amount
+
+    if remove_image_ids:
+        remove = set(remove_image_ids)
+        for img in list(listing.images):
+            if img.id in remove:
+                storage.delete_object(img.object_key)
+                listing.images.remove(img)  # delete-orphan removes the row
+
+    if new_images:
+        next_order = (max((i.sort_order for i in listing.images), default=-1)) + 1
+        _store_images(listing, new_images, start_order=next_order)
+
+    db.session.commit()
+    return listing
+
+
+def delete_listing(listing: Listing) -> None:
+    """Delete a listing and its stored images (storage objects first)."""
+    for img in listing.images:
+        storage.delete_object(img.object_key)
+    db.session.delete(listing)
+    db.session.commit()

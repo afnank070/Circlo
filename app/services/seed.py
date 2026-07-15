@@ -1,11 +1,15 @@
 """Seed service — populate the marketplace with realistic demo data.
 
-Inserts the fixed category set and ~10 Islamabad/Rawalpindi listings, and pushes a
-placeholder image for each through the existing storage service so the whole image
-pipeline (upload → stored key → runtime presigned URL) is exercised end-to-end.
+Inserts a demo user per owner, the fixed category set, and ~10 Islamabad/Rawalpindi
+listings, and pushes a placeholder image for each through the existing storage
+service so the whole image pipeline (upload → stored key → runtime presigned URL)
+is exercised end-to-end.
 
 Placeholders are generated as SVGs so the seed needs no image files on disk and no
 extra dependencies (Pillow etc.). The point is to prove the pipeline, not the art.
+
+Every seed owner shares the same demo password (:data:`SEED_PASSWORD`) so the
+listings can be logged into and edited while testing M1 — see PROGRESS.md.
 
 Idempotent: object keys are derived from a slug, and the DB rows are wiped and
 re-inserted on every run, so ``flask seed`` can be run repeatedly.
@@ -16,8 +20,13 @@ import io
 import re
 
 from app.extensions import db
-from app.models import Category, Listing, ListingImage
+from app.models import Category, Listing, ListingImage, User
 from app.services import storage
+
+# Shared password for every seeded demo owner (dev only — see PROGRESS.md).
+SEED_PASSWORD = "circlo123"
+# Emails are derived as "<name-slug>@demo.circlo.pk"; this is the domain.
+SEED_EMAIL_DOMAIN = "demo.circlo.pk"
 
 # --- Category set (blueprint / prompt) --------------------------------------
 CATEGORIES = [
@@ -95,18 +104,32 @@ def _placeholder_svg(title: str, category: str, c1: str, c2: str) -> bytes:
     return svg.encode("utf-8")
 
 
+def _owner_email(name: str) -> str:
+    """Derive a stable demo email from an owner's display name."""
+    return f"{_slugify(name).replace('-', '.')}@{SEED_EMAIL_DOMAIN}"
+
+
 def _wipe() -> None:
-    """Remove existing rows so the seed is repeatable (children first)."""
+    """Remove existing rows so the seed is repeatable (children first).
+
+    Only the demo owners (``@demo.circlo.pk``) are removed, so wiping never touches
+    real accounts created through signup. Their listings cascade-delete with them.
+    """
     ListingImage.query.delete()
     Listing.query.delete()
     Category.query.delete()
+    User.query.filter(User.email.like(f"%@{SEED_EMAIL_DOMAIN}")).delete(
+        synchronize_session=False
+    )
     db.session.commit()
 
 
 def seed_all() -> dict[str, int]:
-    """(Re)create categories + listings and upload a placeholder image each.
+    """(Re)create demo owners + categories + listings and upload a placeholder each.
 
-    Returns a small summary dict for the CLI to print.
+    Each distinct owner in :data:`LISTINGS` becomes a real ``User`` (so the M1 FK
+    is exercised), carrying the M2 rating and verified flag. Returns a small summary
+    dict for the CLI to print.
     """
     storage.ensure_buckets()
     _wipe()
@@ -118,11 +141,28 @@ def seed_all() -> dict[str, int]:
         db.session.add(cat)
         cats[slug] = cat
         colors[slug] = (c1, c2)
-    db.session.flush()  # assign category ids
+
+    # One demo user per distinct owner name; verified owners are "approved" so the
+    # Verified badge (now derived from User.verification_status) still shows.
+    owners: dict[str, User] = {}
+    for (_t, _c, _city, _a, _p, _d, owner_name, rating, verified, _desc) in LISTINGS:
+        if owner_name in owners:
+            continue
+        user = User(
+            name=owner_name,
+            email=_owner_email(owner_name),
+            rating=rating,
+            verification_status="approved" if verified else "pending",
+        )
+        user.set_password(SEED_PASSWORD)
+        db.session.add(user)
+        owners[owner_name] = user
+
+    db.session.flush()  # assign category + user ids
 
     image_count = 0
     for (title, cat_slug, city, area, price, deposit,
-         owner, rating, verified, description) in LISTINGS:
+         owner_name, _rating, _verified, description) in LISTINGS:
         listing = Listing(
             title=title,
             description=description,
@@ -131,9 +171,7 @@ def seed_all() -> dict[str, int]:
             area=area,
             price_per_day=price,
             deposit_amount=deposit,
-            owner_name=owner,
-            owner_rating=rating,
-            is_verified=verified,
+            owner_id=owners[owner_name].id,
             status="active",
         )
         db.session.add(listing)
@@ -151,6 +189,7 @@ def seed_all() -> dict[str, int]:
     db.session.commit()
 
     return {
+        "owners": len(owners),
         "categories": len(cats),
         "listings": len(LISTINGS),
         "images": image_count,

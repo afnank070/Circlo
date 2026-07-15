@@ -17,7 +17,8 @@ def register_cli(app: Flask) -> None:
 
         summary = seed_all()
         click.echo(
-            f"Seeded {summary['categories']} categories, "
+            f"Seeded {summary['owners']} owners, "
+            f"{summary['categories']} categories, "
             f"{summary['listings']} listings, "
             f"{summary['images']} images."
         )

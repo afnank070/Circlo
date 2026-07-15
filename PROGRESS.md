@@ -4,8 +4,59 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
-## Current milestone: M2 — Listings & Search (read-only marketplace, DONE ✅)
-_(M1 Auth deferred — built the read-only marketplace first with seed data, no auth yet.)_
+## Current milestone: M1 — Auth & Identity (part 1, DONE ✅)
+_(Accounts + owner-created listings. Phone OTP, email verification, and CNIC/selfie
+review are deferred — they need external services; `verification_status` is in place
+for when they land.)_
+
+## Done — M1 part 1 (accounts + owner listings)
+- **`User` model** (`app/models/user.py`, blueprint §5): name, email (unique),
+  `password_hash`, `role` (default `user`), `verification_status` (default
+  `pending`), `rating` (nullable cache, filled by Reviews in M5), `created_at`.
+  `UserMixin` + Werkzeug password hashing (`set_password`/`check_password`);
+  `is_verified`/`initials` helpers. **No plaintext passwords** (blueprint §8).
+- **Auth service** (`app/services/auth.py`, API-reusable): `create_user`
+  (raises `EmailAlreadyRegistered`), `authenticate`, `get_user`,
+  `get_user_by_email`, `normalize_email`. Real Flask-Login `user_loader` now wired
+  in `extensions.py` (was the M0 stub); `login_view = web.login`.
+- **Auth routes** (`app/web/auth.py`): `/signup`, `/login` (with safe `?next=`
+  redirect guard), `/logout` (POST). Server-side validation + flash messages.
+- **Listing → User FK**: dropped the denormalised `owner_name`/`owner_rating`/
+  `is_verified` columns; added `owner_id` FK + `owner` relationship. Listing keeps
+  `owner_name`/`owner_rating`/`is_verified` as **read-only passthroughs** to the
+  owner so templates/API are unchanged. New owners (no rating) render as "New".
+- **Owner listing CRUD** (`app/services/listings.py` + `app/web/owner.py`):
+  `create_listing`, `update_listing` (add/remove images), `delete_listing`,
+  `listings_for_owner`. Multi-image upload goes through the existing storage
+  service → MinIO; **only object keys stored** (`listings/<id>/<uuid>.<ext>`),
+  image types/count validated. Ownership guard: only the owner can edit/delete
+  (403 otherwise); browse/detail stay public.
+- **UI** (matches the navy/teal marketplace theme): `auth/signup.html`,
+  `auth/login.html`, `listings/form.html` (shared create/edit), `listings/
+  my_listings.html`, flash-message region + auth-aware header (account menu w/
+  logout, or Log in/Sign up) in `base.html`. Header "+ List an item" → create form
+  (or login if logged out). Owner-only Edit/Delete strip on the detail page.
+- **Migration** `5dfccc05bad8`: creates `users`, adds `listings.owner_id`, and
+  **backfills** existing M2 listings — each distinct legacy owner becomes a real
+  user (rating preserved, `is_verified`→`verification_status`) before `owner_id`
+  goes NOT NULL. Verified: 11 legacy listings migrated with owners intact.
+- **Seed** now creates a demo user per owner (all share password `circlo123`,
+  emails `<name>@demo.circlo.pk`, e.g. `sara.malik@demo.circlo.pk`), verified
+  owners → `approved`. `flask seed` → 11 owners, 6 categories, 11 listings, 11 imgs.
+- **Tests**: `tests/test_auth.py` (signup/login/logout, dupe email, bad password)
+  + `tests/test_listings_crud.py` (create, validation, ownership 403). **14 passing.**
+- Verified live over HTTP (dev overlay): signup→create→edit→delete, image upload
+  to MinIO (key-only, presigned GET 200 `image/png`), "New" owner badge, owner
+  guard. Reseeded to a clean 11/11/11/6 state.
+
+### Known follow-ups (M1 part 2 / later)
+- **No CSRF protection yet** — forms POST without tokens. Needs Flask-WTF (a new
+  dependency → ask before adding). Do before any public deploy.
+- Deferred by design: phone OTP, email verification, CNIC/selfie upload + admin
+  approval gating (the `verification_status` field is ready for it).
+- `owner_rating` is a per-user cache; real ratings arrive with Reviews (M5).
+
+## Previous milestone: M2 — Listings & Search (read-only marketplace, DONE ✅)
 
 ## Done — M2 (read-only marketplace)
 - **Models** (`app/models/`): `Category`, `Listing`, `ListingImage` (blueprint §5).
@@ -83,19 +134,17 @@ _(M1 Auth deferred — built the read-only marketplace first with seed data, no 
     `/health` (`{"status":"ok"}`) with no manual fiddling.
 
 ## In progress
-- (nothing — M2 read-only marketplace shipped)
+- (nothing — M1 part 1 shipped)
 
 ## Next up
-- M1 Auth & Identity: `User` model + migration, signup/login (Flask-Login), email
-  + phone OTP, manual CNIC/selfie upload (private bucket) → admin approval gating
-  list/rent. Replace the stub `user_loader` in `app/extensions.py`. Then migrate
-  `Listing.owner_name`/`owner_rating` onto a real `owner_id` FK → User (the
-  denormalised fields were a placeholder for the read-only marketplace).
-- Real listing image uploads (owner-created listings) reusing the storage pipeline
-  the seed already exercises.
+- M1 part 2 (identity verification): CNIC + selfie upload to the **private** bucket
+  → admin approval flow; then gate listing/renting on `verification_status`
+  (currently ungated). Phone OTP + email verification (need an SMS/email provider).
+- Add CSRF protection to all forms (Flask-WTF) — see follow-ups above.
+- M3 Booking: rental request → owner accept/reject, availability, the state machine.
 
 ## Blockers / decisions needed
-- SMS provider for OTP (recurring cost) — pick one before M1.
+- SMS provider for OTP (recurring cost) — pick before M1 part 2.
 - Payment approach for MVP: semi-manual vs gateway (Safepay / JazzCash / Easypaisa).
 - Full open-decisions list: CIRCLO_Technical_Blueprint.md §13.
 
@@ -104,3 +153,5 @@ _(M1 Auth deferred — built the read-only marketplace first with seed data, no 
 - Milestone task list: CIRCLO_Progress_Tracker.xlsx
 - Run: `cp .env.example .env && docker compose up --build` → http://localhost:5000
 - Seed demo data: `docker compose exec app flask seed` (idempotent; re-runnable)
+- Demo login (any seeded owner): e.g. `sara.malik@demo.circlo.pk` / `circlo123`
+- Tests: `docker compose exec app python -m pytest -q` (14 passing)

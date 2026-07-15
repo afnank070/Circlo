@@ -9,12 +9,12 @@ To add a model: create ``app/models/<name>.py`` and import it below so that
 """
 from __future__ import annotations
 
-# M2 — Listings & Search (read-only marketplace).
+# M1 — Auth & Identity.
+from .user import User  # noqa: F401
+
+# M2 — Listings & Search.
 from .category import Category  # noqa: F401
 from .listing import Listing  # noqa: F401
 from .listing_image import ListingImage  # noqa: F401
 
-# Example (M1+):
-# from .user import User  # noqa: F401
-
-__all__ = ["Category", "Listing", "ListingImage"]
+__all__ = ["User", "Category", "Listing", "ListingImage"]

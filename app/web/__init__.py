@@ -10,4 +10,8 @@ web_bp = Blueprint(
     static_folder="static",
 )
 
-from . import routes  # noqa: E402,F401  (register routes on import)
+# Import route modules so their views register on the blueprint. Order doesn't
+# matter — each just decorates web_bp.
+from . import routes  # noqa: E402,F401  (browse/detail/health)
+from . import auth  # noqa: E402,F401  (signup/login/logout)
+from . import owner  # noqa: E402,F401  (owner listing CRUD)

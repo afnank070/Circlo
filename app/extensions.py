@@ -13,16 +13,20 @@ db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 
-# Where to redirect anonymous users hitting a login-required view (wired in M1).
-login_manager.login_view = "web.index"
+# Where to redirect anonymous users hitting a login-required view.
+login_manager.login_view = "web.login"
+login_manager.login_message = "Please log in to continue."
+login_manager.login_message_category = "info"
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Resolve a session user id to a User object.
+    """Resolve a session user id to a User object (blueprint §5).
 
-    M0 has no User model yet, so no one is ever authenticated. Flask-Login still
-    requires this callback to be registered (its template context processor calls
-    it on every render). M1 (Auth) replaces the body with a real lookup.
+    Delegates to the auth service so the lookup logic lives in one place. Imported
+    lazily to avoid a circular import at module load (models import ``db`` from
+    here).
     """
-    return None
+    from app.services import auth
+
+    return auth.get_user(user_id)

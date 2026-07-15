@@ -12,6 +12,28 @@
     Back to marketplace
   </a>
 
+  {% if current_user.is_authenticated and current_user.id == listing.owner_id %}
+  <!-- Owner controls (only the listing's owner sees these) -->
+  <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sand-200 bg-white px-4 py-3 shadow-sm">
+    <p class="text-sm font-medium text-navy-800">This is your listing.</p>
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('web.edit_listing', listing_id=listing.id) }}"
+         class="inline-flex items-center gap-1.5 rounded-lg border border-sand-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-800 hover:bg-sand-50">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+        Edit
+      </a>
+      <form method="post" action="{{ url_for('web.delete_listing', listing_id=listing.id) }}"
+            onsubmit="return confirm('Delete this listing? This cannot be undone.');">
+        <button type="submit"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm font-semibold text-rose-600 hover:bg-rose-50">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 5.79l-.66 13.883a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L5.18 5.79"/></svg>
+          Delete
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-2">
 
     <!-- LEFT: gallery + about -->
@@ -72,10 +94,12 @@
       <p class="text-sm font-medium uppercase tracking-wide text-teal-700">{{ listing.category.name }}</p>
       <h1 class="mt-1 font-sora text-2xl font-extrabold leading-tight tracking-tight text-navy-900 sm:text-3xl">{{ listing.title }}</h1>
       <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-navy-700">
+        {% if listing.owner_rating is not none %}
         <span class="inline-flex items-center gap-1 font-semibold text-navy-800">
           <svg class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
           {{ "%.1f"|format(listing.owner_rating) }}
         </span>
+        {% endif %}
         <span class="inline-flex items-center gap-1">
           <svg class="h-4 w-4 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
           {{ listing.area }}, {{ listing.city }}
@@ -124,7 +148,7 @@
       <div class="mt-4 rounded-2xl border border-sand-200 bg-white p-5 shadow-sm">
         <div class="flex items-center gap-3">
           <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-teal-600 text-base font-bold text-white">
-            {{ listing.owner_name.split()|map('first')|join|upper|truncate(2, true, '') }}
+            {{ listing.owner.initials }}
           </span>
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
@@ -137,8 +161,12 @@
               {% endif %}
             </div>
             <p class="mt-0.5 inline-flex items-center gap-1 text-sm text-navy-700">
+              {% if listing.owner_rating is not none %}
               <svg class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
-              {{ "%.1f"|format(listing.owner_rating) }} · Verified owner
+              {{ "%.1f"|format(listing.owner_rating) }} · {{ 'Verified owner' if listing.is_verified else 'Owner' }}
+              {% else %}
+              New owner
+              {% endif %}
             </p>
           </div>
         </div>

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Log in — CIRCLO{% endblock %}
+
+{% block content %}
+<div class="mx-auto flex max-w-md flex-col px-4 py-10 sm:py-14">
+  <div class="rounded-2xl border border-sand-200 bg-white p-6 shadow-sm sm:p-8">
+    <div class="mb-6 text-center">
+      <span class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-navy-800">
+        <span class="h-4 w-4 rounded-full border-2 border-white"></span>
+      </span>
+      <h1 class="mt-4 font-sora text-2xl font-extrabold tracking-tight text-navy-900">Welcome back</h1>
+      <p class="mt-1 text-sm text-navy-700/70">Log in to manage your listings.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('web.login') }}" class="space-y-4">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <div>
+        <label for="email" class="block text-sm font-semibold text-navy-800">Email</label>
+        <input id="email" name="email" type="email" value="{{ email }}" required autocomplete="email"
+               class="mt-1.5 w-full rounded-xl border border-sand-200 bg-sand-50 px-3.5 py-2.5 text-sm text-navy-900
+                      placeholder:text-navy-700/40 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100"
+               placeholder="you@example.com">
+      </div>
+      <div>
+        <label for="password" class="block text-sm font-semibold text-navy-800">Password</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password"
+               class="mt-1.5 w-full rounded-xl border border-sand-200 bg-sand-50 px-3.5 py-2.5 text-sm text-navy-900
+                      placeholder:text-navy-700/40 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100"
+               placeholder="Your password">
+      </div>
+
+      <button type="submit"
+              class="w-full rounded-xl bg-navy-800 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-100">
+        Log in
+      </button>
+    </form>
+
+    <p class="mt-5 text-center text-sm text-navy-700/70">
+      New to CIRCLO?
+      <a href="{{ url_for('web.signup') }}" class="font-semibold text-teal-700 hover:text-teal-800">Create an account</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

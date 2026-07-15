@@ -1,12 +1,12 @@
 """Listing model — an item someone offers for rent.
 
-Blueprint §5 defines Listing with an ``owner_id`` FK to User, but the User model
-only arrives in M1 (Auth). For this read-only marketplace milestone the owner is
-captured as denormalised ``owner_name`` / ``owner_rating`` fields populated by the
-seed script; M1 will introduce the FK and migrate these onto the User relationship.
+Blueprint §5: a Listing belongs to a User via ``owner_id``. M2 shipped this as
+denormalised ``owner_name`` / ``owner_rating`` / ``is_verified`` fields because the
+User model didn't exist yet; M1 introduces the real FK and exposes owner name,
+rating and verified-status as thin properties off the ``owner`` relationship so
+templates read the same as before.
 
-Prices are stored in PKR as fixed-point Numerics. Money never moves here — this
-milestone is browse-only.
+Prices are stored in PKR as fixed-point Numerics. Money never moves here.
 """
 from __future__ import annotations
 
@@ -34,17 +34,17 @@ class Listing(db.Model):
     price_per_day = db.Column(db.Numeric(10, 2), nullable=False)
     deposit_amount = db.Column(db.Numeric(10, 2), nullable=False)
 
-    # Denormalised owner info until the User model lands in M1.
-    owner_name = db.Column(db.String(120), nullable=False)
-    owner_rating = db.Column(db.Numeric(2, 1), nullable=False, default=0)
-
-    # Green "Verified" badge on cards; becomes derived from User.verification_status in M1.
-    is_verified = db.Column(db.Boolean, nullable=False, default=False)
+    # The member who owns this item (blueprint §5). Replaces the M2 denormalised
+    # owner_name/owner_rating/is_verified columns.
+    owner_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
 
     # draft / active / paused / removed (blueprint §5). Only "active" is browsable.
     status = db.Column(db.String(20), nullable=False, default="active", index=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+    owner = db.relationship("User", back_populates="listings")
     category = db.relationship("Category", back_populates="listings")
     images = db.relationship(
         "ListingImage",
@@ -57,6 +57,21 @@ class Listing(db.Model):
     def cover_image(self):
         """First image (by sort order), or None if the listing has no images."""
         return self.images[0] if self.images else None
+
+    # --- Owner passthroughs (keep templates/API reading listing-level fields) --
+    @property
+    def owner_name(self) -> str:
+        return self.owner.name if self.owner else ""
+
+    @property
+    def owner_rating(self):
+        """Owner's cached rating, or None if they have no ratings yet."""
+        return self.owner.rating if self.owner else None
+
+    @property
+    def is_verified(self) -> bool:
+        """Green 'Verified' badge — derived from the owner's identity status."""
+        return bool(self.owner and self.owner.is_verified)
 
     def __repr__(self) -> str:  # pragma: no cover - debug aid
         return f"<Listing {self.id} {self.title!r}>"
