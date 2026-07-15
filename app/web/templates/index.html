@@ -3,31 +3,124 @@
 {% block title %}CIRCLO — rent from people near you{% endblock %}
 
 {% block content %}
-<section class="text-center py-12">
-  <h1 class="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-    Rent what you need. Earn from what you own.
+<!-- Hero -->
+<section class="mb-8">
+  <h1 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+    Rent what you need, from people nearby.
   </h1>
-  <p class="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
-    A peer-to-peer rental marketplace for the twin cities. Identity-verified users,
-    security deposits, and a before/after evidence trail on every rental.
+  <p class="mt-2 text-slate-600 max-w-2xl">
+    Verified owners, security deposits, and a before/after evidence trail on every
+    rental across Islamabad &amp; Rawalpindi.
   </p>
-
-  <div class="mt-8 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2
-              text-sm font-medium text-emerald-700 ring-1 ring-emerald-200">
-    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-    Foundation is live — features coming milestone by milestone
-  </div>
-
-  <!-- HTMX smoke-test: proves the CDN script loaded and the app answers /health -->
-  <div class="mt-10">
-    <button
-      class="rounded-lg bg-slate-900 px-4 py-2 text-white text-sm font-medium hover:bg-slate-700"
-      hx-get="{{ url_for('web.health') }}"
-      hx-target="#health-result"
-      hx-swap="innerHTML">
-      Check system health
-    </button>
-    <pre id="health-result" class="mt-4 text-sm text-slate-500"></pre>
-  </div>
 </section>
+
+<!-- Search + category filters -->
+<form method="get" action="{{ url_for('web.index') }}" class="mb-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="relative w-full sm:max-w-md">
+      <svg class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+           fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+      </svg>
+      <input type="search" name="q" value="{{ query }}"
+             placeholder="Search drills, cameras, F-7…"
+             class="w-full rounded-full border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm
+                    text-slate-800 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200">
+    </div>
+    <button type="submit"
+            class="rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm
+                   hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300">
+      Search
+    </button>
+  </div>
+
+  <!-- Category chips (submit on click, carry the current query) -->
+  <div class="mt-4 flex flex-wrap gap-2">
+    <a href="{{ url_for('web.index', q=query or None) }}"
+       class="rounded-full px-4 py-1.5 text-sm font-medium ring-1 transition
+              {% if not active_category %}bg-slate-900 text-white ring-slate-900
+              {% else %}bg-white text-slate-600 ring-slate-300 hover:bg-slate-50{% endif %}">
+      All
+    </a>
+    {% for category in categories %}
+    <a href="{{ url_for('web.index', category=category.slug, q=query or None) }}"
+       class="rounded-full px-4 py-1.5 text-sm font-medium ring-1 transition
+              {% if active_category == category.slug %}bg-slate-900 text-white ring-slate-900
+              {% else %}bg-white text-slate-600 ring-slate-300 hover:bg-slate-50{% endif %}">
+      {{ category.name }}
+    </a>
+    {% endfor %}
+  </div>
+</form>
+
+<!-- Results count -->
+<p class="mb-4 text-sm text-slate-500">
+  {{ listings|length }} listing{{ '' if listings|length == 1 else 's' }}
+  {% if active_category or query %}found{% else %}available{% endif %}
+</p>
+
+<!-- Card grid -->
+{% if listings %}
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+  {% for listing in listings %}
+  <a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}"
+     class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm
+            transition hover:-translate-y-0.5 hover:shadow-md">
+    <!-- Image -->
+    <div class="relative aspect-[4/3] overflow-hidden bg-slate-100">
+      {% if listing.cover_image %}
+      <img src="{{ image_url(listing.cover_image.object_key) }}" alt="{{ listing.title }}"
+           class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+      {% endif %}
+      {% if listing.is_verified %}
+      <span class="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-emerald-600/95 px-2.5 py-1
+                   text-xs font-semibold text-white shadow-sm">
+        <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z" clip-rule="evenodd"/>
+        </svg>
+        Verified
+      </span>
+      {% endif %}
+    </div>
+
+    <!-- Body -->
+    <div class="flex flex-1 flex-col p-4">
+      <div class="flex items-start justify-between gap-2">
+        <h3 class="font-semibold text-slate-900 leading-snug line-clamp-2">{{ listing.title }}</h3>
+      </div>
+
+      <div class="mt-1 flex items-center gap-1 text-sm text-slate-500">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+        {{ listing.area }}, {{ listing.city }}
+      </div>
+
+      <div class="mt-3 flex items-baseline gap-1">
+        <span class="text-lg font-bold text-slate-900">Rs {{ "{:,}".format(listing.price_per_day|int) }}</span>
+        <span class="text-sm text-slate-500">/ day</span>
+      </div>
+      <p class="mt-0.5 text-xs text-slate-500">Deposit: Rs {{ "{:,}".format(listing.deposit_amount|int) }}</p>
+
+      <!-- Owner + rating -->
+      <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+        <span class="truncate text-slate-600">{{ listing.owner_name }}</span>
+        <span class="inline-flex items-center gap-1 font-medium text-slate-700">
+          <svg class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
+          {{ "%.1f"|format(listing.owner_rating) }}
+        </span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<!-- Empty state -->
+<div class="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
+  <p class="text-slate-600 font-medium">No listings match your search.</p>
+  <p class="mt-1 text-sm text-slate-400">Try a different category or clear the filters.</p>
+  <a href="{{ url_for('web.index') }}"
+     class="mt-4 inline-block rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">
+    Clear filters
+  </a>
+</div>
+{% endif %}
 {% endblock %}

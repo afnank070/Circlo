@@ -24,6 +24,7 @@ def create_app(config_object=None) -> Flask:
     _init_extensions(app)
     _register_blueprints(app)
     _register_models()
+    _register_cli(app)
 
     return app
 
@@ -47,3 +48,10 @@ def _register_models() -> None:
     Kept as a single import point; M1+ models get added under app/models/.
     """
     from . import models  # noqa: F401
+
+
+def _register_cli(app: Flask) -> None:
+    """Register custom ``flask`` CLI commands (e.g. ``flask seed``)."""
+    from .cli import register_cli
+
+    register_cli(app)

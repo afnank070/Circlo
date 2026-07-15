@@ -16,12 +16,23 @@ from botocore.exceptions import ClientError
 from flask import current_app
 
 
-def _client():
-    """Build a boto3 S3 client from the active app config."""
+def _client(*, public: bool = False):
+    """Build a boto3 S3 client from the active app config.
+
+    ``public=True`` signs against ``STORAGE_PUBLIC_URL`` (the browser-facing base,
+    e.g. ``http://localhost:9000`` in dev or an R2 domain in prod) so that
+    presigned URLs handed to a browser carry a host the browser can actually
+    reach. Server-side calls (uploads, bucket setup) use the internal endpoint.
+    Falls back to the internal endpoint when no public URL is configured, so
+    behaviour is unchanged if the var is unset.
+    """
     cfg = current_app.config
+    endpoint = cfg.get("STORAGE_ENDPOINT_URL")
+    if public and cfg.get("STORAGE_PUBLIC_URL"):
+        endpoint = cfg.get("STORAGE_PUBLIC_URL")
     return boto3.client(
         "s3",
-        endpoint_url=cfg.get("STORAGE_ENDPOINT_URL"),
+        endpoint_url=endpoint,
         region_name=cfg.get("STORAGE_REGION"),
         aws_access_key_id=cfg.get("STORAGE_ACCESS_KEY"),
         aws_secret_access_key=cfg.get("STORAGE_SECRET_KEY"),
@@ -67,7 +78,7 @@ def presigned_url(key: str, *, private: bool = False, expires_in: int | None = N
     storage backends can change without touching stored data (blueprint §9).
     """
     expires_in = expires_in or current_app.config["STORAGE_PRESIGN_EXPIRY"]
-    return _client().generate_presigned_url(
+    return _client(public=True).generate_presigned_url(
         "get_object",
         Params={"Bucket": _bucket_for(private), "Key": key},
         ExpiresIn=expires_in,
@@ -81,7 +92,7 @@ def presigned_upload(key: str, *, private: bool = False, expires_in: int | None 
     params = {"Bucket": _bucket_for(private), "Key": key}
     if content_type:
         params["ContentType"] = content_type
-    return _client().generate_presigned_url(
+    return _client(public=True).generate_presigned_url(
         "put_object", Params=params, ExpiresIn=expires_in
     )
 
