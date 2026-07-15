@@ -30,6 +30,34 @@ _(M1 Auth deferred — built the read-only marketplace first with seed data, no 
 - Verified end-to-end: pages 200, images render in-browser, category/text filters
   work, missing listing → 404, no console errors. Smoke tests updated → 4 passing.
 
+### M2 visual redesign (mockup match — styling only, no backend change)
+- Re-skinned browse + detail to the CIRCLO mockup: deep-navy primary + teal accent
+  on a warm sand background; Sora (headings) + Manrope (body) via Google Fonts CDN.
+  Theme tokens (navy/teal/sand palettes, fonts, styled range slider) live in a
+  `tailwind.config` block in `base.html`.
+- **Header** (`base.html`): "circlo" logo w/ circular mark, city selector pill,
+  centered search bar, right nav (+ List an item, My Rentals, Messages w/ dot,
+  avatar). Search still posts `q` to `web.index` (real). Footer restyled.
+- **Browse** (`index.html`): full-bleed navy hero w/ concentric-circle motif +
+  new copy; category chips (functional); left filter sidebar (price slider, Area
+  dropdown, Verified-owners checkbox — **visual placeholders**); "N items available
+  near you" + "Sorted by · Recommended"; redesigned cards (Verified pill, category
+  label, star rating, price, deposit, area). Area options derived in-template from
+  `listings` (no route change).
+- **Detail** (`listing_detail.html`): photo carousel + thumbnail strip (tiny vanilla
+  JS; inert with the single seed image), price/deposit card w/ Availability line +
+  Request-to-Rent / Message-owner placeholders + "won't be charged yet" note,
+  verified-owner card (avatar initials, Verified identity, rating), and a navy
+  "Protected by CIRCLO" trust panel (deposit / before-after evidence / Trust Fund).
+- No models/routes/services/seed/storage/URLs changed. Verified live via the dev
+  overlay (`docker-compose.dev.yml`): both pages 200, all sections render, no
+  console errors.
+- **Flagged for later (need backend fields, kept as honest placeholders, NOT
+  fabricated):** per-listing review counts `(34)`; owner "N rentals · joined YEAR";
+  multiple/labeled photos per listing; and actually *wiring* the price/area/verified
+  filters (service currently supports only category + text). Land these with the
+  M1 User model + a listing/owner-stats extension.
+
 ## Current milestone: M0 — Foundation (DONE ✅)
 
 ## Done

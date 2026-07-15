@@ -1,0 +1,31 @@
+# CIRCLO — DEV-ONLY overlay (live reload + source bind-mount).
+#
+# This file is NOT applied automatically. Layer it on top of the base file to get
+# a hot-reload workflow that mounts your working tree into the container so edits
+# under app/ and migrations/ take effect without rebuilding the image:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Production is UNAFFECTED: a plain `docker compose up` uses the base file only,
+# still running Gunicorn with code baked into the image. Never use this overlay
+# in production — the Flask dev server is single-process and not hardened.
+#
+# Everything not mentioned here (postgres, minio, ports, env_file, the entrypoint
+# that waits for the DB → migrates → ensures buckets) is inherited from the base
+# docker-compose.yml.
+
+services:
+  app:
+    # Overlay the image's baked-in code with the host working tree. Only app/ and
+    # migrations/ are mounted; the rest (installed deps, entrypoint) stays from the
+    # image. Bonus: `flask db migrate` now writes the new migration straight to your
+    # host migrations/versions/ — no more copying it out of the container.
+    volumes:
+      - ./app:/app/app
+      - ./migrations:/app/migrations
+    # Swap Gunicorn for the Flask dev server: auto-reloads on .py changes, reloads
+    # templates, and serves friendly tracebacks. The entrypoint still runs first
+    # (wait for Postgres → migrate → ensure buckets), then execs this command.
+    command: ["flask", "run", "--debug", "--host", "0.0.0.0", "--port", "5000"]
+    # A dev crash the reloader can't recover from should stay down, not loop.
+    restart: "no"

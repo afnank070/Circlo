@@ -9,27 +9,137 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- HTMX for dynamic interactions without a heavy SPA -->
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+  <!-- Google Fonts: Sora (headings) + Manrope (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            sora: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            // Deep-navy primary
+            navy: {
+              50:  '#eef3f8',
+              100: '#d6e0ec',
+              700: '#143b60',
+              800: '#0e2e4d',
+              900: '#0a2540',
+            },
+            // Teal accent
+            teal: {
+              50:  '#e8f7f4',
+              100: '#c8ece5',
+              500: '#14a89a',
+              600: '#0f9083',
+              700: '#0c766b',
+            },
+            // Warm neutral surfaces
+            sand: {
+              50:  '#faf7f1',
+              100: '#f5efe6',
+              200: '#ece4d5',
+              300: '#e2d8c4',
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    /* Range slider styled to the brand (used by the browse filter sidebar) */
+    input[type="range"].circlo-range {
+      -webkit-appearance: none; appearance: none;
+      height: 4px; border-radius: 9999px; background: #e2d8c4; outline: none;
+    }
+    input[type="range"].circlo-range::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      height: 18px; width: 18px; border-radius: 9999px;
+      background: #0e2e4d; cursor: pointer; border: 3px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(10,37,64,.35);
+    }
+    input[type="range"].circlo-range::-moz-range-thumb {
+      height: 18px; width: 18px; border-radius: 9999px;
+      background: #0e2e4d; cursor: pointer; border: 3px solid #ffffff;
+    }
+  </style>
 </head>
-<body class="h-full bg-slate-50 text-slate-800 antialiased">
-  <header class="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
-    <div class="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
-      <a href="{{ url_for('web.index') }}" class="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
-        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white text-sm">C</span>
-        CIRCLO
+<body class="h-full bg-sand-100 font-sans text-navy-900 antialiased">
+  <header class="sticky top-0 z-30 border-b border-sand-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
+      <!-- Logo -->
+      <a href="{{ url_for('web.index') }}" class="flex shrink-0 items-center gap-2">
+        <span class="grid h-8 w-8 place-items-center rounded-full bg-navy-800">
+          <span class="h-3.5 w-3.5 rounded-full border-2 border-white"></span>
+        </span>
+        <span class="font-sora text-2xl font-extrabold lowercase tracking-tight text-navy-900">circlo</span>
       </a>
-      <span class="inline-flex items-center gap-1.5 text-sm text-slate-500">
-        <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-        Islamabad &amp; Rawalpindi
-      </span>
+
+      <!-- City selector (visual — single-city MVP) -->
+      <button type="button"
+              class="hidden shrink-0 items-center gap-2 rounded-full border border-sand-200 bg-sand-50 px-3 py-1.5 text-sm font-medium text-navy-800 hover:bg-sand-100 sm:inline-flex">
+        <span class="h-2 w-2 rounded-full bg-teal-500"></span>
+        Islamabad
+        <svg class="h-4 w-4 text-navy-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+
+      <!-- Search (centered, grows) -->
+      <form method="get" action="{{ url_for('web.index') }}"
+            class="order-last w-full min-w-0 flex-1 basis-full sm:order-none sm:basis-0">
+        <div class="relative mx-auto w-full max-w-xl">
+          <svg class="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-navy-700/50"
+               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+          </svg>
+          <input type="search" name="q" value="{{ request.args.get('q', '') }}"
+                 placeholder="Search tools, gear, cameras…"
+                 class="w-full rounded-full border border-sand-200 bg-sand-50 py-2.5 pl-11 pr-4 text-sm text-navy-900
+                        placeholder:text-navy-700/45 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100">
+        </div>
+      </form>
+
+      <!-- Right nav -->
+      <nav class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+        <button type="button"
+                class="inline-flex items-center gap-1.5 rounded-full bg-navy-800 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-100">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+          <span class="hidden sm:inline">List an item</span>
+        </button>
+        <a href="#" class="hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-block">My Rentals</a>
+        <a href="#" class="relative hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-block">
+          Messages
+          <span class="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-rose-500"></span>
+        </a>
+        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">AK</span>
+      </nav>
     </div>
   </header>
 
-  <main class="mx-auto max-w-7xl px-4 py-8">
+  <main>
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-400">
-    &copy; {{ 2026 }} CIRCLO — peer-to-peer rentals for the twin cities.
+  <footer class="mt-12 border-t border-sand-200 bg-sand-50">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-navy-700 sm:flex-row">
+      <div class="flex items-center gap-2 font-medium">
+        <span class="grid h-6 w-6 place-items-center rounded-full bg-navy-800">
+          <span class="h-2.5 w-2.5 rounded-full border-2 border-white"></span>
+        </span>
+        <span class="font-sora font-semibold lowercase text-navy-900">circlo</span>
+        <span class="text-navy-700/70">· Rent within your community</span>
+      </div>
+      <div class="flex items-center gap-5 text-navy-700/80">
+        <a href="#" class="hover:text-navy-900">How it works</a>
+        <a href="#" class="hover:text-navy-900">Trust &amp; Safety</a>
+        <a href="#" class="hover:text-navy-900">Help</a>
+      </div>
+    </div>
   </footer>
 </body>
 </html>
