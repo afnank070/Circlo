@@ -2,10 +2,15 @@
 
 No images are uploaded here, so the storage backend (MinIO) is never touched —
 these run against the same in-memory SQLite DB as the other smoke tests.
+
+Listing creation is gated on identity verification (M1 part 2), so every test
+here verifies the signed-up user directly (bypassing the CNIC/selfie flow,
+which is covered separately in test_verification.py) before listing.
 """
 
 from app.extensions import db
 from app.models import Category, Listing
+from app.models.user import VERIFICATION_APPROVED
 from app.services import auth as auth_service
 
 
@@ -17,8 +22,8 @@ def _make_category(app, name="Tools", slug="tools"):
         return cat.id
 
 
-def _signup(client, email="owner@example.com"):
-    return client.post(
+def _signup(client, app, email="owner@example.com"):
+    resp = client.post(
         "/signup",
         data={
             "name": "Owner Person",
@@ -28,6 +33,14 @@ def _signup(client, email="owner@example.com"):
         },
         follow_redirects=True,
     )
+    # No nested app_context() here: the `app` fixture already keeps one active
+    # for the whole test, and requests reuse that same scoped session. Opening
+    # a second one would create a separate session whose commit wouldn't be
+    # visible to the identity map the next request reads `current_user` from.
+    user = auth_service.get_user_by_email(email)
+    user.verification_status = VERIFICATION_APPROVED
+    db.session.commit()
+    return resp
 
 
 def test_create_listing_requires_login(client):
@@ -39,7 +52,7 @@ def test_create_listing_requires_login(client):
 
 def test_create_listing_creates_owned_active_listing(client, app):
     category_id = _make_category(app)
-    _signup(client)
+    _signup(client, app)
 
     resp = client.post(
         "/listings/new",
@@ -68,12 +81,13 @@ def test_create_listing_creates_owned_active_listing(client, app):
         assert listing.owner_id == owner.id
         # New owner has no rating yet -> listing renders "New".
         assert listing.owner_rating is None
-        assert listing.is_verified is False
+        # Owner was verified in _signup() to pass the listing-gate -> reflected here.
+        assert listing.is_verified is True
 
 
 def test_create_listing_rejects_missing_title(client, app):
     category_id = _make_category(app)
-    _signup(client)
+    _signup(client, app)
 
     resp = client.post(
         "/listings/new",
@@ -95,7 +109,7 @@ def test_create_listing_rejects_missing_title(client, app):
 def test_non_owner_cannot_edit_listing(client, app):
     category_id = _make_category(app)
     # Owner A creates a listing.
-    _signup(client, email="ownera@example.com")
+    _signup(client, app, email="ownera@example.com")
     client.post(
         "/listings/new",
         data={
@@ -112,7 +126,7 @@ def test_non_owner_cannot_edit_listing(client, app):
 
     # Owner B logs in (signup swaps the session) and tries to edit A's listing.
     client.post("/logout")
-    _signup(client, email="ownerb@example.com")
+    _signup(client, app, email="ownerb@example.com")
     resp = client.get(f"/listings/{listing_id}/edit")
     assert resp.status_code == 403
 

@@ -4,7 +4,58 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
-## Current milestone: M1 — Auth & Identity (part 1, DONE ✅)
+## Current milestone: M1 — Auth & Identity (part 2, DONE ✅)
+_(Manual CNIC + selfie identity verification, admin review, and listing-gating.
+Phone OTP and email verification are still deferred — they need an SMS/email
+provider.)_
+
+## Done — M1 part 2 (identity verification — the trust core)
+- **`IdentityDocument` model** (`app/models/identity_document.py`, blueprint §5,
+  §8): `user_id`, `cnic_image_key`, `selfie_image_key`, `status`
+  (pending/approved/rejected), `reviewed_by`, `reviewed_at`, `rejection_reason`,
+  `submitted_at`. Each submission is its own row (resubmission after rejection
+  keeps history). Migration `48271134b900`, applied clean on top of `5dfccc05bad8`.
+- **Verification service** (`app/services/verification.py`, API-reusable):
+  `submit_documents` (validates + uploads CNIC/selfie to the **private** MinIO
+  bucket via the existing storage service, only object keys stored),
+  `latest_document_for`, `pending_documents` (admin queue), `approve`, `reject`
+  (sets `reviewed_by`/`reviewed_at`, mirrors onto `User.verification_status`).
+  `_notify_admin_pending` logs a "new verification pending" line for now (real
+  email/SMS lands with those providers).
+- **`/verify` page** (`app/web/verify.py` + `templates/verify/status.html`,
+  login-required): pending → "submitted, awaiting review"; approved → green
+  "Verified since <date>" badge; rejected → reason + re-upload form. Upload is a
+  two-file form (`cnic_image`, `selfie_image`) validated to JPG/PNG/WEBP.
+- **Admin panel** (`app/admin/` — blueprint now actually wired, was a stub):
+  `admin_required` decorator (login + `role == 'admin'`, else 403).
+  `/admin/verify` lists pending submissions (name, email, submitted-at, CNIC +
+  selfie thumbnails via short-lived presigned URLs against the private bucket).
+  Approve is one click; Reject prompts for a reason inline. Both redirect back
+  to the queue with a flash.
+- **Verification gating**: `web.create_listing` now redirects unverified users
+  to `/verify` with "Verify your identity to list items." before rendering the
+  form. Same pattern noted in code for renting once M3 lands (not enforced yet
+  — renting doesn't exist).
+- **Tests**: `tests/test_verification.py` (upload flow, admin approve/reject,
+  gating redirect, non-admin 403) — 6 new tests, all against the real private
+  MinIO bucket. Updated `tests/test_listings_crud.py` to verify the test owner
+  first (gating is now enforced) — **20 passing** total.
+- Verified live over HTTP (dev overlay): signup → gated at `/listings/new` →
+  upload CNIC+selfie (stored under `identity/<user_id>/<uuid>/...` in the
+  private bucket) → `/verify` shows pending → admin logs in, sees thumbnails
+  render from presigned private URLs, approves → renter's `/verify` flips to
+  "Verified since ..." → `/listings/new` now accessible.
+
+### Known follow-ups
+- **No CSRF protection yet** — still open from M1 part 1 (Flask-WTF, ask before
+  adding). Do before any public deploy.
+- CNIC/selfie retention policy not implemented (blueprint §8 suggests deleting
+  raw documents once approved, keeping only `verification_status`) — flagged,
+  not built.
+- Admin notification is a log line only; real email/push lands with a provider.
+- Renting isn't gated yet because renting doesn't exist yet (M3).
+
+## Previous milestone: M1 — Auth & Identity (part 1, DONE ✅)
 _(Accounts + owner-created listings. Phone OTP, email verification, and CNIC/selfie
 review are deferred — they need external services; `verification_status` is in place
 for when they land.)_
@@ -134,17 +185,17 @@ for when they land.)_
     `/health` (`{"status":"ok"}`) with no manual fiddling.
 
 ## In progress
-- (nothing — M1 part 1 shipped)
+- (nothing — M1 part 2 shipped)
 
 ## Next up
-- M1 part 2 (identity verification): CNIC + selfie upload to the **private** bucket
-  → admin approval flow; then gate listing/renting on `verification_status`
-  (currently ungated). Phone OTP + email verification (need an SMS/email provider).
+- Phone OTP + email verification (need an SMS/email provider — blocked, see below).
 - Add CSRF protection to all forms (Flask-WTF) — see follow-ups above.
+- CNIC/selfie retention policy (delete raw docs after approval?) — blueprint §8.
 - M3 Booking: rental request → owner accept/reject, availability, the state machine.
+  Gate renting on `verification_status` the same way listing is now gated.
 
 ## Blockers / decisions needed
-- SMS provider for OTP (recurring cost) — pick before M1 part 2.
+- SMS provider for OTP (recurring cost) — pick before phone verification lands.
 - Payment approach for MVP: semi-manual vs gateway (Safepay / JazzCash / Easypaisa).
 - Full open-decisions list: CIRCLO_Technical_Blueprint.md §13.
 
@@ -154,4 +205,9 @@ for when they land.)_
 - Run: `cp .env.example .env && docker compose up --build` → http://localhost:5000
 - Seed demo data: `docker compose exec app flask seed` (idempotent; re-runnable)
 - Demo login (any seeded owner): e.g. `sara.malik@demo.circlo.pk` / `circlo123`
-- Tests: `docker compose exec app python -m pytest -q` (14 passing)
+  (seeded owners are pre-approved, so they skip `/verify`)
+- To test the verification flow: sign up a new account (starts unverified),
+  try `/listings/new` → redirected to `/verify` → upload any CNIC/selfie
+  images → then log in as an admin (`flask shell` and set `role='admin'`,
+  `verification_status='approved'` on a user) → `/admin/verify` → Approve/Reject.
+- Tests: `docker compose exec app python -m pytest -q` (20 passing)

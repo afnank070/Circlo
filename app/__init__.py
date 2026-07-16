@@ -36,10 +36,12 @@ def _init_extensions(app: Flask) -> None:
 
 
 def _register_blueprints(app: Flask) -> None:
-    # Web UI (Jinja + HTMX). API and admin blueprints land in later milestones.
+    # Web UI (Jinja + HTMX). The API blueprint lands in a later milestone.
     from .web import web_bp
+    from .admin import admin_bp
 
     app.register_blueprint(web_bp)
+    app.register_blueprint(admin_bp)
 
 
 def _register_models() -> None:

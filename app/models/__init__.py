@@ -11,10 +11,11 @@ from __future__ import annotations
 
 # M1 — Auth & Identity.
 from .user import User  # noqa: F401
+from .identity_document import IdentityDocument  # noqa: F401
 
 # M2 — Listings & Search.
 from .category import Category  # noqa: F401
 from .listing import Listing  # noqa: F401
 from .listing_image import ListingImage  # noqa: F401
 
-__all__ = ["User", "Category", "Listing", "ListingImage"]
+__all__ = ["User", "IdentityDocument", "Category", "Listing", "ListingImage"]

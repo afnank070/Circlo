@@ -15,3 +15,4 @@ web_bp = Blueprint(
 from . import routes  # noqa: E402,F401  (browse/detail/health)
 from . import auth  # noqa: E402,F401  (signup/login/logout)
 from . import owner  # noqa: E402,F401  (owner listing CRUD)
+from . import verify  # noqa: E402,F401  (identity verification)

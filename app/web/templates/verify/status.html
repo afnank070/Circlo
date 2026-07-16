@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Identity verification — CIRCLO{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-xl px-4 py-10">
+  <div class="rounded-2xl border border-sand-200 bg-white p-6 shadow-sm sm:p-8">
+    <h1 class="font-sora text-2xl font-extrabold tracking-tight text-navy-900">Identity verification</h1>
+    <p class="mt-1 text-sm text-navy-700/70">
+      Verifying your identity lets you list items and rent from others on CIRCLO.
+    </p>
+
+    {% if document is none %}
+      <div class="mt-6 rounded-xl border border-navy-100 bg-navy-50 px-4 py-3 text-sm text-navy-800">
+        Upload your CNIC and a selfie for verification. An admin reviews submissions by hand.
+      </div>
+
+    {% elif document.status == 'pending' %}
+      <div class="mt-6 flex items-start gap-2 rounded-xl border border-navy-100 bg-navy-50 px-4 py-3 text-sm text-navy-800">
+        <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>Submitted on {{ document.submitted_at.strftime('%d %b %Y') }} — pending review. We'll update this page once an admin reviews it.</span>
+      </div>
+
+    {% elif document.status == 'approved' %}
+      <div class="mt-6 flex items-start gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+        <svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="font-semibold">Verified</span>
+        <span class="text-teal-700/80">since {{ document.reviewed_at.strftime('%d %b %Y') }}</span>
+      </div>
+
+    {% elif document.status == 'rejected' %}
+      <div class="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <p class="font-semibold">Verification rejected</p>
+        {% if document.rejection_reason %}
+        <p class="mt-1">{{ document.rejection_reason }}</p>
+        {% endif %}
+        <p class="mt-2 text-rose-700/80">Please re-upload clear photos below.</p>
+      </div>
+    {% endif %}
+
+    {% if show_upload %}
+    <form method="post" enctype="multipart/form-data" class="mt-6 space-y-5">
+      <div>
+        <label for="cnic_image" class="block text-sm font-semibold text-navy-800">CNIC photo</label>
+        <input id="cnic_image" name="cnic_image" type="file" accept="image/jpeg,image/png,image/webp" required
+               class="mt-1.5 block w-full text-sm text-navy-700
+                      file:mr-3 file:rounded-full file:border-0 file:bg-navy-800 file:px-4 file:py-2
+                      file:text-sm file:font-semibold file:text-white hover:file:bg-navy-900">
+      </div>
+      <div>
+        <label for="selfie_image" class="block text-sm font-semibold text-navy-800">Selfie</label>
+        <input id="selfie_image" name="selfie_image" type="file" accept="image/jpeg,image/png,image/webp" required
+               class="mt-1.5 block w-full text-sm text-navy-700
+                      file:mr-3 file:rounded-full file:border-0 file:bg-navy-800 file:px-4 file:py-2
+                      file:text-sm file:font-semibold file:text-white hover:file:bg-navy-900">
+        <p class="mt-1 text-xs text-navy-700/70">A clear, well-lit photo of your face — no filters or masks.</p>
+      </div>
+      <button type="submit"
+              class="rounded-xl bg-navy-800 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-100">
+        Submit for review
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

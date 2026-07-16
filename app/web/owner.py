@@ -76,6 +76,12 @@ def _parse_form(form):
 @web_bp.route("/listings/new", methods=["GET", "POST"])
 @login_required
 def create_listing():
+    # Verification gating (blueprint §5, §8): only verified users may list items.
+    # Same pattern applies to renting once M3 lands.
+    if not current_user.is_verified:
+        flash("Verify your identity to list items.", "info")
+        return redirect(url_for("web.verify"))
+
     categories = listings_service.all_categories()
 
     if request.method == "POST":
