@@ -4,6 +4,18 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Seed data — real photos (post-M1 part 2)
+- `app/services/seed.py` now downloads a real, hand-picked cover photo per
+  listing from Unsplash's public CDN (`images.unsplash.com`, no API key) and
+  pushes it through the existing storage service — full pipeline: download →
+  upload to MinIO → stored key → runtime presigned URL. Falls back to the old
+  SVG placeholder per-listing if a fetch fails, so `flask seed` never hard-fails
+  offline. No new dependency — stdlib `urllib` only.
+- Re-run: `docker compose exec app flask seed`. Verified live: all 11
+  `cover.jpg` requests return 200 `image/jpeg` from MinIO, and photos genuinely
+  match their listing (DEWALT-style drill, Canon body, PS5, DJI quadcopter, red/gold
+  bridal wear, etc.) — not generic per-category stock art.
+
 ## Current milestone: M1 — Auth & Identity (part 2, DONE ✅)
 _(Manual CNIC + selfie identity verification, admin review, and listing-gating.
 Phone OTP and email verification are still deferred — they need an SMS/email

@@ -1,12 +1,16 @@
 """Seed service — populate the marketplace with realistic demo data.
 
 Inserts a demo user per owner, the fixed category set, and ~10 Islamabad/Rawalpindi
-listings, and pushes a placeholder image for each through the existing storage
-service so the whole image pipeline (upload → stored key → runtime presigned URL)
-is exercised end-to-end.
+listings, and pushes a real cover photo for each through the existing storage
+service so the whole image pipeline (download → upload → stored key → runtime
+presigned URL) is exercised end-to-end with no extra dependencies (stdlib
+``urllib`` only — no Pillow, no ``requests``).
 
-Placeholders are generated as SVGs so the seed needs no image files on disk and no
-extra dependencies (Pillow etc.). The point is to prove the pipeline, not the art.
+Photos are fetched from Unsplash's public CDN (``images.unsplash.com``, no API
+key needed for direct photo fetches) — one hand-picked photo id per listing that
+matches the item (see :data:`UNSPLASH_PHOTO_IDS`), not a generic category stock
+image. If a fetch fails (offline dev box, Unsplash hiccup), the seed falls back
+to the old SVG placeholder for that listing so ``flask seed`` still completes.
 
 Every seed owner shares the same demo password (:data:`SEED_PASSWORD`) so the
 listings can be logged into and edited while testing M1 — see PROGRESS.md.
@@ -18,6 +22,8 @@ from __future__ import annotations
 
 import io
 import re
+import urllib.error
+import urllib.request
 
 from app.extensions import db
 from app.models import Category, Listing, ListingImage, User
@@ -76,6 +82,23 @@ LISTINGS = [
      "Hand-embroidered bridal lehenga in deep red, size M. A fraction of the price of buying one."),
 ]
 
+# --- Real cover photos (Unsplash CDN, no API key needed) --------------------
+# One hand-picked photo id per listing title — matched to the specific item, not
+# just its category, so e.g. the Canon kit gets a Canon body, not a random camera.
+UNSPLASH_PHOTO_IDS = {
+    "Bosch Hammer Drill (Corded)": "1572981779307-38b8cabb2407",
+    "Makita Angle Grinder 4\"": "1522322512347-a0e57fd1744c",
+    "Canon EOS R6 Mirrorless Kit": "1495707902641-75cac588d2e9",
+    "DJI Mavic Air 2 Drone": "1521405924368-64c5b84bec60",
+    "4-Person Camping Tent": "1504280390367-361c6d9f38f4",
+    "Coleman Sleeping Bag Set (x2)": "1558477280-1bfed08ea5db",
+    "PlayStation 5 + 2 Controllers": "1622297845775-5ff3fef71d13",
+    "Xbox Series X Console": "1621259182978-fbf93132d53d",
+    "Party Sound System + Speakers": "1724858103797-6d388eb1006a",
+    "Wedding Sherwani (Maroon)": "1618886614638-80e3c103d31a",
+    "Designer Bridal Lehenga": "1610047614301-13c63f00c032",
+}
+
 
 def _slugify(text: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
@@ -102,6 +125,21 @@ def _placeholder_svg(title: str, category: str, c1: str, c2: str) -> bytes:
         letter-spacing='3'>{safe_cat}</text>
 </svg>"""
     return svg.encode("utf-8")
+
+
+def _fetch_unsplash_photo(photo_id: str) -> bytes | None:
+    """Download an Unsplash CDN photo. Returns ``None`` on any failure.
+
+    ``images.unsplash.com`` serves direct photo fetches with no API key; a
+    ``User-Agent`` is set because the CDN 403s the default urllib one.
+    """
+    url = f"https://images.unsplash.com/photo-{photo_id}?w=800&q=80&fit=crop&auto=format"
+    req = urllib.request.Request(url, headers={"User-Agent": "circlo-seed/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.read()
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return None
 
 
 def _owner_email(name: str) -> str:
@@ -176,13 +214,25 @@ def seed_all() -> dict[str, int]:
         )
         db.session.add(listing)
 
-        # Upload the placeholder through the storage service and store only the key.
-        c1, c2 = colors[cat_slug]
-        key = f"listings/{_slugify(title)}/cover.svg"
-        svg_bytes = _placeholder_svg(title, cats[cat_slug].name, c1, c2)
-        storage.upload_fileobj(
-            io.BytesIO(svg_bytes), key, content_type="image/svg+xml"
-        )
+        # Real photo → download from Unsplash → upload through the storage
+        # service, storing only the key. Falls back to the SVG placeholder if
+        # the fetch fails (offline dev box, Unsplash hiccup) so seeding never
+        # hard-fails on a network blip.
+        photo_id = UNSPLASH_PHOTO_IDS.get(title)
+        photo_bytes = _fetch_unsplash_photo(photo_id) if photo_id else None
+
+        if photo_bytes:
+            key = f"listings/{_slugify(title)}/cover.jpg"
+            storage.upload_fileobj(
+                io.BytesIO(photo_bytes), key, content_type="image/jpeg"
+            )
+        else:
+            c1, c2 = colors[cat_slug]
+            key = f"listings/{_slugify(title)}/cover.svg"
+            svg_bytes = _placeholder_svg(title, cats[cat_slug].name, c1, c2)
+            storage.upload_fileobj(
+                io.BytesIO(svg_bytes), key, content_type="image/svg+xml"
+            )
         listing.images.append(ListingImage(object_key=key, sort_order=0))
         image_count += 1
 
