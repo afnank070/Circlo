@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}My Rentals — CIRCLO{% endblock %}
+
+{% macro status_pill(status) -%}
+  {% set styles = {
+    'requested': 'bg-amber-50 text-amber-700 ring-amber-100',
+    'accepted': 'bg-teal-50 text-teal-700 ring-teal-100',
+    'cancelled': 'bg-sand-100 text-navy-700/70 ring-sand-200',
+  } %}
+  <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ring-1 {{ styles.get(status, styles['cancelled']) }}">{{ status }}</span>
+{%- endmacro %}
+
+{% block content %}
+<div class="mx-auto max-w-5xl px-4 py-8">
+  <h1 class="font-sora text-2xl font-extrabold tracking-tight text-navy-900">My Rentals</h1>
+  <p class="mt-1 text-sm text-navy-700/70">Manage rental requests for your items, and track what you've booked.</p>
+
+  <!-- ============ AS AN OWNER ============ -->
+  <h2 class="mt-8 font-sora text-lg font-semibold text-navy-900">As an owner</h2>
+
+  <div class="mt-3">
+    <h3 class="text-sm font-semibold text-navy-800">Pending requests</h3>
+    {% if owner_requests %}
+    <div class="mt-2 space-y-3">
+      {% for b in owner_requests %}
+      <div class="rounded-xl border border-sand-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="font-semibold text-navy-900">
+              <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
+            </p>
+            <p class="text-sm text-navy-700/70">Requested by {{ b.renter.name }}</p>
+            <p class="mt-1 text-sm text-navy-700">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
+            {% if b.message_from_renter %}
+            <p class="mt-2 rounded-lg bg-sand-50 px-3 py-2 text-sm text-navy-700">“{{ b.message_from_renter }}”</p>
+            {% endif %}
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <form method="post" action="{{ url_for('web.accept_booking', booking_id=b.id) }}">
+              <button type="submit" class="rounded-lg bg-navy-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-navy-900">Accept</button>
+            </form>
+            <form method="post" action="{{ url_for('web.reject_booking', booking_id=b.id) }}">
+              <button type="submit" class="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm font-semibold text-rose-600 hover:bg-rose-50">Reject</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-2 text-sm text-navy-700/60">No pending requests.</p>
+    {% endif %}
+  </div>
+
+  <div class="mt-6">
+    <h3 class="text-sm font-semibold text-navy-800">Active rentals (items rented out)</h3>
+    {% if owner_active %}
+    <div class="mt-2 space-y-3">
+      {% for b in owner_active %}
+      <div class="rounded-xl border border-sand-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="font-semibold text-navy-900">
+              <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
+            </p>
+            <p class="text-sm text-navy-700/70">Rented by {{ b.renter.name }} · returns {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
+          </div>
+          {{ status_pill(b.status) }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-2 text-sm text-navy-700/60">Nothing rented out right now.</p>
+    {% endif %}
+  </div>
+
+  <div class="mt-6">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-navy-800">My listings</h3>
+      <a href="{{ url_for('web.my_listings') }}" class="text-sm font-semibold text-teal-700 hover:text-teal-800">Manage listings →</a>
+    </div>
+    {% if owner_listings %}
+    <div class="mt-2 flex flex-wrap gap-2">
+      {% for listing in owner_listings %}
+      <a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}"
+         class="rounded-full border border-sand-200 bg-white px-3 py-1.5 text-sm font-medium text-navy-800 hover:bg-sand-50">
+        {{ listing.title }}
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-2 text-sm text-navy-700/60">You haven't listed anything yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- ============ AS A RENTER ============ -->
+  <h2 class="mt-10 font-sora text-lg font-semibold text-navy-900">As a renter</h2>
+
+  <div class="mt-3">
+    <h3 class="text-sm font-semibold text-navy-800">Pending (awaiting owner)</h3>
+    {% if renter_pending %}
+    <div class="mt-2 space-y-3">
+      {% for b in renter_pending %}
+      <div class="rounded-xl border border-sand-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="font-semibold text-navy-900">
+              <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
+            </p>
+            <p class="text-sm text-navy-700/70">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
+          </div>
+          <form method="post" action="{{ url_for('web.cancel_booking', booking_id=b.id) }}">
+            <button type="submit" class="rounded-lg border border-sand-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-800 hover:bg-sand-50">Cancel</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-2 text-sm text-navy-700/60">No pending requests.</p>
+    {% endif %}
+  </div>
+
+  <div class="mt-6">
+    <h3 class="text-sm font-semibold text-navy-800">Active (approved &amp; ongoing)</h3>
+    {% if renter_active %}
+    <div class="mt-2 space-y-3">
+      {% for b in renter_active %}
+      <div class="rounded-xl border border-sand-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="font-semibold text-navy-900">
+              <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
+            </p>
+            <p class="text-sm text-navy-700/70">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
+          </div>
+          <form method="post" action="{{ url_for('web.cancel_booking', booking_id=b.id) }}">
+            <button type="submit" class="rounded-lg border border-sand-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-800 hover:bg-sand-50">Cancel</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-2 text-sm text-navy-700/60">Nothing active right now.</p>
+    {% endif %}
+  </div>
+
+  <div class="mt-6">
+    <h3 class="text-sm font-semibold text-navy-800">History</h3>
+    {% if renter_history %}
+    <div class="mt-2 space-y-2">
+      {% for b in renter_history %}
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sand-200 bg-sand-50 px-4 py-3">
+        <div>
+          <p class="font-medium text-navy-800">{{ b.listing.title }}</p>
+          <p class="text-sm text-navy-700/60">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
+        </div>
+        {{ status_pill(b.status) }}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-2 text-sm text-navy-700/60">No past rentals yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

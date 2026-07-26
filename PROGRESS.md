@@ -4,6 +4,66 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Current milestone: M3 — Booking core (rental state machine, DONE ✅)
+_(Front half of the lifecycle only — request → owner accept/reject/cancel. No
+payments (M4), no handover evidence (M4), no availability calendar UI yet.)_
+
+## Done — M3 (booking core)
+- **`Booking` model** (`app/models/booking.py`, blueprint §5): `listing_id`,
+  `renter_id`, `owner_id` (denormalised from `listing.owner_id` for fast owner
+  queries), `status` (`requested`/`accepted`/`cancelled` — PAID/HANDED_OVER/
+  ACTIVE/RETURNED/COMPLETED/DISPUTED land with M4/M5), `rental_date_start`,
+  `rental_date_end`, `deposit_amount` (snapshotted from the listing at request
+  time so later listing edits don't rewrite existing bookings),
+  `message_from_renter`, `created_at`. Migration `7c3f9a1b2e4d` (hand-written in
+  the style of the existing migrations — Docker/Postgres wasn't available in
+  this environment to autogenerate; **run `flask db upgrade` and sanity-check
+  the generated DDL once you're back on Docker**).
+- **Booking service** (`app/services/booking.py`, API-reusable):
+  `request_to_rent` (rejects renting your own listing, past start dates, end <
+  start), `accept`/`reject` (owner-only, only from `requested`, `accept` also
+  rejects if another `accepted` booking on the same listing overlaps the
+  dates), `cancel` (renter or owner, from `requested` or `accepted`), plus
+  query helpers for the owner's pending/active requests and the renter's
+  pending/active/history lists. Custom exceptions
+  (`InvalidBookingRequest`/`BookingPermissionError`/`InvalidBookingTransition`/
+  `BookingConflict`) mirror the pattern in `services/auth.py`/`verification.py`.
+- **Routes** (`app/web/booking.py`): `POST /listings/<id>/request` (login +
+  identity-verification gated, same pattern as listing creation — the
+  `/verify` copy already promised "list items and rent from others"),
+  `POST /bookings/<id>/accept|reject|cancel`, `GET /my-rentals`.
+- **UI**: listing detail's "Request to Rent" button now opens a real `<dialog>`
+  modal (start/end date + optional message) posting to the request route;
+  shows a login link when logged out and "This is your own listing" for the
+  owner. `/my-rentals` (`templates/rentals/my_rentals.html`) shows, as owner:
+  pending requests (Accept/Reject), active rentals (return date), and a
+  reference list of your listings; as renter: pending/active/history with a
+  Cancel action. Nav (`base.html`) gained a "My Rentals" link next to "My
+  Listings".
+- **Tests**: `tests/test_booking.py` — request requires login/verification,
+  can't rent your own listing, request creates a `requested` booking with the
+  deposit snapshot, owner accept/reject, non-owner can't accept (403), renter
+  can cancel, **accept rejects a second overlapping-dates request** (stays
+  `requested`), `/my-rentals` requires login and renders both sections. 11 new
+  tests, all passing locally (in-memory SQLite, no Docker needed for these).
+- Verified via `pytest` locally (Docker/MinIO weren't available in this
+  session) — **28 passing** overall; the only failures are the 3 pre-existing
+  `test_verification.py` tests that upload to MinIO and need
+  `docker-compose up` to reach the storage endpoint. Re-run the full suite in
+  the container to confirm those still pass and to smoke-test the new flow
+  live over HTTP (see commands below) before calling this fully verified.
+
+### Known follow-ups
+- No cancellation-policy enforcement (e.g. no late-cancellation fee) — that's
+  a business decision + M4 money work.
+- No availability calendar on the listing page yet — a renter only finds out
+  about a date conflict when the owner tries to accept a second overlapping
+  request.
+- `/my-rentals` re-queries on every load; fine at this scale, revisit if it
+  ever needs pagination.
+- Booking migration was hand-written (no Docker/Postgres locally this
+  session) — confirm `flask db upgrade` applies cleanly against real Postgres.
+
 ## Seed data — real photos (post-M1 part 2)
 - `app/services/seed.py` now downloads a real, hand-picked cover photo per
   listing from Unsplash's public CDN (`images.unsplash.com`, no API key) and
@@ -197,14 +257,17 @@ for when they land.)_
     `/health` (`{"status":"ok"}`) with no manual fiddling.
 
 ## In progress
-- (nothing — M1 part 2 shipped)
+- Confirm the hand-written `7c3f9a1b2e4d` migration applies cleanly against
+  real Postgres once Docker is available again (it was written without a
+  live DB to autogenerate against — see M3 follow-ups above).
 
 ## Next up
 - Phone OTP + email verification (need an SMS/email provider — blocked, see below).
 - Add CSRF protection to all forms (Flask-WTF) — see follow-ups above.
 - CNIC/selfie retention policy (delete raw docs after approval?) — blueprint §8.
-- M3 Booking: rental request → owner accept/reject, availability, the state machine.
-  Gate renting on `verification_status` the same way listing is now gated.
+- M4 Money & evidence: ledger, semi-manual deposit/payment, before/after
+  evidence upload, payout-minus-commission, refunds — moves accepted bookings
+  through PAID/HANDED_OVER/ACTIVE/RETURNED/COMPLETED.
 
 ## Blockers / decisions needed
 - SMS provider for OTP (recurring cost) — pick before phone verification lands.
@@ -215,11 +278,26 @@ for when they land.)_
 - Architecture + milestones: CIRCLO_Technical_Blueprint.md
 - Milestone task list: CIRCLO_Progress_Tracker.xlsx
 - Run: `cp .env.example .env && docker compose up --build` → http://localhost:5000
-- Seed demo data: `docker compose exec app flask seed` (idempotent; re-runnable)
-- Demo login (any seeded owner): e.g. `sara.malik@demo.circlo.pk` / `circlo123`
+- **Quick test setup** (pre-verified users + sample listings):
+  `docker compose exec app flask seed-test-accounts`
+  Then log in as:
+  - Regular user: `user@circlo.test` / `testpass123`
+  - Admin: `admin@circlo.test` / `adminpass123`
+- **Full demo data** (many owners + listings):
+  `docker compose exec app flask seed` (idempotent; re-runnable)
+  Demo login (any seeded owner): e.g. `sara.malik@demo.circlo.pk` / `circlo123`
   (seeded owners are pre-approved, so they skip `/verify`)
 - To test the verification flow: sign up a new account (starts unverified),
   try `/listings/new` → redirected to `/verify` → upload any CNIC/selfie
   images → then log in as an admin (`flask shell` and set `role='admin'`,
   `verification_status='approved'` on a user) → `/admin/verify` → Approve/Reject.
-- Tests: `docker compose exec app python -m pytest -q` (20 passing)
+- To test the booking flow: as a verified owner, create a listing; log in as a
+  second verified user and open that listing → "Request to Rent" → pick dates
+  → submit → `/my-rentals` shows it pending for the renter. Log back in as the
+  owner → `/my-rentals` shows it under "Pending requests" → Accept (or
+  Reject). Try requesting overlapping dates on the same listing from a third
+  user and accepting both — the second Accept is refused with "already booked
+  for overlapping dates".
+- Tests: `docker compose exec app python -m pytest -q` (31 total: 28 passing;
+  the 3 `test_verification.py` failures without Docker are pre-existing —
+  they upload to MinIO and need `docker-compose up`, not a booking regression)

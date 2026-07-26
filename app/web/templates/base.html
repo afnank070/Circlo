@@ -114,6 +114,7 @@
         </a>
 
         {% if current_user.is_authenticated %}
+        <a href="{{ url_for('web.my_rentals') }}" class="hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-block">My Rentals</a>
         <a href="{{ url_for('web.my_listings') }}" class="hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-block">My Listings</a>
         <!-- Account menu (pure CSS via <details>) -->
         <details class="relative">
@@ -126,6 +127,7 @@
               <p class="truncate text-sm font-semibold text-navy-900">{{ current_user.name }}</p>
               <p class="truncate text-xs text-navy-700/70">{{ current_user.email }}</p>
             </div>
+            <a href="{{ url_for('web.my_rentals') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">My Rentals</a>
             <a href="{{ url_for('web.my_listings') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">My Listings</a>
             <a href="{{ url_for('web.create_listing') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">List an item</a>
             <form method="post" action="{{ url_for('web.logout') }}" class="border-t border-sand-100">

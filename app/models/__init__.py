@@ -18,4 +18,14 @@ from .category import Category  # noqa: F401
 from .listing import Listing  # noqa: F401
 from .listing_image import ListingImage  # noqa: F401
 
-__all__ = ["User", "IdentityDocument", "Category", "Listing", "ListingImage"]
+# M3 — Booking core.
+from .booking import Booking  # noqa: F401
+
+__all__ = [
+    "User",
+    "IdentityDocument",
+    "Category",
+    "Listing",
+    "ListingImage",
+    "Booking",
+]
