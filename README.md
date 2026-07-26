@@ -54,7 +54,18 @@ buckets automatically — no manual steps. Then open:
 
 ## Accounts & demo data
 
-Seed demo owners + categories + listings (idempotent — re-runnable):
+**For rapid testing** (creates pre-verified test users + sample listings):
+
+```bash
+docker-compose exec app flask seed-test-accounts
+```
+
+This creates (idempotent):
+- Regular user: `user@circlo.test` / `testpass123` (already verified)
+- Admin user: `admin@circlo.test` / `adminpass123` (already verified, can approve identity docs)
+- 1–2 sample listings owned by the admin (Camera, Drill) if none exist
+
+**For full demo data** (many owners + listings + categories):
 
 ```bash
 docker-compose exec app flask seed
