@@ -70,7 +70,7 @@
     }
   </style>
 </head>
-<body class="h-full bg-sand-100 font-sans text-navy-900 antialiased">
+<body class="h-full bg-slate-50 font-sans text-navy-900 antialiased">
   <header class="sticky top-0 z-30 border-b border-sand-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
       <!-- Logo -->
@@ -114,12 +114,22 @@
         </a>
 
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('web.my_rentals') }}" class="hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-block">My Rentals</a>
+        <a href="{{ url_for('web.my_rentals') }}" class="relative hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-flex md:items-center md:gap-1.5">
+          My Rentals
+          {% if pending_request_count %}
+          <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-xs font-bold text-white">{{ pending_request_count }}</span>
+          {% endif %}
+        </a>
         <a href="{{ url_for('web.my_listings') }}" class="hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-block">My Listings</a>
         <!-- Account menu (pure CSS via <details>) -->
         <details class="relative">
           <summary class="flex cursor-pointer list-none items-center gap-1.5">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">{{ current_user.initials }}</span>
+            <span class="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">
+              {{ current_user.initials }}
+              {% if pending_request_count %}
+              <span class="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-rose-600 text-[10px] font-bold text-white ring-2 ring-white">{{ pending_request_count if pending_request_count < 10 else '9+' }}</span>
+              {% endif %}
+            </span>
             <svg class="hidden h-4 w-4 text-navy-700 sm:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </summary>
           <div class="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-xl border border-sand-200 bg-white py-1 shadow-lg">
@@ -127,7 +137,12 @@
               <p class="truncate text-sm font-semibold text-navy-900">{{ current_user.name }}</p>
               <p class="truncate text-xs text-navy-700/70">{{ current_user.email }}</p>
             </div>
-            <a href="{{ url_for('web.my_rentals') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">My Rentals</a>
+            <a href="{{ url_for('web.my_rentals') }}" class="flex items-center justify-between px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">
+              My Rentals
+              {% if pending_request_count %}
+              <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-xs font-bold text-white">{{ pending_request_count }}</span>
+              {% endif %}
+            </a>
             <a href="{{ url_for('web.my_listings') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">My Listings</a>
             <a href="{{ url_for('web.create_listing') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">List an item</a>
             <form method="post" action="{{ url_for('web.logout') }}" class="border-t border-sand-100">

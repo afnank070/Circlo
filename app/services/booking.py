@@ -104,6 +104,11 @@ def requests_for_owner(owner: User) -> list[Booking]:
     )
 
 
+def pending_count_for_owner(owner: User) -> int:
+    """Count of REQUESTED bookings against the owner's listings — nav badge."""
+    return Booking.query.filter_by(owner_id=owner.id, status=STATUS_REQUESTED).count()
+
+
 def active_for_owner(owner: User) -> list[Booking]:
     """Items currently rented out (ACCEPTED), soonest return date first."""
     return (

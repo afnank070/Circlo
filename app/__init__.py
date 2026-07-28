@@ -25,6 +25,7 @@ def create_app(config_object=None) -> Flask:
     _register_blueprints(app)
     _register_models()
     _register_cli(app)
+    _register_context_processors(app)
 
     return app
 
@@ -57,3 +58,16 @@ def _register_cli(app: Flask) -> None:
     from .cli import register_cli
 
     register_cli(app)
+
+
+def _register_context_processors(app: Flask) -> None:
+    """Template globals shared by every blueprint (web + admin), e.g. base.html's nav."""
+    from flask_login import current_user
+
+    from .services import booking as booking_service
+
+    @app.context_processor
+    def inject_pending_request_count() -> dict:
+        if current_user.is_authenticated:
+            return {"pending_request_count": booking_service.pending_count_for_owner(current_user)}
+        return {"pending_request_count": 0}
