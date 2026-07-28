@@ -82,11 +82,22 @@ def upload_fileobj(fileobj, key: str, *, content_type: str | None = None,
 
 
 def presigned_url(key: str, *, private: bool = False, expires_in: int | None = None) -> str:
-    """Build a short-lived, browser-usable URL for an object key.
+    """Build a browser-usable URL for an object key.
 
     The DB only ever holds ``key``; the URL is generated on demand so servers /
     storage backends can change without touching stored data (blueprint §9).
+
+    An R2 ``.r2.dev`` public bucket URL is already the final, bucket-specific
+    host and serves objects unauthenticated — it doesn't accept a signature or
+    a bucket subdomain prefix. So for the public bucket, when
+    ``STORAGE_PUBLIC_URL`` is an r2.dev domain, build the URL directly instead
+    of presigning. Private objects always go through a real presigned request
+    against the storage API endpoint.
     """
+    public_url = current_app.config.get("STORAGE_PUBLIC_URL")
+    if not private and public_url and ".r2.dev" in public_url:
+        return f"{public_url.rstrip('/')}/{key}"
+
     expires_in = expires_in or current_app.config["STORAGE_PRESIGN_EXPIRY"]
     return _client(public=True).generate_presigned_url(
         "get_object",
