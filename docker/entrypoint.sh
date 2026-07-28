@@ -25,8 +25,11 @@ PY
 echo "[entrypoint] applying database migrations ..."
 flask db upgrade
 
-echo "[entrypoint] ensuring object-storage buckets exist ..."
-python - <<'PY'
+if [[ "${STORAGE_ENDPOINT_URL:-}" == *"r2"* ]]; then
+    echo "[entrypoint] R2 endpoint detected; skipping ensure_buckets (create buckets manually in the Cloudflare dashboard)."
+else
+    echo "[entrypoint] ensuring object-storage buckets exist ..."
+    python - <<'PY'
 from app import create_app
 from app.services import storage
 
@@ -38,6 +41,7 @@ with app.app_context():
     except Exception as exc:  # storage is non-fatal for boot; log and continue
         print(f"[entrypoint] WARNING: could not ensure buckets: {exc}")
 PY
+fi
 
 echo "[entrypoint] starting: $*"
 exec "$@"

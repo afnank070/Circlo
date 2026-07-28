@@ -30,6 +30,16 @@ def _client(*, public: bool = False):
     endpoint = cfg.get("STORAGE_ENDPOINT_URL")
     if public and cfg.get("STORAGE_PUBLIC_URL"):
         endpoint = cfg.get("STORAGE_PUBLIC_URL")
+
+    # R2 requires virtual-hosted style addressing; MinIO requires path style.
+    is_r2 = "r2.cloudflarestorage.com" in (cfg.get("STORAGE_ENDPOINT_URL") or "")
+    if is_r2:
+        addressing_style = "virtual"
+    elif cfg.get("STORAGE_USE_PATH_STYLE"):
+        addressing_style = "path"
+    else:
+        addressing_style = "auto"
+
     return boto3.client(
         "s3",
         endpoint_url=endpoint,
@@ -38,7 +48,7 @@ def _client(*, public: bool = False):
         aws_secret_access_key=cfg.get("STORAGE_SECRET_KEY"),
         config=BotoConfig(
             signature_version="s3v4",
-            s3={"addressing_style": "path" if cfg.get("STORAGE_USE_PATH_STYLE") else "auto"},
+            s3={"addressing_style": addressing_style},
         ),
     )
 
