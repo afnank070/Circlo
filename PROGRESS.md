@@ -36,9 +36,27 @@ The real source of truth is the code + git history; this file just helps orient 
   (`/health` → 200); a simulated Render-style `DATABASE_URL`
   (`...@dpg-xxx.oregon-postgres.render.com:5432/...`) with `POSTGRES_HOST`
   unset correctly resolves to that external host.
+- **Auto-seed on first boot** (`docker/entrypoint.sh`): Render's free tier
+  has no shell access, so there's no way to manually run `flask seed` after
+  deploy. The entrypoint now checks `Listing.query.count()` after migrations
+  run — if the table is empty, it automatically runs `flask seed` (demo
+  categories/listings/images) and `flask seed-test-accounts` (`user@circlo.test`
+  / `admin@circlo.test`); if listings already exist, it skips seeding
+  entirely so a restart never re-seeds or wipes real data. Identical logic
+  for local Docker Compose and Render — same entrypoint script, no
+  environment-specific branching. Seed failures are non-fatal (logged as a
+  warning) so a network hiccup fetching demo photos doesn't block boot.
+  Verified locally: `docker compose down -v` (full wipe) → `docker compose
+  up --build` → log shows `listings table is empty; seeding demo data ...`
+  → `Seeded 11 owners, 6 categories, 11 listings, 11 images` + both test
+  accounts created → `/health` 200. Then `docker compose restart app` →
+  log shows `listings already present; skipping seed.` → confirmed via a
+  direct query: still exactly 11 listings and one of each test account, no
+  duplication.
 - **Next**: enable the R2 public dev URL (above), then a real Render deploy
   attempt to confirm the Postgres-wait fix resolves the original
-  `[entrypoint] ERROR: Postgres did not become ready in time` failure.
+  `[entrypoint] ERROR: Postgres did not become ready in time` failure, and
+  that the auto-seed fires correctly with no shell access.
 
 ## Current milestone: M3 — Booking core (rental state machine, DONE ✅)
 _(Front half of the lifecycle only — request → owner accept/reject/cancel. No

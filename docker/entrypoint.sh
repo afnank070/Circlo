@@ -58,5 +58,34 @@ with app.app_context():
 PY
 fi
 
+echo "[entrypoint] checking whether demo data needs seeding ..."
+NEEDS_SEED=$(python - <<'PY'
+import sys
+
+from app import create_app
+from app.models import Listing
+
+app = create_app()
+with app.app_context():
+    try:
+        count = Listing.query.count()
+    except Exception as exc:  # table missing or DB not ready -- don't risk a wipe
+        print(f"[entrypoint] WARNING: could not check listings table: {exc}", file=sys.stderr)
+        count = 1
+print("1" if count == 0 else "0")
+PY
+)
+
+if [[ "$NEEDS_SEED" == "1" ]]; then
+    # Render's free tier has no shell access, so this is the only way to get
+    # demo data + test logins onto a fresh deploy. Only runs when the listings
+    # table is empty, so it never re-seeds (and never wipes) an existing DB.
+    echo "[entrypoint] listings table is empty; seeding demo data ..."
+    flask seed || echo "[entrypoint] WARNING: flask seed failed"
+    flask seed-test-accounts || echo "[entrypoint] WARNING: flask seed-test-accounts failed"
+else
+    echo "[entrypoint] listings already present; skipping seed."
+fi
+
 echo "[entrypoint] starting: $*"
 exec "$@"
