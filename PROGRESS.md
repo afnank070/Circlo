@@ -4,6 +4,42 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Render deployment (in progress)
+- **R2 storage compatibility**: `app/services/storage.py` now uses
+  virtual-hosted addressing (`addressing_style="virtual"`) when
+  `STORAGE_ENDPOINT_URL` contains `r2.cloudflarestorage.com`, path-style for
+  local MinIO. `presigned_url()` returns a direct `STORAGE_PUBLIC_URL/<key>`
+  URL (no signing) when that URL is an R2 `.r2.dev` public domain, since
+  those hosts serve unauthenticated and don't accept a bucket-subdomain
+  prefix or signature — real presigned requests otherwise. `render.yaml`
+  added (web service + managed Postgres, storage vars marked `sync: false`
+  for manual entry in the Render dashboard).
+- **Buckets**: consolidated to exactly two — `circlo-public` (listing
+  images) and `circlo-private` (CNIC/selfie documents); the old
+  `circlo-images` bucket is retired. `.env.example` / `.env` updated.
+  Verified via `flask shell`-style scripts: `head_bucket` + full
+  put/get/delete round-trip passes on both buckets against real R2
+  credentials.
+- **Known blocker**: the public `.r2.dev` URL in `.env` still 403s —
+  `circlo-public`'s "Public Development URL" needs to be enabled in the
+  Cloudflare dashboard (R2 → circlo-public → Settings) and the resulting
+  `pub-xxxx.r2.dev` domain copied into `STORAGE_PUBLIC_URL`. Not yet
+  confirmed working end-to-end.
+- **Entrypoint fix** (`docker/entrypoint.sh`): the "wait for Postgres" step
+  used to hardcode `postgres:5432` (the Docker Compose service name), which
+  fails on Render — there is no such host. Now parses host/port out of
+  `DATABASE_URL` (what Render actually sets) via `urllib.parse`, falling
+  back to `postgres:5432` if unset. `POSTGRES_HOST`/`POSTGRES_PORT_INTERNAL`
+  (set explicitly in `docker-compose.yml`) still take precedence locally, so
+  Compose behaviour is unchanged. Verified both paths: local `docker compose
+  up --build` logs `resolved Postgres host: postgres:5432` and boots clean
+  (`/health` → 200); a simulated Render-style `DATABASE_URL`
+  (`...@dpg-xxx.oregon-postgres.render.com:5432/...`) with `POSTGRES_HOST`
+  unset correctly resolves to that external host.
+- **Next**: enable the R2 public dev URL (above), then a real Render deploy
+  attempt to confirm the Postgres-wait fix resolves the original
+  `[entrypoint] ERROR: Postgres did not become ready in time` failure.
+
 ## Current milestone: M3 — Booking core (rental state machine, DONE ✅)
 _(Front half of the lifecycle only — request → owner accept/reject/cancel. No
 payments (M4), no handover evidence (M4), no availability calendar UI yet.)_

@@ -4,12 +4,27 @@
 # `docker-compose up` work with no manual fiddling.
 set -euo pipefail
 
-echo "[entrypoint] waiting for Postgres at ${POSTGRES_HOST:-postgres}:${POSTGRES_PORT_INTERNAL:-5432} ..."
+echo "[entrypoint] waiting for Postgres ..."
 python - <<'PY'
 import os, time, socket, sys
+from urllib.parse import urlparse
 
-host = os.environ.get("POSTGRES_HOST", "postgres")
-port = int(os.environ.get("POSTGRES_PORT_INTERNAL", "5432"))
+# On Render (and any real deployment) DATABASE_URL already points at the real
+# DB host/port; parse it from there. Locally with Docker Compose, DATABASE_URL
+# uses the "postgres" service name too, but POSTGRES_HOST/PORT_INTERNAL can
+# override it -- fall back to the compose default if nothing is set.
+host, port = "postgres", 5432
+database_url = os.environ.get("DATABASE_URL")
+if database_url:
+    parsed = urlparse(database_url)
+    if parsed.hostname:
+        host = parsed.hostname
+        port = parsed.port or 5432
+
+host = os.environ.get("POSTGRES_HOST", host)
+port = int(os.environ.get("POSTGRES_PORT_INTERNAL", port))
+
+print(f"[entrypoint] resolved Postgres host: {host}:{port}")
 deadline = time.time() + 60
 while time.time() < deadline:
     try:
