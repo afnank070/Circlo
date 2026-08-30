@@ -12,10 +12,12 @@ from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.services import booking as booking_service
+from app.services import disputes as disputes_service
 from app.services import evidence as evidence_service
 from app.services import ledger as ledger_service
 from app.services import listings as listings_service
 from app.services import payments as payments_service
+from app.services import reviews as reviews_service
 from app.services import settings as settings_service
 
 from . import web_bp
@@ -168,30 +170,42 @@ def confirm_booking_return(booking_id: int):
 def my_rentals():
     owner_active = booking_service.active_for_owner(current_user)
     renter_active = booking_service.active_for_renter(current_user)
+    owner_history = booking_service.completed_for_owner(current_user)
+    renter_history = booking_service.history_for_renter(current_user)
 
-    def _evidence(bookings):
-        return {
-            b.id: {
+    def _detail(bookings):
+        out = {}
+        for b in bookings:
+            open_dispute = next((d for d in b.disputes if d.status == "open"), None)
+            out[b.id] = {
                 "before_me": evidence_service.has_uploaded(b, current_user.id, "before"),
                 "after_me": evidence_service.has_uploaded(b, current_user.id, "after"),
                 "before_both": evidence_service.both_parties_uploaded(b, "before"),
                 "after_both": evidence_service.both_parties_uploaded(b, "after"),
                 "media": evidence_service.evidence_for_booking(b),
                 "ledger": ledger_service.entries_for_booking(b),
+                "can_review": reviews_service.can_review(b, current_user),
+                "my_review": reviews_service.review_by(b, current_user),
+                "open_dispute": open_dispute,
+                "can_dispute": (
+                    open_dispute is None
+                    and b.status in disputes_service.DISPUTABLE_STATUSES
+                ),
             }
-            for b in bookings
-        }
+        return out
+
+    all_shown = owner_active + renter_active + owner_history + renter_history
 
     return render_template(
         "rentals/my_rentals.html",
         owner_requests=booking_service.requests_for_owner(current_user),
         owner_active=owner_active,
-        owner_history=booking_service.completed_for_owner(current_user),
+        owner_history=owner_history,
         owner_listings=listings_service.listings_for_owner(current_user),
         renter_pending=booking_service.pending_for_renter(current_user),
         renter_active=renter_active,
-        renter_history=booking_service.history_for_renter(current_user),
-        booking_detail=_evidence(owner_active + renter_active),
+        renter_history=renter_history,
+        booking_detail=_detail(all_shown),
         payment_details=settings_service.payment_details(),
         payment_configured=settings_service.has_payment_details(),
     )

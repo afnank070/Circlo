@@ -26,6 +26,11 @@ from .ledger_entry import LedgerEntry  # noqa: F401
 from .evidence_media import EvidenceMedia  # noqa: F401
 from .app_setting import AppSetting  # noqa: F401
 
+# M5 — Trust & Polish.
+from .password_reset_token import PasswordResetToken  # noqa: F401
+from .review import Review  # noqa: F401
+from .dispute import Dispute  # noqa: F401
+
 __all__ = [
     "User",
     "IdentityDocument",
@@ -36,4 +41,7 @@ __all__ = [
     "LedgerEntry",
     "EvidenceMedia",
     "AppSetting",
+    "PasswordResetToken",
+    "Review",
+    "Dispute",
 ]

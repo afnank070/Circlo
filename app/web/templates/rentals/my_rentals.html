@@ -192,6 +192,48 @@
   {% endif %}
 {%- endmacro %}
 
+{# --- "Report a problem" (dispute) + leave-a-review, shown per booking --- #}
+{% macro dispute_and_review(b, viewer) -%}
+  {% set d = booking_detail.get(b.id) %}
+  {% if d %}
+    {% if d.open_dispute %}
+      <p class="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-100">
+        ⚠ Problem reported — CIRCLO is reviewing it.
+      </p>
+    {% elif d.can_dispute %}
+      <details class="mt-3">
+        <summary class="cursor-pointer list-none text-sm font-semibold text-rose-600 hover:text-rose-700">Report a problem</summary>
+        <form method="post" action="{{ url_for('web.report_problem', booking_id=b.id) }}" class="mt-2">
+          <textarea name="reason" rows="2" required minlength="10" placeholder="What went wrong?"
+                    class="w-full rounded-lg border border-sand-200 bg-sand-50 px-3 py-2 text-sm focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100"></textarea>
+          <button type="submit" class="mt-2 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm font-semibold text-rose-600 hover:bg-rose-50">Submit report</button>
+        </form>
+      </details>
+    {% endif %}
+
+    {% if d.my_review %}
+      <p class="mt-3 text-sm text-navy-700/70">You rated this {{ d.my_review.rating }}/5 ★</p>
+    {% elif d.can_review %}
+      <div class="mt-3 rounded-lg bg-teal-50 p-3 ring-1 ring-teal-100">
+        <p class="text-sm font-semibold text-navy-900">
+          Review {{ b.renter.name if viewer == 'owner' else b.owner.name }}
+        </p>
+        <form method="post" action="{{ url_for('web.leave_review', booking_id=b.id) }}" class="mt-2 space-y-2">
+          <label class="block text-xs font-semibold text-navy-700/80">Rating
+            <select name="rating" required class="mt-1 rounded-lg border border-sand-200 bg-white px-2 py-1 text-sm">
+              <option value="">–</option>
+              {% for n in [5, 4, 3, 2, 1] %}<option value="{{ n }}">{{ n }} ★</option>{% endfor %}
+            </select>
+          </label>
+          <textarea name="comment" rows="2" placeholder="How did it go? (optional)"
+                    class="w-full rounded-lg border border-sand-200 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"></textarea>
+          <button type="submit" class="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700">Submit review</button>
+        </form>
+      </div>
+    {% endif %}
+  {% endif %}
+{%- endmacro %}
+
 {% macro inflight_card(b, viewer) -%}
   <div class="rounded-xl border border-sand-200 bg-white p-3 shadow-sm sm:p-4">
     <div class="flex flex-wrap items-start gap-3">
@@ -205,11 +247,29 @@
         </div>
         <p class="mt-0.5 text-sm text-navy-700/70">
           {{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}
-          {% if viewer == 'owner' %}· Rented by {{ b.renter.name }}{% else %}· from {{ b.owner.name }}{% endif %}
+          {% if viewer == 'owner' %}· Rented by <a href="{{ url_for('web.user_profile', user_id=b.renter_id) }}" class="font-medium hover:underline">{{ b.renter.name }}</a>{% else %}· from <a href="{{ url_for('web.user_profile', user_id=b.owner_id) }}" class="font-medium hover:underline">{{ b.owner.name }}</a>{% endif %}
         </p>
         {{ evidence_panel(b, viewer) }}
+        {{ dispute_and_review(b, viewer) }}
       </div>
     </div>
+  </div>
+{%- endmacro %}
+
+{% macro history_card(b, viewer) -%}
+  <div class="rounded-xl border border-sand-200 bg-sand-50 p-3">
+    <div class="flex flex-wrap items-center gap-3">
+      {{ booking_thumb(b.listing) }}
+      <div class="min-w-0 flex-1">
+        <p class="font-medium text-navy-800">{{ b.listing.title }}</p>
+        <p class="mt-0.5 text-sm text-navy-700/60">
+          {{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}
+          {% if viewer == 'owner' %}· <a href="{{ url_for('web.user_profile', user_id=b.renter_id) }}" class="hover:underline">{{ b.renter.name }}</a>{% else %}· <a href="{{ url_for('web.user_profile', user_id=b.owner_id) }}" class="hover:underline">{{ b.owner.name }}</a>{% endif %}
+        </p>
+      </div>
+      {{ status_badge(b.status, viewer) }}
+    </div>
+    {{ dispute_and_review(b, viewer) }}
   </div>
 {%- endmacro %}
 
@@ -282,16 +342,7 @@
     <div class="mt-5 rounded-2xl border border-sand-200 bg-white p-5 shadow-sm">
       <h3 class="font-sora text-sm font-bold uppercase tracking-wide text-navy-800">Past rentals</h3>
       <div class="mt-4 space-y-2">
-        {% for b in owner_history %}
-        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-sand-200 bg-sand-50 p-3">
-          {{ booking_thumb(b.listing) }}
-          <div class="min-w-0 flex-1">
-            <p class="font-medium text-navy-800">{{ b.listing.title }}</p>
-            <p class="mt-0.5 text-sm text-navy-700/60">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }} · {{ b.renter.name }}</p>
-          </div>
-          {{ status_badge(b.status, 'owner') }}
-        </div>
-        {% endfor %}
+        {% for b in owner_history %}{{ history_card(b, 'owner') }}{% endfor %}
       </div>
     </div>
     {% endif %}
@@ -369,16 +420,7 @@
       <h3 class="font-sora text-sm font-bold uppercase tracking-wide text-navy-800">History</h3>
       <div class="mt-4 space-y-2">
       {% if renter_history %}
-        {% for b in renter_history %}
-        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-sand-200 bg-sand-50 p-3">
-          {{ booking_thumb(b.listing) }}
-          <div class="min-w-0 flex-1">
-            <p class="font-medium text-navy-800">{{ b.listing.title }}</p>
-            <p class="mt-0.5 text-sm text-navy-700/60">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
-          </div>
-          {{ status_badge(b.status, 'renter') }}
-        </div>
-        {% endfor %}
+        {% for b in renter_history %}{{ history_card(b, 'renter') }}{% endfor %}
       {% else %}
         {{ empty_state('No past rentals yet.') }}
       {% endif %}

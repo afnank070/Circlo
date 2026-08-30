@@ -58,7 +58,74 @@ The real source of truth is the code + git history; this file just helps orient 
   `[entrypoint] ERROR: Postgres did not become ready in time` failure, and
   that the auto-seed fires correctly with no shell access.
 
-## Current milestone: M4 — Money & Evidence (DONE ✅)
+## Current milestone: M5 — Trust & Polish (DONE ✅)
+_(Reviews & ratings, disputes, trust-fund bookkeeping, and real transactional
+email via Brevo SMTP. Phone OTP / SMS stays deferred — per-message cost,
+blueprint §13.)_
+
+### Done — M5
+- **Email service** (`app/services/email.py`): one `send_email(to, subject,
+  body_html)` over `smtplib` against Brevo's SMTP relay. Config from env only
+  (`BREVO_SMTP_SERVER/PORT/LOGIN/KEY`, `MAIL_FROM_ADDRESS/NAME`, `PUBLIC_BASE_URL`).
+  If login/key/from are unset it logs the message and returns `False` (dev/tests
+  never deliver); delivery errors are caught and logged — email is best-effort
+  and never breaks a flow. `.env.example` updated with placeholders.
+- **Forgot-password flow** (real): `PasswordResetToken` model (SHA-256 hash
+  only, 1-hour TTL, single-use) + `app/services/password_reset.py`
+  (`request_reset` — no account enumeration, `verify`, `consume` — also burns
+  the user's other outstanding tokens). Routes `/forgot-password` +
+  `/reset-password/<token>`, "Forgot password?" link on the login page,
+  `auth/forgot_password.html` + `auth/reset_password.html`.
+- **Notifications** (`app/services/notifications.py`, wired from the service
+  layer so `/api/v1` gets them too, each call `@_safe` so it can't break the
+  caller): identity verification submitted/approved/rejected → user; new rental
+  request → owner; request accepted/rejected → renter; payment confirmed →
+  renter; rental completed → both parties (with a review prompt).
+- **Reviews & ratings** (`Review` model, `app/services/reviews.py`): after a
+  booking is COMPLETED both parties can leave one 1–5 rating + comment
+  (`direction` = renter_on_owner / owner_on_renter; unique on
+  `(booking_id, author_id)`). Leaving a review recomputes the subject's cached
+  `User.rating`, which already drives the star on listing cards; new public
+  profile page `/users/<id>` shows the average, review count, and the reviews.
+  Review form appears on completed bookings in My Rentals.
+- **Disputes** (`Dispute` model, `app/services/disputes.py`): either party on an
+  ACTIVE / RETURNED / COMPLETED booking clicks "Report a problem" → opens a
+  dispute (one open per booking). `/admin/disputes` lists open + resolved;
+  admin resolves with resolution notes, a deposit decision
+  (released / withheld / undecided) and a tracked `amount_from_fund`. The
+  booking's own status is left unchanged for the MVP (the Dispute row is the
+  record) — a real `disputed` booking state is a follow-up.
+- **Trust & Safety Fund** (`app/services/trust_fund.py`, `/admin/trust-fund`):
+  bookkeeping only. Admin sets a starting balance once (stored in `app_settings`);
+  `current_balance = starting − Σ amount_from_fund` over resolved disputes.
+  Shows the three figures + a disbursements table. No gateway payout (§7).
+- **Migration** `c4e6f8a0d2b5` (revises `b1c3d5e7f9a2`) — `password_reset_tokens`,
+  `reviews`, `disputes`. Hand-written in the existing style (**run `flask db
+  upgrade` + sanity-check on Docker/Postgres**).
+- **Admin nav**: account menu gains Disputes / Trust fund links for admins.
+- **Tests**: `tests/test_trust_polish.py` (8 tests — reset flow incl.
+  single-use + expiry + no-enumeration, notification fires on booking request,
+  reviews update rating + one-per-direction + not-before-completed, dispute
+  open/resolve decrements the fund + no double-open + not-before-active, admin
+  pages 403/200). `conftest.py` now has an autouse fixture + blanked SMTP config
+  so **no test ever opens a real SMTP connection** even with live creds in
+  `.env`. **52 passing** total (`pytest -q`, incl. the 6 MinIO verification
+  tests when Docker is up).
+
+### Known follow-ups (M5)
+- No `disputed` booking status / state-machine branch — disputes are tracked
+  alongside the booking, not as a lifecycle state.
+- Dispute resolution doesn't create ledger entries — the deposit decision is
+  recorded as text, not reflected in `ledger_entries`.
+- Reviews are visible to everyone once written (no "both submitted before
+  reveal" blind period).
+- Trust-fund top-ups aren't modelled — only a single starting balance minus
+  disbursements.
+- Email templates are inline HTML strings — fine at this volume; move to Jinja
+  templates if they grow.
+- Admin isn't emailed on new verification / new dispute (still a log line).
+
+## Previous milestone: M4 — Money & Evidence (DONE ✅)
 _(Semi-manual money per blueprint §7 — no gateway. Every rupee is tracked in a
 ledger; an admin confirms real bank/JazzCash transfers. Plus the before/after
 handover evidence system. Extends the booking state machine to the full
@@ -409,11 +476,14 @@ for when they land.)_
   live DB to autogenerate against — see M3 follow-ups above).
 
 ## Next up
-- Phone OTP + email verification (need an SMS/email provider — blocked, see below).
-- Add CSRF protection to all forms (Flask-WTF) — see follow-ups above.
+- M6 API & mobile handoff: stabilise `/api/v1`, add JWT, hand Abdullah the
+  contract (blueprint §12).
+- Add CSRF protection to all forms (Flask-WTF) — long-standing, do before public deploy.
+- Phone OTP (deferred — per-message SMS cost, blueprint §13).
 - CNIC/selfie retention policy (delete raw docs after approval?) — blueprint §8.
-- M5 Trust & polish: reviews/ratings after COMPLETED, disputes + `disputed`
-  status + trust-fund drawdown, notifications (email/SMS providers).
+- Real transactional email now lives (Brevo SMTP) — verify a live send after deploy
+  (see test steps). Email verification link on signup could reuse the same service.
+- ~~M5 Trust & polish~~ — DONE ✅ (see M5 section above).
 - ~~M4 Money & evidence~~ — DONE ✅ (see M4 section above).
 
 ## Blockers / decisions needed

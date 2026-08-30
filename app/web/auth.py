@@ -16,6 +16,7 @@ from flask import (
 from flask_login import current_user, login_user, logout_user
 
 from app.services import auth as auth_service
+from app.services import password_reset as reset_service
 
 from . import web_bp
 
@@ -95,3 +96,60 @@ def logout():
     logout_user()
     flash("Logged out.", "info")
     return redirect(url_for("web.index"))
+
+
+@web_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for("web.index"))
+
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip()
+        # Best-effort; never reveal whether the address is registered.
+        try:
+            reset_service.request_reset(email)
+        except Exception:  # noqa: BLE001 - don't leak errors on this endpoint
+            pass
+        flash(
+            "If that email is registered, we've sent a reset link. "
+            "Check your inbox (and spam).",
+            "info",
+        )
+        return redirect(url_for("web.login"))
+
+    return render_template("auth/forgot_password.html")
+
+
+@web_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token: str):
+    if current_user.is_authenticated:
+        return redirect(url_for("web.index"))
+
+    reset = reset_service.verify(token)
+    if reset is None:
+        flash("That reset link is invalid or has expired. Request a new one.", "error")
+        return redirect(url_for("web.forgot_password"))
+
+    if request.method == "POST":
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirm") or ""
+        errors = []
+        if len(password) < 8:
+            errors.append("Password must be at least 8 characters.")
+        if password != confirm:
+            errors.append("Passwords do not match.")
+
+        if errors:
+            for msg in errors:
+                flash(msg, "error")
+            return render_template("auth/reset_password.html", token=token)
+
+        user = reset_service.consume(token, password)
+        if user is None:
+            flash("That reset link is invalid or has expired. Request a new one.", "error")
+            return redirect(url_for("web.forgot_password"))
+
+        flash("Password updated — you can log in now.", "success")
+        return redirect(url_for("web.login"))
+
+    return render_template("auth/reset_password.html", token=token)

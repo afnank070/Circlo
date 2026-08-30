@@ -19,6 +19,7 @@ from app.models.identity_document import (
     STATUS_REJECTED,
 )
 from app.models.user import VERIFICATION_APPROVED, VERIFICATION_PENDING, VERIFICATION_REJECTED
+from app.services import notifications
 from app.services import storage
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -82,6 +83,7 @@ def submit_documents(user: User, *, cnic_file, selfie_file) -> IdentityDocument:
     db.session.commit()
 
     _notify_admin_pending(doc)
+    notifications.verification_submitted(user)
     return doc
 
 
@@ -103,6 +105,7 @@ def approve(doc: IdentityDocument, *, reviewer: User) -> IdentityDocument:
     doc.rejection_reason = None
     doc.user.verification_status = VERIFICATION_APPROVED
     db.session.commit()
+    notifications.verification_approved(doc.user)
     return doc
 
 
@@ -113,6 +116,7 @@ def reject(doc: IdentityDocument, *, reviewer: User, reason: str) -> IdentityDoc
     doc.rejection_reason = reason.strip()
     doc.user.verification_status = VERIFICATION_REJECTED
     db.session.commit()
+    notifications.verification_rejected(doc.user, doc.rejection_reason or "")
     return doc
 
 

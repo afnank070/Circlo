@@ -148,6 +148,8 @@
             {% if current_user.role == 'admin' %}
             <a href="{{ url_for('admin.queue') }}" class="block border-t border-sand-100 px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Verifications</a>
             <a href="{{ url_for('admin.payments_queue') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Payments</a>
+            <a href="{{ url_for('admin.disputes_queue') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Disputes</a>
+            <a href="{{ url_for('admin.trust_fund_page') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Trust fund</a>
             <a href="{{ url_for('admin.settings_page') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Settings</a>
             {% endif %}
             <form method="post" action="{{ url_for('web.logout') }}" class="border-t border-sand-100">

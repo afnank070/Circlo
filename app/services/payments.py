@@ -19,6 +19,7 @@ from app.models.booking import (
 )
 from app.services import booking as booking_service
 from app.services import ledger as ledger_service
+from app.services import notifications
 
 
 class PaymentError(Exception):
@@ -65,6 +66,7 @@ def confirm_payment_received(booking: Booking, *, admin: User) -> Booking:
     booking.status = STATUS_PAID
     ledger_service.record_payment_received(booking, admin=admin)
     db.session.commit()
+    notifications.payment_confirmed(booking)
     return booking
 
 

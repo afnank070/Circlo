@@ -74,6 +74,11 @@ class User(UserMixin, db.Model):
         return self.verification_status == VERIFICATION_APPROVED
 
     @property
+    def review_count(self) -> int:
+        """How many reviews other people have left about this user (M5)."""
+        return len(self.reviews_received)
+
+    @property
     def initials(self) -> str:
         """Up to two uppercase initials for avatar chips."""
         parts = [p for p in self.name.split() if p]

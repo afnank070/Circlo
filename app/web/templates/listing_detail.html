@@ -164,7 +164,7 @@
           </span>
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <p class="font-sora font-semibold text-navy-900">{{ listing.owner_name }}</p>
+              <a href="{{ url_for('web.user_profile', user_id=listing.owner_id) }}" class="font-sora font-semibold text-navy-900 hover:underline">{{ listing.owner_name }}</a>
               {% if listing.is_verified %}
               <span class="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-100">
                 <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z" clip-rule="evenodd"/></svg>
@@ -175,7 +175,7 @@
             <p class="mt-0.5 inline-flex items-center gap-1 text-sm text-navy-700">
               {% if listing.owner_rating is not none %}
               <svg class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
-              {{ "%.1f"|format(listing.owner_rating) }} · {{ 'Verified owner' if listing.is_verified else 'Owner' }}
+              {{ "%.1f"|format(listing.owner_rating) }} · {{ listing.owner.review_count }} review{{ 's' if listing.owner.review_count != 1 }}
               {% else %}
               New owner
               {% endif %}

@@ -17,6 +17,7 @@ from datetime import date
 
 from app.extensions import db
 from app.models import Booking, Listing, User
+from app.services import notifications
 from app.models.booking import (
     BLOCKING_STATUSES,
     STATUS_ACCEPTED,
@@ -116,6 +117,7 @@ def request_to_rent(
     booking.rental_amount = Decimal(listing.price_per_day) * booking.rental_days
     db.session.add(booking)
     db.session.commit()
+    notifications.booking_requested(booking)
     return booking
 
 
@@ -213,6 +215,7 @@ def accept(booking: Booking, *, owner: User) -> Booking:
 
     booking.status = STATUS_ACCEPTED
     db.session.commit()
+    notifications.booking_accepted(booking)
     return booking
 
 
@@ -229,6 +232,7 @@ def reject(booking: Booking, *, owner: User) -> Booking:
 
     booking.status = STATUS_CANCELLED
     db.session.commit()
+    notifications.booking_rejected(booking)
     return booking
 
 
@@ -272,4 +276,5 @@ def confirm_return(booking: Booking, *, owner: User) -> Booking:
     booking.status = STATUS_COMPLETED
     ledger_service.record_completion_entries(booking)
     db.session.commit()
+    notifications.booking_completed(booking)
     return booking

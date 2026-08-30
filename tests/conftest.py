@@ -17,6 +17,12 @@ class TestConfig(Config):
     TESTING = True
     SECRET_KEY = "test-secret"
     SQLALCHEMY_DATABASE_URI = "sqlite+pysqlite:///:memory:"
+    # Never touch a real SMTP relay from the test suite, even if a developer's
+    # .env has live Brevo credentials. The autouse fixture below also stubs the
+    # send function; this makes email.is_configured() False as a second guard.
+    BREVO_SMTP_LOGIN = None
+    BREVO_SMTP_KEY = None
+    MAIL_FROM_ADDRESS = None
 
 
 @pytest.fixture()
@@ -32,3 +38,13 @@ def app():
 @pytest.fixture()
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture(autouse=True)
+def _no_real_email(monkeypatch):
+    """Global safety net: no test ever opens a real SMTP connection."""
+    monkeypatch.setattr(
+        "app.services.email.send_email",
+        lambda to, subject, body_html: False,
+        raising=True,
+    )

@@ -52,6 +52,19 @@ class Config:
     # MinIO needs path-style addressing; real S3 accepts it too.
     STORAGE_USE_PATH_STYLE = _bool("STORAGE_USE_PATH_STYLE", True)
 
+    # --- Email (Brevo SMTP relay) ---
+    # Transactional email only (password reset, notifications). No SMS/OTP — that
+    # has a per-message cost and is deferred (blueprint §13). If the SMTP vars
+    # are unset the email service logs and no-ops, so dev/tests never send.
+    BREVO_SMTP_SERVER = _env("BREVO_SMTP_SERVER", "smtp-relay.brevo.com")
+    BREVO_SMTP_PORT = int(_env("BREVO_SMTP_PORT", "587"))
+    BREVO_SMTP_LOGIN = _env("BREVO_SMTP_LOGIN")
+    BREVO_SMTP_KEY = _env("BREVO_SMTP_KEY")
+    MAIL_FROM_ADDRESS = _env("MAIL_FROM_ADDRESS")
+    MAIL_FROM_NAME = _env("MAIL_FROM_NAME", "CIRCLO")
+    # Base URL for links inside emails (password reset, etc.). No trailing slash.
+    PUBLIC_BASE_URL = _env("PUBLIC_BASE_URL", "http://localhost:5000")
+
     # --- Admin-configurable operational settings: env-var *fallbacks* only ---
     # The live values are edited from /admin/settings and stored in the DB
     # (app_settings). These provide sensible defaults for a fresh deploy before
