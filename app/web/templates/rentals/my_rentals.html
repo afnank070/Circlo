@@ -67,22 +67,85 @@
     <div class="mt-4 space-y-3">
 {%- endmacro %}
 
+{# --- CIRCLO payment-collection details + exact amount due (renter) --- #}
+{% macro pay_instructions(b, reported=false) -%}
+  {% set total = (b.rental_amount|float) + (b.deposit_amount|float) %}
+  <div class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-navy-800 ring-1 ring-amber-100">
+    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-amber-200/70 pb-2">
+      <span class="font-semibold">Amount due</span>
+      <span class="font-sora text-lg font-extrabold text-navy-900">{{ money(total) }}</span>
+    </div>
+    <p class="mt-1 text-xs text-navy-700/75">
+      {{ money(b.rental_amount) }} rental&nbsp;+&nbsp;{{ money(b.deposit_amount) }} refundable deposit
+    </p>
+
+    <p class="mt-3 font-semibold text-navy-900">Send payment to CIRCLO</p>
+    {% if payment_configured %}
+    <dl class="mt-1 space-y-1">
+      {% if payment_details.payment_easypaisa_number %}
+      <div class="flex flex-wrap gap-x-2">
+        <dt class="text-navy-700/70">EasyPaisa</dt>
+        <dd class="font-semibold text-navy-900">
+          {{ payment_details.payment_easypaisa_number }}{% if payment_details.payment_easypaisa_name %} · {{ payment_details.payment_easypaisa_name }}{% endif %}
+        </dd>
+      </div>
+      {% endif %}
+      {% if payment_details.payment_bank_account or payment_details.payment_bank_iban %}
+      <div class="flex flex-wrap gap-x-2">
+        <dt class="text-navy-700/70">Bank</dt>
+        <dd class="font-semibold text-navy-900">
+          {{ payment_details.payment_bank_name }}{% if payment_details.payment_bank_title %} — {{ payment_details.payment_bank_title }}{% endif %}
+        </dd>
+      </div>
+      {% if payment_details.payment_bank_account %}
+      <div class="flex flex-wrap gap-x-2">
+        <dt class="text-navy-700/70">Account #</dt>
+        <dd class="font-semibold text-navy-900">{{ payment_details.payment_bank_account }}</dd>
+      </div>
+      {% endif %}
+      {% if payment_details.payment_bank_iban %}
+      <div class="flex flex-wrap gap-x-2">
+        <dt class="text-navy-700/70">IBAN</dt>
+        <dd class="font-semibold text-navy-900">{{ payment_details.payment_bank_iban }}</dd>
+      </div>
+      {% endif %}
+      {% endif %}
+    </dl>
+    {% if payment_details.payment_instructions_note %}
+    <p class="mt-2 text-xs text-navy-700/75">{{ payment_details.payment_instructions_note }}</p>
+    {% else %}
+    <p class="mt-2 text-xs text-navy-700/75">Once you've transferred the exact amount, confirm below. An admin verifies receipt before the rental proceeds.</p>
+    {% endif %}
+    {% else %}
+    <p class="mt-1 text-xs text-navy-700/75">
+      Payment details aren't set up yet — please contact CIRCLO support for where to send {{ money(total) }}.
+    </p>
+    {% endif %}
+
+    {% if reported %}
+    <p class="mt-3 rounded-md bg-white/70 px-2 py-1.5 text-xs font-medium text-navy-800">
+      ✓ You've marked this as paid — CIRCLO is confirming the transfer.
+    </p>
+    {% else %}
+    <form method="post" action="{{ url_for('web.mark_booking_paid', booking_id=b.id) }}" class="mt-3">
+      <button type="submit" class="rounded-lg bg-navy-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-navy-900">I've sent the payment</button>
+    </form>
+    {% endif %}
+  </div>
+{%- endmacro %}
+
 {# --- evidence + ledger panel shown on an in-flight booking card --- #}
 {% macro evidence_panel(b, viewer) -%}
   {% set d = booking_detail.get(b.id) %}
   {% if d %}
     {% if b.status == 'accepted' and viewer == 'renter' %}
-      <div class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-navy-800 ring-1 ring-amber-100">
-        <p class="font-semibold">Send {{ money(b.rental_amount) }} rental + {{ money(b.deposit_amount) }} deposit</p>
-        <p class="mt-1 text-navy-700/80">Transfer to CIRCLO (bank / JazzCash / Easypaisa), then confirm below. An admin verifies receipt.</p>
-        <form method="post" action="{{ url_for('web.mark_booking_paid', booking_id=b.id) }}" class="mt-2">
-          <button type="submit" class="rounded-lg bg-navy-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-navy-900">I've sent the payment</button>
-        </form>
-      </div>
+      {{ pay_instructions(b) }}
     {% elif b.status == 'accepted' and viewer == 'owner' %}
       <p class="mt-2 text-sm text-navy-700/70">Waiting for the renter to pay.</p>
+    {% elif b.status == 'awaiting_payment' and viewer == 'renter' %}
+      {{ pay_instructions(b, reported=true) }}
     {% elif b.status == 'awaiting_payment' %}
-      <p class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-navy-800 ring-1 ring-amber-100">Payment reported — CIRCLO is confirming the transfer.</p>
+      <p class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-navy-800 ring-1 ring-amber-100">Renter has reported payment — CIRCLO is confirming the transfer.</p>
     {% elif b.status in ('paid', 'active') %}
       {% set phase = 'before' if b.status == 'paid' else 'after' %}
       {% set mine = d.before_me if phase == 'before' else d.after_me %}

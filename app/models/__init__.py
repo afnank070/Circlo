@@ -24,6 +24,7 @@ from .booking import Booking  # noqa: F401
 # M4 — Money & Evidence.
 from .ledger_entry import LedgerEntry  # noqa: F401
 from .evidence_media import EvidenceMedia  # noqa: F401
+from .app_setting import AppSetting  # noqa: F401
 
 __all__ = [
     "User",
@@ -34,4 +35,5 @@ __all__ = [
     "Booking",
     "LedgerEntry",
     "EvidenceMedia",
+    "AppSetting",
 ]

@@ -52,6 +52,18 @@ class Config:
     # MinIO needs path-style addressing; real S3 accepts it too.
     STORAGE_USE_PATH_STYLE = _bool("STORAGE_USE_PATH_STYLE", True)
 
+    # --- Admin-configurable operational settings: env-var *fallbacks* only ---
+    # The live values are edited from /admin/settings and stored in the DB
+    # (app_settings). These provide sensible defaults for a fresh deploy before
+    # anyone opens that page. See app/services/settings.py.
+    PAYMENT_EASYPAISA_NUMBER = _env("PAYMENT_EASYPAISA_NUMBER")
+    PAYMENT_EASYPAISA_NAME = _env("PAYMENT_EASYPAISA_NAME")
+    PAYMENT_BANK_NAME = _env("PAYMENT_BANK_NAME")
+    PAYMENT_BANK_TITLE = _env("PAYMENT_BANK_TITLE")
+    PAYMENT_BANK_ACCOUNT = _env("PAYMENT_BANK_ACCOUNT")
+    PAYMENT_BANK_IBAN = _env("PAYMENT_BANK_IBAN")
+    PAYMENT_INSTRUCTIONS_NOTE = _env("PAYMENT_INSTRUCTIONS_NOTE")
+
     DEBUG = False
     TESTING = False
 

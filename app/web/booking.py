@@ -16,6 +16,7 @@ from app.services import evidence as evidence_service
 from app.services import ledger as ledger_service
 from app.services import listings as listings_service
 from app.services import payments as payments_service
+from app.services import settings as settings_service
 
 from . import web_bp
 
@@ -191,4 +192,6 @@ def my_rentals():
         renter_active=renter_active,
         renter_history=booking_service.history_for_renter(current_user),
         booking_detail=_evidence(owner_active + renter_active),
+        payment_details=settings_service.payment_details(),
+        payment_configured=settings_service.has_payment_details(),
     )

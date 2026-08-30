@@ -129,6 +129,17 @@ blueprint §5 lifecycle.)_
   **`python -m pytest -q` → 40 passed** locally (SQLite, no Docker). The 3
   `test_verification.py` MinIO uploads still need `docker-compose up`.
 
+- **Admin-configurable payment details** (`app/models/app_setting.py`,
+  `app/services/settings.py`, `/admin/settings`): a `app_settings` key/value
+  table (migration `b1c3d5e7f9a2`) holding CIRCLO's EasyPaisa number / bank
+  account. `settings.get()` = DB value → `Config` env-var fallback → default, so
+  the anti-hard-code rule (blueprint §9) still holds and it's editable with no
+  redeploy once the company account is ready. The renter's payment card on
+  `/my-rentals` (accepted + awaiting_payment) now shows the **exact amount due**
+  (rental + deposit, bold total) beside these instructions; a fallback
+  "contact support" line shows when nothing is configured. New env-var
+  fallbacks `PAYMENT_*` in `.env.example` (all blank by default).
+
 ### Known follow-ups (M4)
 - No cancellation/refund *policy* (partial refunds, late fees) — business
   decision, blueprint §13.

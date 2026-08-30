@@ -31,3 +31,4 @@ def admin_required(view):
 
 from . import verify  # noqa: E402,F401  (identity review queue)
 from . import payments  # noqa: E402,F401  (semi-manual payment confirmation)
+from . import settings  # noqa: E402,F401  (admin-configurable operational settings)
