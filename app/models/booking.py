@@ -19,6 +19,27 @@ STATUS_REQUESTED = "requested"
 STATUS_ACCEPTED = "accepted"
 STATUS_CANCELLED = "cancelled"
 
+# M4 — money & evidence lifecycle (blueprint §5).
+STATUS_AWAITING_PAYMENT = "awaiting_payment"  # renter says paid; admin to confirm
+STATUS_PAID = "paid"                          # CIRCLO holds rental + deposit
+STATUS_HANDED_OVER = "handed_over"            # both "before" photos in (transient)
+STATUS_ACTIVE = "active"                      # rental in progress
+STATUS_RETURNED = "returned"                  # both "after" photos in
+STATUS_COMPLETED = "completed"                # owner confirmed; payouts queued
+
+# Statuses where the item is committed and its dates block a new acceptance.
+BLOCKING_STATUSES = (
+    STATUS_ACCEPTED,
+    STATUS_AWAITING_PAYMENT,
+    STATUS_PAID,
+    STATUS_HANDED_OVER,
+    STATUS_ACTIVE,
+    STATUS_RETURNED,
+)
+
+# Terminal states.
+CLOSED_STATUSES = (STATUS_CANCELLED, STATUS_COMPLETED)
+
 
 class Booking(db.Model):
     __tablename__ = "bookings"
@@ -46,6 +67,12 @@ class Booking(db.Model):
     # Snapshot of listing.deposit_amount at request time (blueprint §5).
     deposit_amount = db.Column(db.Numeric(10, 2), nullable=False)
 
+    # Snapshot of the total rental fee (price_per_day * days) at request time, so
+    # a later listing price change never rewrites an existing booking and the
+    # ledger/commission maths (M4) has a fixed number to work from. Nullable for
+    # rows created before M4; the booking service backfills it on read.
+    rental_amount = db.Column(db.Numeric(10, 2), nullable=True)
+
     message_from_renter = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -57,6 +84,11 @@ class Booking(db.Model):
     owner = db.relationship(
         "User", foreign_keys=[owner_id], backref="incoming_rental_requests"
     )
+
+    @property
+    def rental_days(self) -> int:
+        """Inclusive number of rental days (start and end day both count)."""
+        return (self.rental_date_end - self.rental_date_start).days + 1
 
     def __repr__(self) -> str:  # pragma: no cover - debug aid
         return f"<Booking {self.id} listing={self.listing_id} {self.status}>"

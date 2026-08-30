@@ -2,21 +2,33 @@
 
 {% block title %}My Rentals — CIRCLO{% endblock %}
 
-{% macro status_badge(status) -%}
+{% macro status_badge(status, viewer='renter') -%}
   {% set styles = {
     'requested': 'bg-amber-100 text-amber-800',
-    'accepted': 'bg-teal-100 text-teal-800',
+    'accepted': 'bg-sky-100 text-sky-800',
+    'awaiting_payment': 'bg-amber-100 text-amber-800',
+    'paid': 'bg-indigo-100 text-indigo-800',
+    'handed_over': 'bg-teal-100 text-teal-800',
+    'active': 'bg-teal-100 text-teal-800',
+    'returned': 'bg-purple-100 text-purple-800',
+    'completed': 'bg-emerald-100 text-emerald-800',
     'cancelled': 'bg-sand-200 text-navy-700/70',
-    'rejected': 'bg-rose-100 text-rose-700',
   } %}
   {% set labels = {
-    'requested': 'Pending',
-    'accepted': 'Active',
+    'requested': 'Pending — awaiting owner',
+    'accepted': 'Accepted — payment needed',
+    'awaiting_payment': 'Awaiting Payment',
+    'paid': 'Paid — Upload Evidence',
+    'handed_over': 'Handed over',
+    'active': 'Active',
+    'returned': 'Returned — Awaiting Confirmation',
+    'completed': 'Completed',
     'cancelled': 'Cancelled',
-    'rejected': 'Rejected',
   } %}
   <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide {{ styles.get(status, styles['cancelled']) }}">{{ labels.get(status, status) }}</span>
 {%- endmacro %}
+
+{% macro money(v) -%}Rs {{ '{:,.0f}'.format(v|float) }}{%- endmacro %}
 
 {% macro booking_thumb(listing) -%}
   <a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}"
@@ -55,6 +67,89 @@
     <div class="mt-4 space-y-3">
 {%- endmacro %}
 
+{# --- evidence + ledger panel shown on an in-flight booking card --- #}
+{% macro evidence_panel(b, viewer) -%}
+  {% set d = booking_detail.get(b.id) %}
+  {% if d %}
+    {% if b.status == 'accepted' and viewer == 'renter' %}
+      <div class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-navy-800 ring-1 ring-amber-100">
+        <p class="font-semibold">Send {{ money(b.rental_amount) }} rental + {{ money(b.deposit_amount) }} deposit</p>
+        <p class="mt-1 text-navy-700/80">Transfer to CIRCLO (bank / JazzCash / Easypaisa), then confirm below. An admin verifies receipt.</p>
+        <form method="post" action="{{ url_for('web.mark_booking_paid', booking_id=b.id) }}" class="mt-2">
+          <button type="submit" class="rounded-lg bg-navy-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-navy-900">I've sent the payment</button>
+        </form>
+      </div>
+    {% elif b.status == 'accepted' and viewer == 'owner' %}
+      <p class="mt-2 text-sm text-navy-700/70">Waiting for the renter to pay.</p>
+    {% elif b.status == 'awaiting_payment' %}
+      <p class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-navy-800 ring-1 ring-amber-100">Payment reported — CIRCLO is confirming the transfer.</p>
+    {% elif b.status in ('paid', 'active') %}
+      {% set phase = 'before' if b.status == 'paid' else 'after' %}
+      {% set mine = d.before_me if phase == 'before' else d.after_me %}
+      {% set both = d.before_both if phase == 'before' else d.after_both %}
+      <div class="mt-3 rounded-lg bg-navy-50 p-3 ring-1 ring-navy-100">
+        <p class="text-sm font-semibold text-navy-900">
+          {{ 'Upload handover (before) photos' if phase == 'before' else 'Upload return (after) photos' }}
+        </p>
+        <p class="mt-0.5 text-xs text-navy-700/70">
+          Both the renter and the owner upload. You: {{ 'done ✓' if mine else 'not yet' }} ·
+          Both parties: {{ 'done ✓' if both else 'pending' }}
+        </p>
+        {% if not mine %}
+        <form method="post" action="{{ url_for('web.upload_booking_evidence', booking_id=b.id) }}"
+              enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2">
+          <input type="hidden" name="phase" value="{{ phase }}">
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required
+                 class="text-sm text-navy-800 file:mr-2 file:rounded-md file:border-0 file:bg-navy-800 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white">
+          <button type="submit" class="rounded-lg border border-navy-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-800 hover:bg-sand-50">Upload</button>
+        </form>
+        {% endif %}
+        {% if d.media %}
+        <div class="mt-2 flex flex-wrap gap-2">
+          {% for m in d.media %}
+          <span class="relative">
+            <img src="{{ private_image_url(m.object_key) }}" alt="{{ m.phase }} photo"
+                 class="h-14 w-14 rounded-md border border-sand-200 object-cover">
+            <span class="absolute bottom-0 left-0 rounded-tr-md bg-navy-900/70 px-1 text-[9px] font-bold uppercase text-white">{{ m.phase }}</span>
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    {% elif b.status == 'returned' and viewer == 'owner' %}
+      <div class="mt-3 rounded-lg bg-purple-50 p-3 ring-1 ring-purple-100">
+        <p class="text-sm font-semibold text-navy-900">Item returned — check it over</p>
+        <form method="post" action="{{ url_for('web.confirm_booking_return', booking_id=b.id) }}" class="mt-2">
+          <button type="submit" class="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700">Confirm item returned in good condition</button>
+        </form>
+      </div>
+    {% elif b.status == 'returned' and viewer == 'renter' %}
+      <p class="mt-2 text-sm text-navy-700/70">Waiting for the owner to confirm the return and release your deposit.</p>
+    {% endif %}
+  {% endif %}
+{%- endmacro %}
+
+{% macro inflight_card(b, viewer) -%}
+  <div class="rounded-xl border border-sand-200 bg-white p-3 shadow-sm sm:p-4">
+    <div class="flex flex-wrap items-start gap-3">
+      {{ booking_thumb(b.listing) }}
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <p class="font-semibold text-navy-900">
+            <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
+          </p>
+          {{ status_badge(b.status, viewer) }}
+        </div>
+        <p class="mt-0.5 text-sm text-navy-700/70">
+          {{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}
+          {% if viewer == 'owner' %}· Rented by {{ b.renter.name }}{% else %}· from {{ b.owner.name }}{% endif %}
+        </p>
+        {{ evidence_panel(b, viewer) }}
+      </div>
+    </div>
+  </div>
+{%- endmacro %}
+
 {% block content %}
 <div class="mx-auto max-w-5xl px-4 py-8">
   <h1 class="font-sora text-2xl font-extrabold tracking-tight text-navy-900">My Rentals</h1>
@@ -82,7 +177,7 @@
                 <p class="font-semibold text-navy-900">
                   <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
                 </p>
-                {{ status_badge(b.status) }}
+                {{ status_badge(b.status, 'owner') }}
               </div>
               <p class="flex flex-wrap items-center gap-1.5 text-sm text-navy-700/70">
                 Requested by {{ b.renter.name }}
@@ -109,27 +204,34 @@
       {% endif %}
       </div></div>
 
-      <!-- Active rentals -->
-      {{ group_card_open('Active rentals', owner_active|length) }}
+      <!-- Active / in-flight rentals -->
+      {{ group_card_open('Rentals in progress', owner_active|length) }}
       {% if owner_active %}
-        {% for b in owner_active %}
-        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-sand-200 bg-white p-3 shadow-sm sm:p-4">
-          {{ booking_thumb(b.listing) }}
-          <div class="min-w-0 flex-1">
-            <p class="font-semibold text-navy-900">
-              <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
-            </p>
-            <p class="text-sm text-navy-700/70">Rented by {{ b.renter.name }}</p>
-            <p class="mt-1 text-sm font-medium text-navy-800">Returns {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
-          </div>
-          {{ status_badge(b.status) }}
-        </div>
-        {% endfor %}
+        {% for b in owner_active %}{{ inflight_card(b, 'owner') }}{% endfor %}
       {% else %}
         {{ empty_state('Nothing rented out right now.') }}
       {% endif %}
       </div></div>
     </div>
+
+    <!-- Owner history -->
+    {% if owner_history %}
+    <div class="mt-5 rounded-2xl border border-sand-200 bg-white p-5 shadow-sm">
+      <h3 class="font-sora text-sm font-bold uppercase tracking-wide text-navy-800">Past rentals</h3>
+      <div class="mt-4 space-y-2">
+        {% for b in owner_history %}
+        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-sand-200 bg-sand-50 p-3">
+          {{ booking_thumb(b.listing) }}
+          <div class="min-w-0 flex-1">
+            <p class="font-medium text-navy-800">{{ b.listing.title }}</p>
+            <p class="mt-0.5 text-sm text-navy-700/60">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }} · {{ b.renter.name }}</p>
+          </div>
+          {{ status_badge(b.status, 'owner') }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
     <!-- My listings -->
     <div class="mt-5 rounded-2xl border border-sand-200 bg-white p-5 shadow-sm">
@@ -161,9 +263,9 @@
       <h2 class="font-sora text-lg font-extrabold tracking-tight text-navy-900">As a renter</h2>
     </div>
 
-    <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
+    <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
       <!-- Pending -->
-      {{ group_card_open('Pending', renter_pending|length) }}
+      {{ group_card_open('Pending (awaiting owner)', renter_pending|length) }}
       {% if renter_pending %}
         {% for b in renter_pending %}
         <div class="rounded-xl border border-sand-200 bg-white p-3 shadow-sm">
@@ -175,7 +277,7 @@
               </p>
               <p class="mt-0.5 text-sm text-navy-700/70">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
               <div class="mt-2 flex items-center justify-between gap-2">
-                {{ status_badge(b.status) }}
+                {{ status_badge(b.status, 'renter') }}
                 <form method="post" action="{{ url_for('web.cancel_booking', booking_id=b.id) }}">
                   <button type="submit" class="rounded-lg border border-sand-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-800 hover:bg-sand-50">Cancel</button>
                 </form>
@@ -189,35 +291,20 @@
       {% endif %}
       </div></div>
 
-      <!-- Active -->
-      {{ group_card_open('Active', renter_active|length) }}
+      <!-- In progress -->
+      {{ group_card_open('In progress', renter_active|length) }}
       {% if renter_active %}
-        {% for b in renter_active %}
-        <div class="rounded-xl border border-sand-200 bg-white p-3 shadow-sm">
-          <div class="flex flex-wrap items-start gap-3">
-            {{ booking_thumb(b.listing) }}
-            <div class="min-w-0 flex-1">
-              <p class="font-semibold text-navy-900">
-                <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
-              </p>
-              <p class="mt-0.5 text-sm text-navy-700/70">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
-              <div class="mt-2 flex items-center justify-between gap-2">
-                {{ status_badge(b.status) }}
-                <form method="post" action="{{ url_for('web.cancel_booking', booking_id=b.id) }}">
-                  <button type="submit" class="rounded-lg border border-sand-200 bg-white px-3 py-1.5 text-sm font-semibold text-navy-800 hover:bg-sand-50">Cancel</button>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
+        {% for b in renter_active %}{{ inflight_card(b, 'renter') }}{% endfor %}
       {% else %}
         {{ empty_state('Nothing active right now.') }}
       {% endif %}
       </div></div>
+    </div>
 
-      <!-- History -->
-      {{ group_card_open('History', renter_history|length) }}
+    <!-- History -->
+    <div class="mt-5 rounded-2xl border border-sand-200 bg-white p-5 shadow-sm">
+      <h3 class="font-sora text-sm font-bold uppercase tracking-wide text-navy-800">History</h3>
+      <div class="mt-4 space-y-2">
       {% if renter_history %}
         {% for b in renter_history %}
         <div class="flex flex-wrap items-center gap-3 rounded-xl border border-sand-200 bg-sand-50 p-3">
@@ -226,13 +313,13 @@
             <p class="font-medium text-navy-800">{{ b.listing.title }}</p>
             <p class="mt-0.5 text-sm text-navy-700/60">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
           </div>
-          {{ status_badge(b.status) }}
+          {{ status_badge(b.status, 'renter') }}
         </div>
         {% endfor %}
       {% else %}
         {{ empty_state('No past rentals yet.') }}
       {% endif %}
-      </div></div>
+      </div>
     </div>
   </section>
 </div>

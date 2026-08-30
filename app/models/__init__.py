@@ -21,6 +21,10 @@ from .listing_image import ListingImage  # noqa: F401
 # M3 — Booking core.
 from .booking import Booking  # noqa: F401
 
+# M4 — Money & Evidence.
+from .ledger_entry import LedgerEntry  # noqa: F401
+from .evidence_media import EvidenceMedia  # noqa: F401
+
 __all__ = [
     "User",
     "IdentityDocument",
@@ -28,4 +32,6 @@ __all__ = [
     "Listing",
     "ListingImage",
     "Booking",
+    "LedgerEntry",
+    "EvidenceMedia",
 ]

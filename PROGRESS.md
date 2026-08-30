@@ -58,7 +58,89 @@ The real source of truth is the code + git history; this file just helps orient 
   `[entrypoint] ERROR: Postgres did not become ready in time` failure, and
   that the auto-seed fires correctly with no shell access.
 
-## Current milestone: M3 — Booking core (rental state machine, DONE ✅)
+## Current milestone: M4 — Money & Evidence (DONE ✅)
+_(Semi-manual money per blueprint §7 — no gateway. Every rupee is tracked in a
+ledger; an admin confirms real bank/JazzCash transfers. Plus the before/after
+handover evidence system. Extends the booking state machine to the full
+blueprint §5 lifecycle.)_
+
+### Done — M4
+- **`LedgerEntry` model** (`app/models/ledger_entry.py`): `booking_id`, `type`
+  (`rental_payment`/`deposit`/`commission`/`payout`/`refund`), `amount`,
+  `status` (`pending`/`confirmed`), `created_at`, `confirmed_by` (admin
+  user_id), `confirmed_at`. Named constants for every type/status.
+- **`EvidenceMedia` model** (`app/models/evidence_media.py`): `booking_id`,
+  `phase` (`before`/`after`), `uploaded_by`, `object_key` (private bucket),
+  `media_type`, `created_at`. Write-once (no update/delete) per blueprint §8.
+- **Booking state machine extended** (`app/models/booking.py` +
+  `app/services/booking.py`) to the full blueprint §5 lifecycle:
+  `requested → accepted → awaiting_payment → paid → (handed_over) → active →
+  returned → completed`, plus `cancelled`. `handed_over` is instantaneous in the
+  MVP (recorded then promoted to `active`). New `Booking.rental_amount` column —
+  snapshot of `price_per_day * days` at request time (nullable; service
+  backfills old rows on read). `has_overlapping_acceptance` now blocks on any
+  committed status, not just `accepted`. `cancel()` allowed only through
+  `awaiting_payment` (before money is confirmed).
+- **Services (all logic here, API-reusable):**
+  - `services/ledger.py` — `record`, `record_payment_received` (confirmed
+    rental+deposit), `record_completion_entries` (pending commission/payout/
+    refund), `confirm_entry`, `confirm_all_for_booking`. `COMMISSION_RATE =
+    0.20` of the rental fee (not the deposit), per blueprint §1.
+  - `services/payments.py` — `mark_awaiting_payment` (renter asserts they've
+    transferred), `bookings_awaiting_payment_confirmation`,
+    `confirm_payment_received` (→ PAID + confirmed ledger entries),
+    `bookings_awaiting_payout`, `confirm_payout` (flip pending entries to
+    confirmed). Custom exceptions mirror the booking-service pattern.
+  - `services/evidence.py` — `upload_evidence` (validates party + phase +
+    booking state, uploads to the **private** bucket under
+    `evidence/<booking>/<phase>/<user>/<uuid>.<ext>`), advances the booking once
+    **both** renter and owner have uploaded for a phase. `has_uploaded`,
+    `both_parties_uploaded`, `evidence_for_booking` helpers.
+- **`booking.confirm_return`** (owner-only, RETURNED → COMPLETED): triggers
+  `ledger.record_completion_entries` — 20% commission, owner payout (rental −
+  commission), full deposit refund — all `pending` until an admin confirms.
+- **Admin `/admin/payments`** (`app/admin/payments.py` +
+  `templates/payments_queue.html`): two queues — *Awaiting payment
+  confirmation* (renter says paid → "Confirm payment received" creates the
+  ledger entries + moves to PAID) and *Awaiting payout & refund* (completed
+  rentals with pending entries → "Confirm payout & refund sent"). `admin_required`
+  on every view. Account menu in `base.html` gains Admin · Verifications / Admin ·
+  Payments links for admins.
+- **Web routes** (`app/web/booking.py`): `POST /bookings/<id>/mark-paid`,
+  `POST /bookings/<id>/evidence` (multipart, `phase` + `photo`),
+  `POST /bookings/<id>/confirm-return`.
+- **My Rentals redesign** (`templates/rentals/my_rentals.html`): owner +
+  renter "in progress" cards now show the full-lifecycle status pill
+  (Awaiting Payment, Paid — Upload Evidence, Active, Returned — Awaiting
+  Confirmation, Completed) matching the existing card style, plus the relevant
+  inline action: pay-now panel, before/after photo upload with per-party
+  progress + thumbnails, owner "Confirm item returned" button. Owner/renter
+  history sections now include completed rentals.
+- **Migration** `9a2f4c1d7b83` (revises `7c3f9a1b2e4d`) — creates
+  `ledger_entries` + `evidence_media`, adds `bookings.rental_amount`.
+  Hand-written in the existing style (no Docker/Postgres this session —
+  **run `flask db upgrade` and sanity-check the DDL on Docker**).
+- **Tests**: `tests/test_money_evidence.py` — 10 new tests (rental-amount
+  snapshot, renter-marks-paid → admin-confirms + ledger, wrong-state guards,
+  evidence advances only when both upload, non-party/wrong-phase rejection,
+  full cycle → completion → commission maths (2400 → 480/1920) + payout
+  confirmation, confirm-return state guard, no-cancel-after-paid, admin page
+  403/200). Storage stubbed via monkeypatch so no MinIO needed.
+  **`python -m pytest -q` → 40 passed** locally (SQLite, no Docker). The 3
+  `test_verification.py` MinIO uploads still need `docker-compose up`.
+
+### Known follow-ups (M4)
+- No cancellation/refund *policy* (partial refunds, late fees) — business
+  decision, blueprint §13.
+- Evidence has no "after" deadline enforcement — renter/owner can upload
+  after-photos any time while `active`.
+- Commission entry is created `pending` and only confirmed as part of the
+  payout step; there's no separate CIRCLO revenue reconciliation view yet.
+- No dispute path yet (`disputed` status) — M5.
+- Migration hand-written — confirm `flask db upgrade` applies cleanly on real
+  Postgres.
+
+## Previous milestone: M3 — Booking core (rental state machine, DONE ✅)
 _(Front half of the lifecycle only — request → owner accept/reject/cancel. No
 payments (M4), no handover evidence (M4), no availability calendar UI yet.)_
 
@@ -319,9 +401,9 @@ for when they land.)_
 - Phone OTP + email verification (need an SMS/email provider — blocked, see below).
 - Add CSRF protection to all forms (Flask-WTF) — see follow-ups above.
 - CNIC/selfie retention policy (delete raw docs after approval?) — blueprint §8.
-- M4 Money & evidence: ledger, semi-manual deposit/payment, before/after
-  evidence upload, payout-minus-commission, refunds — moves accepted bookings
-  through PAID/HANDED_OVER/ACTIVE/RETURNED/COMPLETED.
+- M5 Trust & polish: reviews/ratings after COMPLETED, disputes + `disputed`
+  status + trust-fund drawdown, notifications (email/SMS providers).
+- ~~M4 Money & evidence~~ — DONE ✅ (see M4 section above).
 
 ## Blockers / decisions needed
 - SMS provider for OTP (recurring cost) — pick before phone verification lands.

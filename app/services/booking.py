@@ -12,11 +12,22 @@ PAID/HANDED_OVER/ACTIVE/RETURNED/COMPLETED/DISPUTED land with M4/M5.
 """
 from __future__ import annotations
 
+from decimal import Decimal
 from datetime import date
 
 from app.extensions import db
 from app.models import Booking, Listing, User
-from app.models.booking import STATUS_ACCEPTED, STATUS_CANCELLED, STATUS_REQUESTED
+from app.models.booking import (
+    BLOCKING_STATUSES,
+    STATUS_ACCEPTED,
+    STATUS_ACTIVE,
+    STATUS_AWAITING_PAYMENT,
+    STATUS_CANCELLED,
+    STATUS_COMPLETED,
+    STATUS_PAID,
+    STATUS_REQUESTED,
+    STATUS_RETURNED,
+)
 
 
 class BookingError(Exception):
@@ -43,13 +54,29 @@ def _dates_overlap(start_a: date, end_a: date, start_b: date, end_b: date) -> bo
     return start_a <= end_b and start_b <= end_a
 
 
+def rental_amount_for(booking: Booking) -> Decimal:
+    """The booking's total rental fee.
+
+    Uses the snapshot taken at request time; falls back to
+    ``listing.price_per_day * days`` for pre-M4 rows that never got one.
+    """
+    if booking.rental_amount is not None:
+        return Decimal(booking.rental_amount)
+    return Decimal(booking.listing.price_per_day) * booking.rental_days
+
+
 def has_overlapping_acceptance(
     listing_id: int, start_date: date, end_date: date, *, exclude_booking_id: int | None = None
 ) -> bool:
-    """True if listing already has an ACCEPTED booking overlapping this range."""
+    """True if the listing already has a committed booking overlapping this range.
+
+    "Committed" = any status past REQUESTED that hasn't been cancelled/completed
+    (see :data:`BLOCKING_STATUSES`), so a second request can't be accepted onto
+    dates an in-flight rental already holds.
+    """
     q = Booking.query.filter(
         Booking.listing_id == listing_id,
-        Booking.status == STATUS_ACCEPTED,
+        Booking.status.in_(BLOCKING_STATUSES),
     )
     if exclude_booking_id is not None:
         q = q.filter(Booking.id != exclude_booking_id)
@@ -86,6 +113,7 @@ def request_to_rent(
         deposit_amount=listing.deposit_amount,
         message_from_renter=(message or "").strip() or None,
     )
+    booking.rental_amount = Decimal(listing.price_per_day) * booking.rental_days
     db.session.add(booking)
     db.session.commit()
     return booking
@@ -110,10 +138,25 @@ def pending_count_for_owner(owner: User) -> int:
 
 
 def active_for_owner(owner: User) -> list[Booking]:
-    """Items currently rented out (ACCEPTED), soonest return date first."""
+    """Owner's in-flight bookings (accepted → returned), soonest return first."""
     return (
-        Booking.query.filter_by(owner_id=owner.id, status=STATUS_ACCEPTED)
+        Booking.query.filter(
+            Booking.owner_id == owner.id,
+            Booking.status.in_(BLOCKING_STATUSES),
+        )
         .order_by(Booking.rental_date_end.asc())
+        .all()
+    )
+
+
+def completed_for_owner(owner: User) -> list[Booking]:
+    """Owner's finished/cancelled bookings, most recent first."""
+    return (
+        Booking.query.filter(
+            Booking.owner_id == owner.id,
+            Booking.status.in_((STATUS_COMPLETED, STATUS_CANCELLED)),
+        )
+        .order_by(Booking.created_at.desc())
         .all()
     )
 
@@ -128,18 +171,24 @@ def pending_for_renter(renter: User) -> list[Booking]:
 
 
 def active_for_renter(renter: User) -> list[Booking]:
-    """Bookings the renter made that the owner accepted."""
+    """Renter's in-flight bookings — owner-accepted through returned-awaiting."""
     return (
-        Booking.query.filter_by(renter_id=renter.id, status=STATUS_ACCEPTED)
+        Booking.query.filter(
+            Booking.renter_id == renter.id,
+            Booking.status.in_(BLOCKING_STATUSES),
+        )
         .order_by(Booking.rental_date_start.asc())
         .all()
     )
 
 
 def history_for_renter(renter: User) -> list[Booking]:
-    """Cancelled/rejected bookings. (COMPLETED history lands with M4.)"""
+    """Finished bookings — completed rentals and cancelled/rejected requests."""
     return (
-        Booking.query.filter_by(renter_id=renter.id, status=STATUS_CANCELLED)
+        Booking.query.filter(
+            Booking.renter_id == renter.id,
+            Booking.status.in_((STATUS_COMPLETED, STATUS_CANCELLED)),
+        )
         .order_by(Booking.created_at.desc())
         .all()
     )
@@ -191,9 +240,36 @@ def cancel(booking: Booking, *, user: User) -> Booking:
     """
     if user.id not in (booking.renter_id, booking.owner_id):
         raise BookingPermissionError("You're not part of this booking.")
-    if booking.status not in (STATUS_REQUESTED, STATUS_ACCEPTED):
+    # Cancellable only while no money has been confirmed as received.
+    if booking.status not in (STATUS_REQUESTED, STATUS_ACCEPTED, STATUS_AWAITING_PAYMENT):
         raise InvalidBookingTransition("This booking can no longer be cancelled.")
 
     booking.status = STATUS_CANCELLED
+    db.session.commit()
+    return booking
+
+
+def confirm_return(booking: Booking, *, owner: User) -> Booking:
+    """Owner confirms the item came back in good condition: RETURNED -> COMPLETED.
+
+    Queues the money side (blueprint §1, §7): a 20% commission on the rental fee,
+    a payout of the rest to the owner, and a full deposit refund to the renter —
+    all as *pending* ledger entries until an admin confirms the real payout via
+    ``/admin/payments``.
+
+    :raises BookingPermissionError: ``owner`` isn't this booking's owner.
+    :raises InvalidBookingTransition: the booking isn't RETURNED.
+    """
+    from app.services import ledger as ledger_service
+
+    if booking.owner_id != owner.id:
+        raise BookingPermissionError("You don't own this listing.")
+    if booking.status != STATUS_RETURNED:
+        raise InvalidBookingTransition(
+            "The item must be marked returned (after-photos uploaded) first."
+        )
+
+    booking.status = STATUS_COMPLETED
+    ledger_service.record_completion_entries(booking)
     db.session.commit()
     return booking
