@@ -5,6 +5,7 @@ application factory. Import these anywhere without causing circular imports.
 """
 from __future__ import annotations
 
+from authlib.integrations.flask_client import OAuth
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -12,6 +13,10 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
+
+# OAuth registry ("Sign in with Google"). Providers are registered in the app
+# factory only when their credentials are configured — see app/__init__.py.
+oauth = OAuth()
 
 # Where to redirect anonymous users hitting a login-required view.
 login_manager.login_view = "web.login"

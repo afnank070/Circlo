@@ -56,3 +56,24 @@ def authenticate(email: str, password: str) -> User | None:
     if user is None or not user.check_password(password):
         return None
     return user
+
+
+def get_or_create_oauth_user(email: str, name: str | None) -> User:
+    """Resolve a verified OAuth identity (e.g. Google) to a CIRCLO user.
+
+    If an account with this email already exists it is returned as-is (the same
+    person may have signed up with email/password earlier — we just log them in).
+    Otherwise a new passwordless account is created: ``password_hash`` stays
+    ``None`` and ``verification_status`` starts ``pending``, so a Google signup
+    still has to pass the same CNIC/selfie identity check as any other user.
+    """
+    email = normalize_email(email)
+    user = get_user_by_email(email)
+    if user is not None:
+        return user
+
+    display_name = (name or "").strip() or email.split("@")[0]
+    user = User(name=display_name, email=email)  # no set_password() -> OAuth-only
+    db.session.add(user)
+    db.session.commit()
+    return user

@@ -70,6 +70,18 @@ class Config:
     # Logging verbosity for app.logger (INFO surfaces best-effort email diagnostics).
     LOG_LEVEL = _env("LOG_LEVEL", "INFO")
 
+    # --- Google OAuth2 / OpenID Connect ("Sign in with Google") ---
+    # Client ID + secret come from a Google Cloud OAuth 2.0 "Web application"
+    # credential. Leave both blank to hide the Google button and disable the
+    # routes — email/password auth is unaffected. The discovery URL is Google's
+    # well-known OIDC metadata endpoint; only override it for testing.
+    GOOGLE_CLIENT_ID = _env("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET = _env("GOOGLE_CLIENT_SECRET")
+    GOOGLE_DISCOVERY_URL = _env(
+        "GOOGLE_DISCOVERY_URL",
+        "https://accounts.google.com/.well-known/openid-configuration",
+    )
+
     # --- Admin-configurable operational settings: env-var *fallbacks* only ---
     # The live values are edited from /admin/settings and stored in the DB
     # (app_settings). These provide sensible defaults for a fresh deploy before

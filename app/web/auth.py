@@ -6,20 +6,25 @@ reuse the same service to issue JWTs later (blueprint §4).
 """
 from __future__ import annotations
 
+from authlib.integrations.base_client import OAuthError
 from flask import (
     current_app,
     flash,
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 from flask_login import current_user, login_user, logout_user
 
+from app.extensions import oauth
 from app.services import auth as auth_service
 from app.services import password_reset as reset_service
 
 from . import web_bp
+
+_OAUTH_NEXT_KEY = "oauth_next"
 
 
 def _safe_next(target: str | None) -> str | None:
@@ -97,6 +102,64 @@ def logout():
     logout_user()
     flash("Logged out.", "info")
     return redirect(url_for("web.index"))
+
+
+# --- "Sign in with Google" (OAuth2 / OpenID Connect) ----------------------------
+# Additional to email/password, not a replacement. The provider is only
+# registered when GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are set (see the app
+# factory); otherwise these routes flash a friendly message and bounce to login.
+
+def _google_client():
+    """The registered Google OAuth client, or None if it isn't configured."""
+    return oauth.create_client("google")
+
+
+@web_bp.route("/auth/google/login")
+def google_login():
+    if current_user.is_authenticated:
+        return redirect(url_for("web.index"))
+
+    client = _google_client()
+    if client is None:
+        flash("Google sign-in isn't available right now.", "error")
+        return redirect(url_for("web.login"))
+
+    # Stash a safe post-login redirect target for the callback.
+    session[_OAUTH_NEXT_KEY] = _safe_next(request.args.get("next"))
+    redirect_uri = url_for("web.google_callback", _external=True)
+    return client.authorize_redirect(redirect_uri)
+
+
+@web_bp.route("/auth/google/callback")
+def google_callback():
+    if current_user.is_authenticated:
+        return redirect(url_for("web.index"))
+
+    client = _google_client()
+    if client is None:
+        flash("Google sign-in isn't available right now.", "error")
+        return redirect(url_for("web.login"))
+
+    try:
+        token = client.authorize_access_token()
+    except OAuthError as exc:
+        current_app.logger.warning("google oauth: authorize failed: %s", exc)
+        flash("Google sign-in was cancelled or failed. Please try again.", "error")
+        return redirect(url_for("web.login"))
+
+    userinfo = (token or {}).get("userinfo") or {}
+    email = userinfo.get("email")
+    if not email or not userinfo.get("email_verified", True):
+        current_app.logger.warning("google oauth: no verified email in userinfo")
+        flash("Google didn't return a verified email address.", "error")
+        return redirect(url_for("web.login"))
+
+    user = auth_service.get_or_create_oauth_user(email, userinfo.get("name"))
+    login_user(user)
+
+    next_url = _safe_next(session.pop(_OAUTH_NEXT_KEY, None))
+    flash(f"Signed in with Google. Welcome, {user.name.split()[0]}!", "success")
+    return redirect(next_url or url_for("web.index"))
 
 
 @web_bp.route("/forgot-password", methods=["GET", "POST"])

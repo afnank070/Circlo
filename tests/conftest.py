@@ -22,6 +22,11 @@ class TestConfig(Config):
     # function; this makes email.is_configured() False as a second guard.
     BREVO_API_KEY = None
     MAIL_FROM_ADDRESS = None
+    # Likewise: ignore any real Google OAuth creds in the developer's .env so the
+    # "button hidden / provider disabled" tests are deterministic. Tests that
+    # need it on set these two keys on app.config themselves.
+    GOOGLE_CLIENT_ID = None
+    GOOGLE_CLIENT_SECRET = None
 
 
 @pytest.fixture()

@@ -38,7 +38,10 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255), nullable=False, unique=True, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
+    # Nullable: accounts created via "Sign in with Google" have no password —
+    # they authenticate through the OAuth provider. Email/password accounts
+    # always have a hash. See ``has_password`` / ``check_password``.
+    password_hash = db.Column(db.String(255), nullable=True)
 
     # user / admin (blueprint §5). Default keeps signups as plain users.
     role = db.Column(db.String(20), nullable=False, default=ROLE_USER)
@@ -65,7 +68,15 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
+        """False for OAuth-only accounts (no hash) — they can't password-login."""
+        if not self.password_hash:
+            return False
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def has_password(self) -> bool:
+        """True for email/password accounts; False for Google-only accounts."""
+        return bool(self.password_hash)
 
     # --- Convenience --------------------------------------------------------
     @property

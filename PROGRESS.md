@@ -58,79 +58,70 @@ The real source of truth is the code + git history; this file just helps orient 
   `[entrypoint] ERROR: Postgres did not become ready in time` failure, and
   that the auto-seed fires correctly with no shell access.
 
-## Email: Brevo API confirmed working — debug route removed (2026-09-03)
-- Live send via Brevo's API verified working on Render (`from: help@circlo.pk`).
-- `app/web/debug.py` (`GET /debug/test-email`) deleted, its blueprint import
-  removed, and the now-orphaned `DEBUG_EMAIL_KEY` / `DEBUG_EMAIL_RECIPIENT`
-  dropped from `config.py`, `.env.example`, and `render.yaml`.
-- `flask send-test-email <addr>` remains for local/ad-hoc checks.
+## Email — Brevo transactional API — DONE ✅ (2026-09-03)
+_Final state. Supersedes the four earlier dated email notes (see git log
+5eb13f6..deebc16 for the full trail: creds rotation → Render "silent send"
+diagnosis → SMTP→API rewrite → debug-route cleanup)._
+- **Transport**: `app/services/email.py` calls Brevo's REST API
+  (`POST https://api.brevo.com/v3/smtp/email`, port 443) via stdlib `urllib`.
+  SMTP was abandoned — ports 587/465 are blocked outbound on **both** the dev
+  network and Render (confirmed, infra-level). Same `send_email(to, subject,
+  body_html, raise_on_error=False)` signature; callers unchanged.
+- **Config**: `BREVO_API_KEY` (a v3 `xkeysib-…` key, NOT the SMTP key),
+  `BREVO_API_URL` (default set), `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
+  `is_configured()` needs `BREVO_API_KEY` + `MAIL_FROM_ADDRESS`.
+- **Logging**: `app/__init__.py` `_configure_logging()` binds `app.logger` to
+  Gunicorn's handlers + honours `LOG_LEVEL` (default INFO) — without it every
+  `logger.info` was dropped on Render. `send_email` logs attempt (INFO) /
+  success+messageId (INFO) / failure with full body+traceback (ERROR).
+- **Verified**: live send works on Render, `From: CIRCLO <help@circlo.pk>`;
+  forgot-password round-trip confirmed; 61 tests pass. The stale
+  `afnank070@gmail.com` sender was a leftover Render dashboard env var (no code
+  default) — corrected there.
+- **Local checks**: `flask send-test-email <addr>` (works from a network that
+  doesn't block 443 — i.e. anywhere). The temporary `/debug/test-email` route
+  has been removed.
+- **Next / follow-ups**: verify SPF/DKIM for `circlo.pk` in Brevo so mail lands
+  in inbox not spam; reuse `send_email` for an email-verification link on signup
+  (optional — identity is gated by CNIC/selfie, not email); move the inline HTML
+  bodies to Jinja templates if they grow (M5 follow-up, still open).
 
-## Email: SMTP -> Brevo HTTPS API (2026-09-03)
-- **Confirmed via `/debug/test-email`**: Render also blocks outbound SMTP
-  (587) — same `TimeoutError` as local. Infra-level, not code/creds.
-- **`app/services/email.py` rewritten** to call Brevo's REST API
-  (`POST https://api.brevo.com/v3/smtp/email`, port 443 — open everywhere)
-  instead of `smtplib`. Same `send_email(to, subject, body_html,
-  raise_on_error=False)` signature — nothing else changed. Uses stdlib
-  `urllib` (no new dependency). Auth is the `api-key` header = a Brevo **v3
-  API key** (`xkeysib-…`), NOT the SMTP key (`xsmtpsib-…`).
-- Config: `BREVO_SMTP_*` removed; added `BREVO_API_KEY` +
-  `BREVO_API_URL` (default `https://api.brevo.com/v3/smtp/email`).
-  `is_configured()` now needs `BREVO_API_KEY` + `MAIL_FROM_ADDRESS`.
-- `render.yaml` now declares `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`,
-  `MAIL_FROM_NAME`, `PUBLIC_BASE_URL`, `DEBUG_EMAIL_KEY`,
-  `DEBUG_EMAIL_RECIPIENT` (all `sync: false` — set in the dashboard).
-- **Stale `afnank070@gmail.com` from-address**: there is NO code default and
-  nothing in `render.yaml` — it is a manually-set stale `MAIL_FROM_ADDRESS`
-  env var in the Render dashboard. Fix = edit it there to `help@circlo.pk`.
-- Verified locally: 52 tests pass; `/debug/test-email` with a bogus key
-  reaches Brevo over 443 and cleanly surfaces `HTTP 401 {"code":
-  "unauthorized"}` in both the response body and the log — proves the path
-  works end-to-end (a real key returns 201).
-- **Local `.env`**: replace the `BREVO_SMTP_*` block with `BREVO_API_KEY=<v3
-  key>`, `BREVO_API_URL=https://api.brevo.com/v3/smtp/email`,
-  `MAIL_FROM_ADDRESS=help@circlo.pk`. **Render**: add `BREVO_API_KEY`, fix
-  `MAIL_FROM_ADDRESS`, delete the old `BREVO_SMTP_*` vars, redeploy, re-hit
-  `/debug/test-email` — expect `RESULT: SUCCESS` + `from address: help@circlo.pk`.
-
-## Email diagnostics on Render (2026-09-03)
-- **Root cause of "silent" forgot-password on Render**: there was NO logging
-  config, so under Gunicorn `app.logger` sat at WARNING and every
-  `logger.info(...)` (incl. the email service's "relay not configured" line and
-  every send attempt) was dropped — nothing in Render's stream, nothing in Brevo.
-- `app/__init__.py` `_configure_logging()`: binds `app.logger` to Gunicorn's
-  handlers (what Render captures) and sets level from `LOG_LEVEL` (default INFO).
-- `services/email.py`: "not configured" now logs at ERROR **with the names of the
-  missing env vars**; added an INFO "attempting delivery -> … via host:port as
-  login" line before the send; failures log at ERROR with `exc_info` (full
-  traceback + message). New `missing_config()` helper and a `raise_on_error` arg.
-- `services/password_reset.py` + `web/auth.py`: log unknown-email, token-issued,
-  send-failed; the route's bare `except: pass` now logs the exception.
-- **`GET /debug/test-email?key=<DEBUG_EMAIL_KEY>`** (new `app/web/debug.py`,
-  temporary): 404s unless `DEBUG_EMAIL_KEY` env is set and matches; otherwise
-  calls `send_email(raise_on_error=True)` to `DEBUG_EMAIL_RECIPIENT`
-  (or `?to=`, or `MAIL_FROM_ADDRESS`) and returns config summary + exact
-  result / full exception text as plain text. Remove once mail is confirmed.
-- **Render action items**: set `DEBUG_EMAIL_KEY` (random), optionally
-  `DEBUG_EMAIL_RECIPIENT` and `LOG_LEVEL=INFO`; redeploy; hit the debug URL and
-  read the response + logs. Verified locally (52 tests pass; SMTP itself still
-  times out here — port block — but the diagnostics now surface correctly).
-
-## Brevo SMTP creds rotation — verification (2026-09-03)
-- Sender switched to `help@circlo.pk` (`MAIL_FROM_ADDRESS`) in local `.env` + Render.
-  App renders `From: CIRCLO <help@circlo.pk>` correctly (verified via config +
-  `formataddr`). `BREVO_SMTP_LOGIN=b73823001@smtp-brevo.com`.
-- **`flask send-test-email` could NOT be verified locally**: this dev network
-  blocks all outbound SMTP submission ports — 587/465 time out to Brevo *and*
-  Gmail alike, while 443 (incl. `api.brevo.com`) is open. Not a credential
-  problem; a live send can only be confirmed from Render (or another network).
-- **Forgot-password flow verified end-to-end locally** (WSGI test client, real
-  routes/services/DB): `/forgot-password` 200, no account enumeration, reset link
-  from the email body opens, new password is set, old password rejected, link is
-  single-use. Only the email *delivery* inside it fails (same port block).
-- Follow-up option if the deploy network ever also blocks SMTP: switch
-  `email.py` to Brevo's HTTPS transactional API (port 443). Not done — no need
-  unless Render's egress is also restricted (it isn't, normally).
+## "Sign in with Google" (OAuth2 / OIDC) — DONE ✅ (2026-09-03)
+- **Library**: Authlib 1.3.2 (`authlib.integrations.flask_client.OAuth`) +
+  `requests` — both added to `requirements.txt`. `oauth` singleton in
+  `app/extensions.py`; `app/__init__.py` `_init_oauth()` registers the `google`
+  provider via OIDC discovery **only when** `GOOGLE_CLIENT_ID` +
+  `GOOGLE_CLIENT_SECRET` are set (otherwise the button hides and the routes
+  bounce to `/login` with a friendly flash). Email/password auth untouched.
+- **Config**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_DISCOVERY_URL`
+  (default = Google's well-known metadata URL). In `.env.example` + `render.yaml`
+  (`sync: false`).
+- **Routes** (`app/web/auth.py`): `GET /auth/google/login` (stashes a safe
+  `?next=` in the session, redirects to Google) and `GET /auth/google/callback`
+  (`authorize_access_token()` → `userinfo`; requires a verified email).
+- **Account logic** (`auth.get_or_create_oauth_user`): email already exists →
+  log that user in (name NOT overwritten, password intact); else create a
+  **passwordless** `User` (`password_hash` NULL) with `verification_status =
+  pending` — a Google signup still needs the same CNIC/selfie check.
+  `User.check_password()` returns False when there's no hash;
+  `User.has_password` property added.
+- **Schema**: migration `f7b2c9e4a1d8` (revises `c4e6f8a0d2b5`) makes
+  `users.password_hash` nullable. Applied clean on Docker/Postgres.
+- **UI**: "Sign in / Sign up with Google" button + divider on `auth/login.html`
+  and `auth/signup.html`, gated on `google_oauth_enabled` (context processor).
+- **Tests**: `tests/test_oauth.py` (9) — button shown/hidden, login redirect
+  targets Google, callback creates unverified passwordless user, callback logs
+  into an existing email account without dupe/overwrite, OAuth-only user can't
+  password-login, email/password signup still works, missing-email rejected.
+  `conftest.TestConfig` blanks the Google keys so a dev's real `.env` can't
+  leak in. **61 pass total.**
+- **Verified live**: buttons render; `/auth/google/login` 302s to
+  `accounts.google.com/o/oauth2/v2/auth` with the right client_id, redirect_uri
+  (`/auth/google/callback`), scope and `state`+`nonce`. Full consent round-trip
+  is a manual browser check (needs the redirect URI registered in Google Cloud).
+- **Next / follow-ups**: register the prod redirect URI + move the OAuth app out
+  of "Testing" to "In production" in Google Cloud before public launch; consider
+  storing `oauth_provider` on `User` if a second provider is ever added.
 
 ## Current milestone: M5 — Trust & Polish (DONE ✅)
 _(Reviews & ratings, disputes, trust-fund bookkeeping, and real transactional
@@ -552,11 +543,14 @@ for when they land.)_
 ## Next up
 - M6 API & mobile handoff: stabilise `/api/v1`, add JWT, hand Abdullah the
   contract (blueprint §12).
-- Add CSRF protection to all forms (Flask-WTF) — long-standing, do before public deploy.
+- Add CSRF protection to all forms (Flask-WTF) — long-standing, do before public
+  deploy. NOTE: the Google OAuth flow already has CSRF protection (Authlib
+  `state`); this is about the plain POST forms.
 - Phone OTP (deferred — per-message SMS cost, blueprint §13).
 - CNIC/selfie retention policy (delete raw docs after approval?) — blueprint §8.
-- Real transactional email now lives (Brevo SMTP) — verify a live send after deploy
-  (see test steps). Email verification link on signup could reuse the same service.
+- ~~Real transactional email~~ — DONE ✅ (Brevo API, see Email section above).
+- ~~Sign in with Google~~ — DONE ✅ (see OAuth section above). Before public
+  launch: register the prod redirect URI + publish the Google OAuth app.
 - ~~M5 Trust & polish~~ — DONE ✅ (see M5 section above).
 - ~~M4 Money & evidence~~ — DONE ✅ (see M4 section above).
 
