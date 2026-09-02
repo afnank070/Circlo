@@ -50,9 +50,9 @@ def _html_to_text(html: str) -> str:
 def send_email(to: str, subject: str, body_html: str, raise_on_error: bool = False) -> bool:
     """Send one HTML email via the Brevo API. Returns True if Brevo accepted it.
 
-    Never raises for an unconfigured relay or a delivery error (unless
-    ``raise_on_error`` is set — used by the debug route) — callers treat email as
-    best-effort so a mail outage can't break signup/booking flows.
+    Never raises for an unconfigured relay or a delivery error unless
+    ``raise_on_error`` is set — callers treat email as best-effort so a mail
+    outage can't break signup/booking flows.
     """
     cfg = current_app.config
 

@@ -34,11 +34,6 @@ services:
         sync: false
       - key: PUBLIC_BASE_URL
         sync: false
-      # --- Temporary: gated email smoke-test route ---
-      - key: DEBUG_EMAIL_KEY
-        sync: false
-      - key: DEBUG_EMAIL_RECIPIENT
-        sync: false
 databases:
   - name: circlo-db
     plan: free

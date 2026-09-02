@@ -58,6 +58,13 @@ The real source of truth is the code + git history; this file just helps orient 
   `[entrypoint] ERROR: Postgres did not become ready in time` failure, and
   that the auto-seed fires correctly with no shell access.
 
+## Email: Brevo API confirmed working — debug route removed (2026-09-03)
+- Live send via Brevo's API verified working on Render (`from: help@circlo.pk`).
+- `app/web/debug.py` (`GET /debug/test-email`) deleted, its blueprint import
+  removed, and the now-orphaned `DEBUG_EMAIL_KEY` / `DEBUG_EMAIL_RECIPIENT`
+  dropped from `config.py`, `.env.example`, and `render.yaml`.
+- `flask send-test-email <addr>` remains for local/ad-hoc checks.
+
 ## Email: SMTP -> Brevo HTTPS API (2026-09-03)
 - **Confirmed via `/debug/test-email`**: Render also blocks outbound SMTP
   (587) — same `TimeoutError` as local. Infra-level, not code/creds.
