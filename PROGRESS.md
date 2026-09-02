@@ -58,6 +58,22 @@ The real source of truth is the code + git history; this file just helps orient 
   `[entrypoint] ERROR: Postgres did not become ready in time` failure, and
   that the auto-seed fires correctly with no shell access.
 
+## Brevo SMTP creds rotation — verification (2026-09-03)
+- Sender switched to `help@circlo.pk` (`MAIL_FROM_ADDRESS`) in local `.env` + Render.
+  App renders `From: CIRCLO <help@circlo.pk>` correctly (verified via config +
+  `formataddr`). `BREVO_SMTP_LOGIN=b73823001@smtp-brevo.com`.
+- **`flask send-test-email` could NOT be verified locally**: this dev network
+  blocks all outbound SMTP submission ports — 587/465 time out to Brevo *and*
+  Gmail alike, while 443 (incl. `api.brevo.com`) is open. Not a credential
+  problem; a live send can only be confirmed from Render (or another network).
+- **Forgot-password flow verified end-to-end locally** (WSGI test client, real
+  routes/services/DB): `/forgot-password` 200, no account enumeration, reset link
+  from the email body opens, new password is set, old password rejected, link is
+  single-use. Only the email *delivery* inside it fails (same port block).
+- Follow-up option if the deploy network ever also blocks SMTP: switch
+  `email.py` to Brevo's HTTPS transactional API (port 443). Not done — no need
+  unless Render's egress is also restricted (it isn't, normally).
+
 ## Current milestone: M5 — Trust & Polish (DONE ✅)
 _(Reviews & ratings, disputes, trust-fund bookkeeping, and real transactional
 email via Brevo SMTP. Phone OTP / SMS stays deferred — per-message cost,
