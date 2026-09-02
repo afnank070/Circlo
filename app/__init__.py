@@ -6,6 +6,9 @@ file — configuration is loaded from a ``Config`` class that reads env vars.
 """
 from __future__ import annotations
 
+import logging
+import os
+
 from flask import Flask
 
 from .config import get_config
@@ -21,6 +24,7 @@ def create_app(config_object=None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_object or get_config())
 
+    _configure_logging(app)
     _init_extensions(app)
     _register_blueprints(app)
     _register_models()
@@ -28,6 +32,32 @@ def create_app(config_object=None) -> Flask:
     _register_context_processors(app)
 
     return app
+
+
+def _configure_logging(app: Flask) -> None:
+    """Make ``app.logger`` output actually reach the platform log stream.
+
+    Without this, under Gunicorn the Flask logger's effective level is WARNING,
+    so every ``app.logger.info(...)`` is silently dropped on Render — which hides
+    best-effort email diagnostics. We bind the app logger to Gunicorn's handlers
+    (Render captures those) when running under Gunicorn, otherwise add a plain
+    stream handler, and set the level from ``LOG_LEVEL`` (default INFO).
+    """
+    level_name = (os.environ.get("LOG_LEVEL") or "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+
+    gunicorn_logger = logging.getLogger("gunicorn.error")
+    if gunicorn_logger.handlers:  # running under Gunicorn (Render, prod)
+        app.logger.handlers = gunicorn_logger.handlers
+    elif not app.logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(
+            "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
+        ))
+        app.logger.addHandler(handler)
+
+    app.logger.setLevel(level)
+    app.logger.propagate = False
 
 
 def _init_extensions(app: Flask) -> None:

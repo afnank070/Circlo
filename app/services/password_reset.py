@@ -46,6 +46,9 @@ def request_reset(email: str) -> bool:
     """
     user = auth_service.get_user_by_email(email)
     if user is None:
+        current_app.logger.info(
+            "password reset requested for unknown email %r — no token issued", email
+        )
         return False
 
     raw = secrets.token_urlsafe(32)
@@ -58,6 +61,10 @@ def request_reset(email: str) -> bool:
     db.session.commit()
 
     reset_url = _build_reset_url(raw)
+    current_app.logger.info(
+        "password reset token issued for user id=%s (%s) — sending reset email",
+        user.id, user.email,
+    )
     body = (
         f"<p>Hi {user.name.split()[0] if user.name else 'there'},</p>"
         f"<p>We received a request to reset your CIRCLO password. "
@@ -66,7 +73,13 @@ def request_reset(email: str) -> bool:
         f"<p>If you didn't ask for this, you can ignore this email — your "
         f"password won't change.</p>"
     )
-    return email_service.send_email(user.email, "Reset your CIRCLO password", body)
+    sent = email_service.send_email(user.email, "Reset your CIRCLO password", body)
+    if not sent:
+        current_app.logger.error(
+            "password reset email NOT sent for user id=%s (%s) — see send_email log above",
+            user.id, user.email,
+        )
+    return sent
 
 
 def verify(raw_token: str) -> PasswordResetToken | None:

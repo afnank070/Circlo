@@ -19,13 +19,17 @@ from email.utils import formataddr
 from flask import current_app
 
 
-def is_configured() -> bool:
+_REQUIRED_KEYS = ("BREVO_SMTP_LOGIN", "BREVO_SMTP_KEY", "MAIL_FROM_ADDRESS")
+
+
+def missing_config() -> list[str]:
+    """Names of the required SMTP config vars that are unset/empty."""
     cfg = current_app.config
-    return bool(
-        cfg.get("BREVO_SMTP_LOGIN")
-        and cfg.get("BREVO_SMTP_KEY")
-        and cfg.get("MAIL_FROM_ADDRESS")
-    )
+    return [k for k in _REQUIRED_KEYS if not cfg.get(k)]
+
+
+def is_configured() -> bool:
+    return not missing_config()
 
 
 def _html_to_text(html: str) -> str:
@@ -37,24 +41,38 @@ def _html_to_text(html: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
-def send_email(to: str, subject: str, body_html: str) -> bool:
+def send_email(to: str, subject: str, body_html: str, raise_on_error: bool = False) -> bool:
     """Send one HTML email. Returns True if handed to the relay, False otherwise.
 
-    Never raises for an unconfigured relay or a delivery error — callers treat
-    email as best-effort so a mail outage can't break signup/booking flows.
+    Never raises for an unconfigured relay or a delivery error (unless
+    ``raise_on_error`` is set — used by the debug route) — callers treat email as
+    best-effort so a mail outage can't break signup/booking flows.
     """
     cfg = current_app.config
 
     if not to:
         current_app.logger.warning("send_email: no recipient, skipping (%s)", subject)
+        if raise_on_error:
+            raise ValueError("no recipient")
         return False
 
-    if not is_configured():
-        current_app.logger.info(
-            "send_email (relay not configured) -> %s | %s\n%s",
-            to, subject, _html_to_text(body_html),
+    missing = missing_config()
+    if missing:
+        current_app.logger.error(
+            "send_email SKIPPED: SMTP relay not configured — missing env vars: %s "
+            "(-> %s | %s)",
+            ", ".join(missing), to, subject,
         )
+        if raise_on_error:
+            raise RuntimeError(f"SMTP relay not configured — missing: {', '.join(missing)}")
         return False
+
+    server = cfg.get("BREVO_SMTP_SERVER", "smtp-relay.brevo.com")
+    port = int(cfg.get("BREVO_SMTP_PORT", 587))
+    current_app.logger.info(
+        "send_email: attempting delivery -> %s | %s | via %s:%s as %s",
+        to, subject, server, port, cfg.get("BREVO_SMTP_LOGIN"),
+    )
 
     msg = EmailMessage()
     msg["Subject"] = subject
@@ -62,9 +80,6 @@ def send_email(to: str, subject: str, body_html: str) -> bool:
     msg["To"] = to
     msg.set_content(_html_to_text(body_html))
     msg.add_alternative(body_html, subtype="html")
-
-    server = cfg.get("BREVO_SMTP_SERVER", "smtp-relay.brevo.com")
-    port = int(cfg.get("BREVO_SMTP_PORT", 587))
 
     try:
         if port == 465:
@@ -79,9 +94,14 @@ def send_email(to: str, subject: str, body_html: str) -> bool:
                 s.ehlo()
                 s.login(cfg["BREVO_SMTP_LOGIN"], cfg["BREVO_SMTP_KEY"])
                 s.send_message(msg)
-    except Exception:  # noqa: BLE001 - email is best-effort, log and move on
-        current_app.logger.exception("send_email failed -> %s | %s", to, subject)
+    except Exception as exc:  # noqa: BLE001 - email is best-effort, log and move on
+        current_app.logger.error(
+            "send_email FAILED -> %s | %s | %s: %s",
+            to, subject, type(exc).__name__, exc, exc_info=True,
+        )
+        if raise_on_error:
+            raise
         return False
 
-    current_app.logger.info("send_email sent -> %s | %s", to, subject)
+    current_app.logger.info("send_email OK -> %s | %s", to, subject)
     return True

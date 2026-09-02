@@ -58,6 +58,29 @@ The real source of truth is the code + git history; this file just helps orient 
   `[entrypoint] ERROR: Postgres did not become ready in time` failure, and
   that the auto-seed fires correctly with no shell access.
 
+## Email diagnostics on Render (2026-09-03)
+- **Root cause of "silent" forgot-password on Render**: there was NO logging
+  config, so under Gunicorn `app.logger` sat at WARNING and every
+  `logger.info(...)` (incl. the email service's "relay not configured" line and
+  every send attempt) was dropped — nothing in Render's stream, nothing in Brevo.
+- `app/__init__.py` `_configure_logging()`: binds `app.logger` to Gunicorn's
+  handlers (what Render captures) and sets level from `LOG_LEVEL` (default INFO).
+- `services/email.py`: "not configured" now logs at ERROR **with the names of the
+  missing env vars**; added an INFO "attempting delivery -> … via host:port as
+  login" line before the send; failures log at ERROR with `exc_info` (full
+  traceback + message). New `missing_config()` helper and a `raise_on_error` arg.
+- `services/password_reset.py` + `web/auth.py`: log unknown-email, token-issued,
+  send-failed; the route's bare `except: pass` now logs the exception.
+- **`GET /debug/test-email?key=<DEBUG_EMAIL_KEY>`** (new `app/web/debug.py`,
+  temporary): 404s unless `DEBUG_EMAIL_KEY` env is set and matches; otherwise
+  calls `send_email(raise_on_error=True)` to `DEBUG_EMAIL_RECIPIENT`
+  (or `?to=`, or `MAIL_FROM_ADDRESS`) and returns config summary + exact
+  result / full exception text as plain text. Remove once mail is confirmed.
+- **Render action items**: set `DEBUG_EMAIL_KEY` (random), optionally
+  `DEBUG_EMAIL_RECIPIENT` and `LOG_LEVEL=INFO`; redeploy; hit the debug URL and
+  read the response + logs. Verified locally (52 tests pass; SMTP itself still
+  times out here — port block — but the diagnostics now surface correctly).
+
 ## Brevo SMTP creds rotation — verification (2026-09-03)
 - Sender switched to `help@circlo.pk` (`MAIL_FROM_ADDRESS`) in local `.env` + Render.
   App renders `From: CIRCLO <help@circlo.pk>` correctly (verified via config +

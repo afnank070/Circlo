@@ -65,6 +65,15 @@ class Config:
     # Base URL for links inside emails (password reset, etc.). No trailing slash.
     PUBLIC_BASE_URL = _env("PUBLIC_BASE_URL", "http://localhost:5000")
 
+    # Logging verbosity for app.logger (INFO surfaces best-effort email diagnostics).
+    LOG_LEVEL = _env("LOG_LEVEL", "INFO")
+
+    # Secret that unlocks GET /debug/test-email (a temporary SMTP smoke test for
+    # environments without shell access — e.g. Render free tier). Unset => the
+    # route 404s. Optional DEBUG_EMAIL_RECIPIENT overrides the test recipient.
+    DEBUG_EMAIL_KEY = _env("DEBUG_EMAIL_KEY")
+    DEBUG_EMAIL_RECIPIENT = _env("DEBUG_EMAIL_RECIPIENT")
+
     # --- Admin-configurable operational settings: env-var *fallbacks* only ---
     # The live values are edited from /admin/settings and stored in the DB
     # (app_settings). These provide sensible defaults for a fresh deploy before

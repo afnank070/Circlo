@@ -7,6 +7,7 @@ reuse the same service to issue JWTs later (blueprint §4).
 from __future__ import annotations
 
 from flask import (
+    current_app,
     flash,
     redirect,
     render_template,
@@ -106,10 +107,13 @@ def forgot_password():
     if request.method == "POST":
         email = (request.form.get("email") or "").strip()
         # Best-effort; never reveal whether the address is registered.
+        current_app.logger.info("forgot-password: reset requested for %r", email)
         try:
             reset_service.request_reset(email)
         except Exception:  # noqa: BLE001 - don't leak errors on this endpoint
-            pass
+            current_app.logger.exception(
+                "forgot-password: request_reset raised for %r", email
+            )
         flash(
             "If that email is registered, we've sent a reset link. "
             "Check your inbox (and spam).",
