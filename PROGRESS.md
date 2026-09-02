@@ -58,6 +58,34 @@ The real source of truth is the code + git history; this file just helps orient 
   `[entrypoint] ERROR: Postgres did not become ready in time` failure, and
   that the auto-seed fires correctly with no shell access.
 
+## Email: SMTP -> Brevo HTTPS API (2026-09-03)
+- **Confirmed via `/debug/test-email`**: Render also blocks outbound SMTP
+  (587) — same `TimeoutError` as local. Infra-level, not code/creds.
+- **`app/services/email.py` rewritten** to call Brevo's REST API
+  (`POST https://api.brevo.com/v3/smtp/email`, port 443 — open everywhere)
+  instead of `smtplib`. Same `send_email(to, subject, body_html,
+  raise_on_error=False)` signature — nothing else changed. Uses stdlib
+  `urllib` (no new dependency). Auth is the `api-key` header = a Brevo **v3
+  API key** (`xkeysib-…`), NOT the SMTP key (`xsmtpsib-…`).
+- Config: `BREVO_SMTP_*` removed; added `BREVO_API_KEY` +
+  `BREVO_API_URL` (default `https://api.brevo.com/v3/smtp/email`).
+  `is_configured()` now needs `BREVO_API_KEY` + `MAIL_FROM_ADDRESS`.
+- `render.yaml` now declares `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`,
+  `MAIL_FROM_NAME`, `PUBLIC_BASE_URL`, `DEBUG_EMAIL_KEY`,
+  `DEBUG_EMAIL_RECIPIENT` (all `sync: false` — set in the dashboard).
+- **Stale `afnank070@gmail.com` from-address**: there is NO code default and
+  nothing in `render.yaml` — it is a manually-set stale `MAIL_FROM_ADDRESS`
+  env var in the Render dashboard. Fix = edit it there to `help@circlo.pk`.
+- Verified locally: 52 tests pass; `/debug/test-email` with a bogus key
+  reaches Brevo over 443 and cleanly surfaces `HTTP 401 {"code":
+  "unauthorized"}` in both the response body and the log — proves the path
+  works end-to-end (a real key returns 201).
+- **Local `.env`**: replace the `BREVO_SMTP_*` block with `BREVO_API_KEY=<v3
+  key>`, `BREVO_API_URL=https://api.brevo.com/v3/smtp/email`,
+  `MAIL_FROM_ADDRESS=help@circlo.pk`. **Render**: add `BREVO_API_KEY`, fix
+  `MAIL_FROM_ADDRESS`, delete the old `BREVO_SMTP_*` vars, redeploy, re-hit
+  `/debug/test-email` — expect `RESULT: SUCCESS` + `from address: help@circlo.pk`.
+
 ## Email diagnostics on Render (2026-09-03)
 - **Root cause of "silent" forgot-password on Render**: there was NO logging
   config, so under Gunicorn `app.logger` sat at WARNING and every

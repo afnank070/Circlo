@@ -26,19 +26,19 @@ def register_cli(app: Flask) -> None:
     @app.cli.command("send-test-email")
     @click.argument("recipient")
     def send_test_email(recipient: str) -> None:
-        """Send a one-off test email to RECIPIENT to confirm Brevo SMTP works."""
+        """Send a one-off test email to RECIPIENT to confirm Brevo delivery works."""
         from app.services import email as email_service
 
         if not email_service.is_configured():
             click.echo(
-                "SMTP not configured — set BREVO_SMTP_LOGIN / BREVO_SMTP_KEY / "
-                "MAIL_FROM_ADDRESS in .env. (The message would just be logged.)"
+                "Email not configured — set BREVO_API_KEY / MAIL_FROM_ADDRESS in "
+                ".env. (The message would just be logged.)"
             )
         ok = email_service.send_email(
             recipient,
             "CIRCLO test email",
             "<p>This is a test from <strong>CIRCLO</strong>. "
-            "If you can read this, Brevo SMTP delivery works.</p>",
+            "If you can read this, Brevo API delivery works.</p>",
         )
         click.echo("Sent ✓" if ok else "Not sent — check the app log for the reason.")
 

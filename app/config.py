@@ -52,14 +52,16 @@ class Config:
     # MinIO needs path-style addressing; real S3 accepts it too.
     STORAGE_USE_PATH_STYLE = _bool("STORAGE_USE_PATH_STYLE", True)
 
-    # --- Email (Brevo SMTP relay) ---
+    # --- Email (Brevo transactional API, over HTTPS) ---
     # Transactional email only (password reset, notifications). No SMS/OTP — that
-    # has a per-message cost and is deferred (blueprint §13). If the SMTP vars
-    # are unset the email service logs and no-ops, so dev/tests never send.
-    BREVO_SMTP_SERVER = _env("BREVO_SMTP_SERVER", "smtp-relay.brevo.com")
-    BREVO_SMTP_PORT = int(_env("BREVO_SMTP_PORT", "587"))
-    BREVO_SMTP_LOGIN = _env("BREVO_SMTP_LOGIN")
-    BREVO_SMTP_KEY = _env("BREVO_SMTP_KEY")
+    # has a per-message cost and is deferred (blueprint §13).
+    # We use Brevo's REST API on port 443, NOT SMTP: outbound SMTP (587/465) is
+    # blocked on both the dev network and Render. BREVO_API_KEY is a v3 API key
+    # from the Brevo dashboard (SMTP & API -> API Keys) — a different credential
+    # from the old SMTP key. If the key or from-address is unset the email
+    # service logs an error and returns False, so dev/tests never deliver.
+    BREVO_API_KEY = _env("BREVO_API_KEY")
+    BREVO_API_URL = _env("BREVO_API_URL", "https://api.brevo.com/v3/smtp/email")
     MAIL_FROM_ADDRESS = _env("MAIL_FROM_ADDRESS")
     MAIL_FROM_NAME = _env("MAIL_FROM_NAME", "CIRCLO")
     # Base URL for links inside emails (password reset, etc.). No trailing slash.
@@ -68,7 +70,7 @@ class Config:
     # Logging verbosity for app.logger (INFO surfaces best-effort email diagnostics).
     LOG_LEVEL = _env("LOG_LEVEL", "INFO")
 
-    # Secret that unlocks GET /debug/test-email (a temporary SMTP smoke test for
+    # Secret that unlocks GET /debug/test-email (a temporary email smoke test for
     # environments without shell access — e.g. Render free tier). Unset => the
     # route 404s. Optional DEBUG_EMAIL_RECIPIENT overrides the test recipient.
     DEBUG_EMAIL_KEY = _env("DEBUG_EMAIL_KEY")
