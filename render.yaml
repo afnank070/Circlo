@@ -32,6 +32,8 @@ services:
         sync: false
       - key: MAIL_FROM_NAME
         sync: false
+      # Canonical URL for email links + the Google OAuth redirect URI.
+      # Set to https://www.circlo.pk (must match Google Cloud Console).
       - key: PUBLIC_BASE_URL
         sync: false
       # --- Google OAuth ("Sign in with Google") ---

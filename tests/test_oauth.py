@@ -16,7 +16,7 @@ class _FakeGoogleClient:
     def __init__(self, userinfo: dict):
         self._userinfo = userinfo
 
-    def authorize_access_token(self) -> dict:
+    def authorize_access_token(self, **kwargs) -> dict:
         return {"userinfo": self._userinfo}
 
 
@@ -60,6 +60,24 @@ def test_google_login_redirects_to_provider(client, app, monkeypatch):
     assert resp.status_code == 302
     assert "accounts.google.com" in resp.headers["Location"]
     assert captured["redirect_uri"].endswith("/auth/google/callback")
+
+
+def test_google_redirect_uri_pinned_to_public_base_url(client, app, monkeypatch):
+    _enable_google(app)
+    app.config["PUBLIC_BASE_URL"] = "https://www.circlo.pk"
+    captured = {}
+
+    class _Redirector:
+        def authorize_redirect(self, redirect_uri):
+            from flask import redirect
+
+            captured["redirect_uri"] = redirect_uri
+            return redirect("https://accounts.google.com/stub")
+
+    monkeypatch.setattr("app.web.auth._google_client", lambda: _Redirector())
+
+    client.get("/auth/google/login")
+    assert captured["redirect_uri"] == "https://www.circlo.pk/auth/google/callback"
 
 
 def test_google_login_when_unconfigured_bounces_to_login(client, monkeypatch):

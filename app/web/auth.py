@@ -114,6 +114,21 @@ def _google_client():
     return oauth.create_client("google")
 
 
+def _google_redirect_uri() -> str:
+    """Absolute callback URL registered with Google.
+
+    Pinned to ``PUBLIC_BASE_URL`` (the canonical domain, e.g.
+    ``https://www.circlo.pk``) so the redirect URI is identical no matter which
+    hostname or scheme the request arrived on — otherwise ``url_for(_external)``
+    echoes the request's ``Host`` header and www vs non-www drift breaks the
+    flow. Falls back to the request-derived URL when the env var is unset (local
+    dev / tests).
+    """
+    base = (current_app.config.get("PUBLIC_BASE_URL") or "").rstrip("/")
+    path = url_for("web.google_callback")
+    return f"{base}{path}" if base else url_for("web.google_callback", _external=True)
+
+
 @web_bp.route("/auth/google/login")
 def google_login():
     if current_user.is_authenticated:
@@ -126,8 +141,7 @@ def google_login():
 
     # Stash a safe post-login redirect target for the callback.
     session[_OAUTH_NEXT_KEY] = _safe_next(request.args.get("next"))
-    redirect_uri = url_for("web.google_callback", _external=True)
-    return client.authorize_redirect(redirect_uri)
+    return client.authorize_redirect(_google_redirect_uri())
 
 
 @web_bp.route("/auth/google/callback")
@@ -141,7 +155,7 @@ def google_callback():
         return redirect(url_for("web.login"))
 
     try:
-        token = client.authorize_access_token()
+        token = client.authorize_access_token(redirect_uri=_google_redirect_uri())
     except OAuthError as exc:
         current_app.logger.warning("google oauth: authorize failed: %s", exc)
         flash("Google sign-in was cancelled or failed. Please try again.", "error")
