@@ -50,6 +50,18 @@ def listing_detail(listing_id: int):
     return render_template("listing_detail.html", listing=listing)
 
 
+@web_bp.route("/privacy")
+def privacy():
+    """Privacy policy — static page (required for Google OAuth verification)."""
+    return render_template("legal/privacy.html")
+
+
+@web_bp.route("/terms")
+def terms():
+    """Terms of service — static page (required for Google OAuth verification)."""
+    return render_template("legal/terms.html")
+
+
 @web_bp.route("/health")
 def health():
     """Liveness probe consumed by Docker/monitoring. Returns JSON."""
