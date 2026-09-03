@@ -16,7 +16,9 @@ class _FakeGoogleClient:
     def __init__(self, userinfo: dict):
         self._userinfo = userinfo
 
-    def authorize_access_token(self, **kwargs) -> dict:
+    def authorize_access_token(self) -> dict:
+        # No kwargs on purpose: the real Authlib client replays the redirect_uri
+        # from session state, so the route must not pass one (doing so 500s).
         return {"userinfo": self._userinfo}
 
 

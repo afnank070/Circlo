@@ -123,6 +123,37 @@ diagnosis → SMTP→API rewrite → debug-route cleanup)._
   of "Testing" to "In production" in Google Cloud before public launch; consider
   storing `oauth_provider` on `User` if a second provider is ever added.
 
+## OAuth redirect URI + legal pages (2026-09-03, follow-up)
+- **Legal pages for Google verification**: `/privacy` and `/terms`
+  (`app/web/routes.py` → `app/web/templates/legal/{privacy,terms}.html`,
+  extend `base.html`). Content is specific to what CIRCLO does — data collected
+  (name, email, phone, CNIC/selfie for verification, listing/booking/payment
+  records), used only to run the marketplace, **not sold to third parties**,
+  privacy contact `help@circlo.pk`; terms cover 18+, accurate info,
+  owner↔renter rental agreement with CIRCLO as facilitator, deposit-dispute
+  review, account suspension for fraud. Footer now links to both (was dead `#`).
+- **Redirect URI drift fix** (`app/web/auth.py`): the callback URL was
+  `url_for("web.google_callback", _external=True)`, which echoes the request
+  `Host` header → drifted between `circlo.pk` / `www.circlo.pk`. New
+  `_google_redirect_uri()` pins it to `PUBLIC_BASE_URL` (falls back to the
+  request-derived URL when unset, for local dev/tests). **`PUBLIC_BASE_URL`
+  also already drives every email link** (`password_reset._build_reset_url`,
+  `notifications._abs_url`) — those were only hitting `localhost:5000` because
+  the env var was unset on Render, not a code bug. Set
+  `PUBLIC_BASE_URL=https://www.circlo.pk` on Render and register exactly
+  `https://www.circlo.pk/auth/google/callback` in Google Cloud Console; add a
+  301 apex→www redirect so users never sit on the non-canonical host.
+- **Callback 500 fix**: a first cut also passed
+  `authorize_access_token(redirect_uri=...)`. Authlib already replays the
+  redirect_uri from session state into `fetch_access_token`, so the explicit
+  kwarg collided → `TypeError: ... got multiple values for keyword argument
+  'redirect_uri'`, uncaught → **500 at `/auth/google/callback`**. Fixed by
+  calling `authorize_access_token()` with no args; test stub locked to a
+  no-kwargs signature so a re-add fails CI. **62 tests pass.**
+- **Blocked on user**: confirm `PUBLIC_BASE_URL` is actually set on Render and
+  that the Google Cloud redirect URI matches it exactly (with `www`). Needs a
+  Render redeploy of commit with the 500 fix, then a live consent round-trip.
+
 ## Current milestone: M5 — Trust & Polish (DONE ✅)
 _(Reviews & ratings, disputes, trust-fund bookkeeping, and real transactional
 email via Brevo SMTP. Phone OTP / SMS stays deferred — per-message cost,

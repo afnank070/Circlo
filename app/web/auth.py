@@ -155,7 +155,11 @@ def google_callback():
         return redirect(url_for("web.login"))
 
     try:
-        token = client.authorize_access_token(redirect_uri=_google_redirect_uri())
+        # Do NOT pass redirect_uri here: Authlib persists the value used in the
+        # authorize step (see _google_redirect_uri) in the session state and
+        # replays it for the token exchange. Passing it again collides with that
+        # and raises TypeError -> 500 at the callback.
+        token = client.authorize_access_token()
     except OAuthError as exc:
         current_app.logger.warning("google oauth: authorize failed: %s", exc)
         flash("Google sign-in was cancelled or failed. Please try again.", "error")
