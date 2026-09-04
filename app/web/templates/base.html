@@ -119,8 +119,8 @@
 
       <!-- Right nav -->
       <nav class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-        <a href="#" class="hidden text-sm text-ink hover:underline lg:inline-block">How it works</a>
-        <a href="#" class="hidden text-sm text-ink hover:underline lg:inline-block">Trust &amp; deposits</a>
+        <a href="{{ url_for('web.how_it_works') }}" class="hidden text-sm text-ink hover:underline lg:inline-block">How it works</a>
+        <a href="{{ url_for('web.trust_deposits') }}" class="hidden text-sm text-ink hover:underline lg:inline-block">Trust &amp; deposits</a>
         <!-- List an item: goes to the create form when logged in, else to login. -->
         <a href="{% if current_user.is_authenticated %}{{ url_for('web.create_listing') }}{% else %}{{ url_for('web.login', next=url_for('web.create_listing')) }}{% endif %}"
            class="inline-flex items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.04em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100">

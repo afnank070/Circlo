@@ -234,4 +234,5 @@ def test_my_rentals_shows_owner_and_renter_sections(client, app):
     resp = client.get("/my-rentals")
     assert resp.status_code == 200
     assert b"Bosch Hammer Drill" in resp.data
-    assert b"Pending (awaiting owner)" in resp.data
+    assert b"Pending" in resp.data
+    assert b"As a renter" in resp.data

@@ -4,6 +4,68 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Layout philosophy rework: spacious sections over stacked cards (DONE ✅, 2026-09-05)
+Backend logic untouched — visual/IA pass only, per `DESIGN_SYSTEM.md` §0.4.
+
+### 1. Spacious section layout
+Reworked the pages that were densest with per-item bordered cards, replacing
+most of them with plain divided rows (`divide-y divide-divider`) inside
+clearly-labelled sections, reserving card/panel treatment for things that
+truly need visual containment (a form collecting input, a photo thumbnail, a
+distinct status readout):
+- **My Rentals** (`rentals/my_rentals.html`) — full rewrite. Owner and renter
+  views each restructured into three plain sections (Pending requests /
+  Rentals in progress / Past rentals) of simple thumbnail + text + status-pill
+  rows instead of a bordered card per booking. The payment-instructions panel,
+  evidence-upload panel, dispute-report form, and review form all stay as
+  light contained panels (bg-accent-100 / bg-amber-50 / bg-surface) since they
+  collect input or need attention — only the outer per-booking wrapper lost
+  its border/card treatment. The "My listings" quick-list at the bottom is now
+  a plain divided list of links instead of pill-shaped chips. Same routes,
+  same params, same Jinja macros for badges/panels — pure markup restructure.
+- **My Listings** (`listings/my_listings.html`) — already matched the target
+  philosophy (frameless card grid, card reserved for the thumbnail only,
+  everything else plain text) from the earlier v3 pass; left as-is.
+- **Admin panels** — `verify_queue.html`, `payments_queue.html`,
+  `disputes_queue.html`, `trust_fund.html` all moved from the v1 navy/teal/
+  sand dense-card style to v3 tokens + the same spacious philosophy: plain
+  divided rows for bookings/disputes/documents, with the resolve-dispute form,
+  the trust-fund starting-balance form, and the CNIC/selfie thumbnails kept as
+  contained panels. Trust fund's three balance tiles stay as cards — they're a
+  genuine "distinct status panel" case.
+
+### 2. Dead nav links fixed
+"How it works" and "Trust & deposits" in the header (`base.html`) pointed to
+`#`. Built two real explainer pages instead of removing them:
+- `app/web/templates/how_it_works.html` (`GET /how-it-works`) — numbered
+  renting flow and listing flow, both grounded in the actual booking state
+  machine (request → accept → pay → before/after evidence → deposit release).
+- `app/web/templates/trust_deposits.html` (`GET /trust-deposits`) — identity
+  verification, refundable deposit, before/after evidence, Trust & Safety
+  Fund, and reviews — content pulled from blueprint §6/§7 and the existing
+  "Protected by CIRCLO" copy on the listing-detail page, not invented.
+- Both routes added to `app/web/routes.py`; both pages cross-link each other.
+
+### 3. CNIC/selfie upload guidance
+`verify/status.html` had a file-upload form with zero guidance. Added a
+"Before you upload" panel with concrete, real-world instructions (even
+lighting, all four corners of the CNIC visible, watch for glare, selfie must
+clearly match the CNIC photo, accepted formats) plus a one-line hint under
+each file input.
+
+### Verification
+- **68 tests pass** (one test updated: it asserted the literal string
+  "Pending (awaiting owner)", which the rewritten section label no longer
+  produces verbatim — now asserts on "Pending" + "As a renter" instead).
+- **Verified live in-browser**, not just tests: seeded a throwaway sqlite DB
+  (owner/renter/admin users, listings, bookings across every status —
+  requested/accepted/awaiting_payment/paid/active/returned/completed, an open
+  dispute, a resolved dispute, a pending identity document, a trust-fund
+  balance) and walked through My Rentals (both owner and renter, every
+  section and every in-flight panel), My Listings, all four admin pages,
+  the verify upload page, and both new explainer pages. Scratch DB and script
+  discarded after — nothing committed.
+
 ## Archive/deactivate listings + v3 design rollout (DONE ✅, 2026-09-05)
 
 ### 1. Archive/deactivate listings

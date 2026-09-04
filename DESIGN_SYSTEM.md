@@ -20,11 +20,27 @@ Tailwind JIT syntax and works on the Play CDN build.
 ### 0.1 Migrated to v3
 Shared header/footer (`base.html`), home/browse (`index.html`), listing
 detail (`listing_detail.html`), login (`auth/login.html`), signup
-(`auth/signup.html`).
+(`auth/signup.html`), my-rentals, my-listings, identity verification
+(`verify/status.html`), listing form, the new `how_it_works.html` /
+`trust_deposits.html` explainer pages, and all four admin panels
+(`verify_queue.html`, `payments_queue.html`, `disputes_queue.html`,
+`trust_fund.html`).
 
 **Not yet migrated** (still v1 navy/teal/sand): forgot/reset password,
-my-rentals, my-listings, listing form, profile, admin queues, legal pages.
-The v1 tokens stay in `tailwind.config` until those are migrated too.
+profile, legal pages, admin settings. The v1 tokens stay in
+`tailwind.config` until those are migrated too.
+
+### 0.4 Layout philosophy (2026-09-05 rework)
+My Rentals, My Listings, and the four admin panels moved away from
+"everything in a bordered card" toward spacious sections with plain,
+divided rows (`divide-y divide-divider`) for informational content
+(booking status, dates, names). A bordered/tinted `rounded-2xl` container
+is now reserved for things that genuinely need visual containment: a
+form collecting input (resolve-dispute form, review form, payment
+confirmation, trust-fund starting-balance form), a photo thumbnail (CNIC/
+selfie, booking evidence), or a distinct status readout (trust fund
+balance tiles). Section headers are plain uppercase labels with a count,
+not another card.
 
 ### 0.2 Values chosen where the source didn't define them
 The exported file references `--radius-lg`, `--radius-md`, `--shadow-md` and

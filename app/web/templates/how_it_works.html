@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}How CIRCLO works — CIRCLO{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-[860px] px-4 py-14 sm:px-14 sm:py-20">
+  <p class="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent-700">Guide</p>
+  <h1 class="mt-3 font-display text-[48px] font-bold uppercase leading-[0.95] text-ink sm:text-[64px]">How CIRCLO works</h1>
+  <p class="mt-5 max-w-[62ch] text-[17px] leading-[1.6] text-neutral-700">
+    CIRCLO connects people in Islamabad and Rawalpindi who own gear they don't
+    use every day with people who need it for a weekend, a shoot, or a project.
+    Here's what happens on both sides of a rental.
+  </p>
+
+  <!-- ===== Renting ===== -->
+  <section class="mt-16">
+    <h2 class="font-display text-[26px] font-bold uppercase text-ink">Renting an item</h2>
+    <div class="mt-8 space-y-8">
+      <div class="flex gap-5">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-100 font-display text-[16px] font-bold text-accent-700">1</span>
+        <div>
+          <h3 class="font-display text-[19px] font-bold uppercase text-ink">Find what you need</h3>
+          <p class="mt-1 max-w-[58ch] text-[15px] leading-[1.6] text-neutral-700">Browse or search by category — cameras, tools, camping gear, event equipment and more — and pick your dates on the listing page.</p>
+        </div>
+      </div>
+      <div class="flex gap-5">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-100 font-display text-[16px] font-bold text-accent-700">2</span>
+        <div>
+          <h3 class="font-display text-[19px] font-bold uppercase text-ink">Send a request</h3>
+          <p class="mt-1 max-w-[58ch] text-[15px] leading-[1.6] text-neutral-700">Request the dates you want. You won't be charged yet — the owner reviews and accepts or declines first.</p>
+        </div>
+      </div>
+      <div class="flex gap-5">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-100 font-display text-[16px] font-bold text-accent-700">3</span>
+        <div>
+          <h3 class="font-display text-[19px] font-bold uppercase text-ink">Pay the rental + deposit</h3>
+          <p class="mt-1 max-w-[58ch] text-[15px] leading-[1.6] text-neutral-700">Once accepted, you'll see exactly what's due — the rental fee plus a refundable security deposit — and where to send it. CIRCLO confirms receipt before the handover.</p>
+        </div>
+      </div>
+      <div class="flex gap-5">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-100 font-display text-[16px] font-bold text-accent-700">4</span>
+        <div>
+          <h3 class="font-display text-[19px] font-bold uppercase text-ink">Pick up, use, return</h3>
+          <p class="mt-1 max-w-[58ch] text-[15px] leading-[1.6] text-neutral-700">Both you and the owner upload a quick "before" photo at handover and an "after" photo at return, so there's a record of the item's condition on both ends.</p>
+        </div>
+      </div>
+      <div class="flex gap-5">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent-100 font-display text-[16px] font-bold text-accent-700">5</span>
+        <div>
+          <h3 class="font-display text-[19px] font-bold uppercase text-ink">Get your deposit back</h3>
+          <p class="mt-1 max-w-[58ch] text-[15px] leading-[1.6] text-neutral-700">Once the owner confirms a clean return, your deposit is released. If anything's disputed, see <a href="{{ url_for('web.trust_deposits') }}" class="font-semibold text-accent-700 hover:underline">how deposits &amp; trust protection work</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Listing ===== -->
+  <section class="mt-16 border-t border-divider pt-12">
+    <h2 class="font-display text-[26px] font-bold uppercase text-ink">Listing an item</h2>
+    <div class="mt-8 space-y-8">
+      <div class="flex gap-5">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent2-100 font-display text-[16px] font-bold text-accent2-700">1</span>
+        <div>
+          <h3 class="font-display text-[19px] font-bold uppercase text-ink">List what you own</h3>
+          <p class="mt-1 max-w-[58ch] text-[15px] leading-[1.6] text-neutral-700">Add photos, a description, a category, and your price per day and deposit amount. It goes live on the marketplace right away.</p>
+        </div>
+      </div>
+      <div class="flex gap-5">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent2-100 font-display text-[16px] font-bold text-accent2-700">2</span>
+        <div>
+          <h3 class="font-display text-[19px] font-bold uppercase text-ink">Review requests</h3>
+          <p class="mt-1 max-w-[58ch] text-[15px] leading-[1.6] text-neutral-700">When someone wants to rent your item, you'll see their request under <a href="{{ url_for('web.my_rentals') }}" class="font-semibold text-accent-700 hover:underline">My Rentals</a> — accept or decline it.</p>
+        </div>
+      </div>
+      <div class="flex gap-5">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent2-100 font-display text-[16px] font-bold text-accent2-700">3</span>
+        <div>
+          <h3 class="font-display text-[19px] font-bold uppercase text-ink">Hand over, get paid</h3>
+          <p class="mt-1 max-w-[58ch] text-[15px] leading-[1.6] text-neutral-700">Once CIRCLO confirms the renter's payment, hand the item over and log a "before" photo. After a clean return, you're paid out — minus CIRCLO's commission.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="mt-16 border-t border-divider pt-10 text-center">
+    <p class="text-sm text-neutral-600">Questions about how deposits and disputes are protected?</p>
+    <a href="{{ url_for('web.trust_deposits') }}" class="mt-2 inline-block font-display text-[15px] font-bold uppercase tracking-[0.05em] text-accent-700 hover:text-accent-800">Read Trust &amp; deposits →</a>
+  </div>
+</div>
+{% endblock %}

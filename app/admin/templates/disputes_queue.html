@@ -5,83 +5,86 @@
 {% macro money(v) -%}Rs {{ '{:,.0f}'.format(v|float) }}{%- endmacro %}
 
 {% block content %}
-<div class="mx-auto max-w-4xl px-4 py-8">
-  <div class="flex items-center gap-2.5">
-    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-navy-800 text-white">
+<div class="mx-auto max-w-[880px] px-4 py-12 sm:px-14 sm:py-16">
+  <div class="flex flex-wrap items-center gap-2.5">
+    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-100 text-accent-700">
       <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
     </span>
-    <h1 class="font-sora text-2xl font-extrabold tracking-tight text-navy-900">Disputes</h1>
-    <a href="{{ url_for('admin.trust_fund_page') }}" class="ml-auto text-sm font-semibold text-teal-700 hover:text-teal-800">Trust fund →</a>
+    <h1 class="font-display text-[32px] font-bold uppercase leading-none tracking-[-0.01em] text-ink sm:text-[36px]">Disputes</h1>
+    <a href="{{ url_for('admin.trust_fund_page') }}" class="ml-auto text-sm font-bold text-accent-700 hover:text-accent-800">Trust fund →</a>
   </div>
 
-  <h2 class="mt-8 font-sora text-lg font-bold text-navy-900">
-    Open <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">{{ open_disputes|length }}</span>
-  </h2>
-
-  {% if not open_disputes %}
-  <div class="mt-3 rounded-2xl border border-dashed border-sand-300 bg-sand-50/60 px-4 py-8 text-center text-sm text-navy-700/50">
-    No open disputes.
-  </div>
-  {% endif %}
-
-  <div class="mt-3 space-y-4">
-    {% for d in open_disputes %}
-    <div class="rounded-2xl border border-sand-200 bg-white p-5 shadow-sm">
-      <p class="font-sora font-semibold text-navy-900">
-        <a href="{{ url_for('web.listing_detail', listing_id=d.booking.listing_id) }}" class="hover:underline">{{ d.booking.listing.title }}</a>
-        <span class="text-sm font-normal text-navy-700/60">· booking #{{ d.booking_id }} · dispute #{{ d.id }}</span>
-      </p>
-      <p class="text-sm text-navy-700/70">
-        Opened by {{ d.opener.name }} on {{ d.created_at.strftime('%d %b %Y, %H:%M') }} ·
-        Renter {{ d.booking.renter.name }} · Owner {{ d.booking.owner.name }} ·
-        Deposit {{ money(d.booking.deposit_amount) }}
-      </p>
-      <p class="mt-2 rounded-lg bg-sand-50 px-3 py-2 text-sm text-navy-800">{{ d.reason }}</p>
-
-      <form method="post" action="{{ url_for('admin.resolve_dispute', dispute_id=d.id) }}" class="mt-4 space-y-3 border-t border-sand-100 pt-4">
-        <div>
-          <label class="block text-sm font-semibold text-navy-800">Resolution notes</label>
-          <textarea name="resolution" rows="2" required
-                    class="mt-1 w-full rounded-lg border border-sand-200 bg-sand-50 px-3 py-2 text-sm focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100"></textarea>
-        </div>
-        <div class="flex flex-wrap gap-4">
-          <div>
-            <label class="block text-sm font-semibold text-navy-800">Deposit</label>
-            <select name="deposit_decision" class="mt-1 rounded-lg border border-sand-200 bg-sand-50 px-3 py-2 text-sm">
-              <option value="released">Release to renter</option>
-              <option value="withheld">Withhold for owner</option>
-              <option value="pending">Undecided</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-navy-800">From trust fund (PKR)</label>
-            <input type="number" name="amount_from_fund" min="0" step="1" value="0"
-                   class="mt-1 w-40 rounded-lg border border-sand-200 bg-sand-50 px-3 py-2 text-sm">
-          </div>
-        </div>
-        <button type="submit" class="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">
-          Resolve dispute
-        </button>
-      </form>
+  <section class="mt-12">
+    <div class="flex items-baseline gap-2">
+      <h2 class="font-display text-[15px] font-bold uppercase tracking-[0.08em] text-ink">Open</h2>
+      <span class="text-[13px] font-semibold text-neutral-500">{{ open_disputes|length }}</span>
     </div>
-    {% endfor %}
-  </div>
+
+    {% if not open_disputes %}
+    <p class="mt-6 text-sm text-neutral-500">No open disputes.</p>
+    {% endif %}
+
+    <div class="mt-1 divide-y divide-divider">
+      {% for d in open_disputes %}
+      <div class="py-7 first:pt-0">
+        <p class="font-bold text-ink">
+          <a href="{{ url_for('web.listing_detail', listing_id=d.booking.listing_id) }}" class="hover:underline">{{ d.booking.listing.title }}</a>
+          <span class="text-sm font-normal text-neutral-500">· booking #{{ d.booking_id }} · dispute #{{ d.id }}</span>
+        </p>
+        <p class="mt-0.5 text-sm text-neutral-600">
+          Opened by {{ d.opener.name }} on {{ d.created_at.strftime('%d %b %Y, %H:%M') }} ·
+          Renter {{ d.booking.renter.name }} · Owner {{ d.booking.owner.name }} ·
+          Deposit {{ money(d.booking.deposit_amount) }}
+        </p>
+        <p class="mt-2 text-sm italic text-neutral-800">“{{ d.reason }}”</p>
+
+        <form method="post" action="{{ url_for('admin.resolve_dispute', dispute_id=d.id) }}" class="mt-4 space-y-3 rounded-2xl border border-divider bg-surface p-4">
+          <div>
+            <label class="block text-sm font-bold text-ink">Resolution notes</label>
+            <textarea name="resolution" rows="2" required
+                      class="mt-1 w-full rounded-2xl border border-divider bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"></textarea>
+          </div>
+          <div class="flex flex-wrap gap-4">
+            <div>
+              <label class="block text-sm font-bold text-ink">Deposit</label>
+              <select name="deposit_decision" class="mt-1 rounded-full border border-divider bg-white px-3 py-2 text-sm">
+                <option value="released">Release to renter</option>
+                <option value="withheld">Withhold for owner</option>
+                <option value="pending">Undecided</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-ink">From trust fund (PKR)</label>
+              <input type="number" name="amount_from_fund" min="0" step="1" value="0"
+                     class="mt-1 w-40 rounded-full border border-divider bg-white px-3 py-2 text-sm">
+            </div>
+          </div>
+          <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">
+            Resolve dispute
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
 
   {% if resolved_disputes %}
-  <h2 class="mt-10 font-sora text-lg font-bold text-navy-900">Resolved</h2>
-  <div class="mt-3 space-y-3">
-    {% for d in resolved_disputes %}
-    <div class="rounded-xl border border-sand-200 bg-sand-50 p-4 text-sm">
-      <p class="font-semibold text-navy-900">{{ d.booking.listing.title }} <span class="font-normal text-navy-700/60">· #{{ d.id }}</span></p>
-      <p class="mt-1 text-navy-700/80">{{ d.resolution }}</p>
-      <p class="mt-1 text-xs text-navy-700/60">
-        Deposit: {{ d.deposit_decision }} ·
-        Trust fund: {{ money(d.amount_from_fund) }} ·
-        Resolved {{ d.resolved_at.strftime('%d %b %Y') }} by {{ d.resolver.name if d.resolver }}
-      </p>
+  <section class="mt-14">
+    <h2 class="font-display text-[15px] font-bold uppercase tracking-[0.08em] text-ink">Resolved</h2>
+    <div class="mt-1 divide-y divide-divider">
+      {% for d in resolved_disputes %}
+      <div class="py-4 text-sm first:pt-0">
+        <p class="font-semibold text-ink">{{ d.booking.listing.title }} <span class="font-normal text-neutral-500">· #{{ d.id }}</span></p>
+        <p class="mt-1 text-neutral-700">{{ d.resolution }}</p>
+        <p class="mt-1 text-xs text-neutral-500">
+          Deposit: {{ d.deposit_decision }} ·
+          Trust fund: {{ money(d.amount_from_fund) }} ·
+          Resolved {{ d.resolved_at.strftime('%d %b %Y') }} by {{ d.resolver.name if d.resolver }}
+        </p>
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
+  </section>
   {% endif %}
 </div>
 {% endblock %}

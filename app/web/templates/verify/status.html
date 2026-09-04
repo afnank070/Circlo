@@ -39,9 +39,20 @@
     {% endif %}
 
     {% if show_upload %}
+    <div class="mt-6 rounded-2xl border border-divider bg-white p-4">
+      <p class="text-sm font-bold text-ink">Before you upload</p>
+      <ul class="mt-2 space-y-1.5 text-sm leading-[1.5] text-neutral-700">
+        <li class="flex gap-2"><span class="text-accent-700">•</span><span>Shoot in good, even lighting — avoid dim rooms and backlighting from windows.</span></li>
+        <li class="flex gap-2"><span class="text-accent-700">•</span><span>Lay the CNIC flat and keep all four corners inside the frame — nothing cropped or covered by your fingers.</span></li>
+        <li class="flex gap-2"><span class="text-accent-700">•</span><span>Watch for glare — tilt the card slightly if a flash or light is reflecting off the plastic.</span></li>
+        <li class="flex gap-2"><span class="text-accent-700">•</span><span>For the selfie, face the camera directly with no sunglasses, mask, or heavy filter — it should clearly match the photo on your CNIC.</span></li>
+        <li class="flex gap-2"><span class="text-accent-700">•</span><span>Use JPEG, PNG, or WebP — blurry or low-resolution photos will be sent back for re-upload.</span></li>
+      </ul>
+    </div>
     <form method="post" enctype="multipart/form-data" class="mt-6 space-y-5">
       <div>
         <label for="cnic_image" class="block text-sm font-bold text-ink">CNIC photo</label>
+        <p class="mt-0.5 text-xs text-neutral-600">Front side, flat, all four corners visible, no glare.</p>
         <input id="cnic_image" name="cnic_image" type="file" accept="image/jpeg,image/png,image/webp" required
                class="mt-1.5 block w-full text-sm text-neutral-700
                       file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2
@@ -53,7 +64,7 @@
                class="mt-1.5 block w-full text-sm text-neutral-700
                       file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2
                       file:font-display file:text-sm file:font-semibold file:uppercase file:tracking-wide file:text-white hover:file:bg-accent-600">
-        <p class="mt-1 text-xs text-neutral-600">A clear, well-lit photo of your face — no filters or masks.</p>
+        <p class="mt-1 text-xs text-neutral-600">A clear, well-lit photo of your face, matching your CNIC photo — no filters or masks.</p>
       </div>
       <button type="submit"
               class="rounded-full bg-accent px-6 py-3 font-display text-sm font-bold uppercase tracking-[0.06em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100">

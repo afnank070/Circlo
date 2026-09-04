@@ -73,6 +73,18 @@ def listing_detail(listing_id: int):
     return render_template("listing_detail.html", listing=listing, related=related)
 
 
+@web_bp.route("/how-it-works")
+def how_it_works():
+    """Explainer — how renting/listing works end to end. Static page."""
+    return render_template("how_it_works.html")
+
+
+@web_bp.route("/trust-deposits")
+def trust_deposits():
+    """Explainer — deposits, evidence, and the Trust & Safety Fund. Static page."""
+    return render_template("trust_deposits.html")
+
+
 @web_bp.route("/privacy")
 def privacy():
     """Privacy policy — static page (required for Google OAuth verification)."""
