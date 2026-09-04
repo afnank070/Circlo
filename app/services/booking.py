@@ -15,6 +15,8 @@ from __future__ import annotations
 from decimal import Decimal
 from datetime import date
 
+from sqlalchemy import or_
+
 from app.extensions import db
 from app.models import Booking, Listing, User
 from app.services import notifications
@@ -123,6 +125,35 @@ def request_to_rent(
 
 def get_booking(booking_id: int) -> Booking | None:
     return db.session.get(Booking, booking_id)
+
+
+def has_booking_on_listing(user_id: int, listing_id: int) -> bool:
+    """True if ``user_id`` is a party (renter or owner) on any booking for this
+    listing — used to let an archived/non-active listing stay viewable by
+    direct link for someone with real history on it (not the public)."""
+    return db.session.query(
+        Booking.query.filter(
+            Booking.listing_id == listing_id,
+            or_(Booking.renter_id == user_id, Booking.owner_id == user_id),
+        ).exists()
+    ).scalar()
+
+
+def listing_ids_with_bookings(listing_ids: list[int]) -> set[int]:
+    """Which of these listing ids have at least one booking against them.
+
+    Used by My Listings to decide whether to offer Delete (only safe with no
+    booking history — see ``ListingHasBookings``) alongside Archive.
+    """
+    if not listing_ids:
+        return set()
+    rows = (
+        db.session.query(Booking.listing_id)
+        .filter(Booking.listing_id.in_(listing_ids))
+        .distinct()
+        .all()
+    )
+    return {row[0] for row in rows}
 
 
 def requests_for_owner(owner: User) -> list[Booking]:

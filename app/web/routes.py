@@ -8,7 +8,9 @@ stored object key (blueprint §9).
 from __future__ import annotations
 
 from flask import abort, jsonify, render_template, request
+from flask_login import current_user
 
+from app.services import booking as booking_service
 from app.services import listings as listings_service
 from app.services import storage
 
@@ -43,10 +45,23 @@ def index():
 
 @web_bp.route("/listings/<int:listing_id>")
 def listing_detail(listing_id: int):
-    """Listing detail: image + price/deposit/owner + trust strip + CTA."""
+    """Listing detail: image + price/deposit/owner + trust strip + CTA.
+
+    Only "active" listings are publicly visible. An archived (or otherwise
+    non-active) listing stays reachable by direct link for its owner, and for
+    anyone with a booking on it — so rental history/evidence stays viewable —
+    but 404s for everyone else, same as a nonexistent listing.
+    """
     listing = listings_service.get_listing(listing_id)
-    if listing is None or listing.status != listings_service.BROWSABLE_STATUS:
+    if listing is None:
         abort(404)
+    if listing.status != listings_service.BROWSABLE_STATUS:
+        may_view = current_user.is_authenticated and (
+            current_user.id == listing.owner_id
+            or booking_service.has_booking_on_listing(current_user.id, listing.id)
+        )
+        if not may_view:
+            abort(404)
 
     # "Also nearby" — reuses the same browse query the home page uses, just
     # filtered to this listing's category and capped at 4.

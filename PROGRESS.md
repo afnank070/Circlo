@@ -4,6 +4,76 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Archive/deactivate listings + v3 design rollout (DONE ✅, 2026-09-05)
+
+### 1. Archive/deactivate listings
+An owner can now take a listing off the marketplace without deleting it —
+the alternative for listings with rental history, which can't be
+hard-deleted (see the delete-listing 500 fix above).
+- **No new column** — `Listing.status` already existed (`draft/active/
+  paused/removed` per blueprint §5, only `active` was ever used). Archiving
+  sets it to `paused` (`listings_service.ARCHIVED_STATUS`); reactivating sets
+  it back to `active` (`BROWSABLE_STATUS`). New service functions
+  `archive_listing()` / `reactivate_listing()` (`app/services/listings.py`).
+- **Routes**: `POST /listings/<id>/archive`, `POST /listings/<id>/reactivate`
+  (`app/web/owner.py`), ownership-guarded like edit/delete.
+- **Hidden from browse/search automatically** — `browse_listings()` already
+  only returns `BROWSABLE_STATUS`, so no query changes needed there.
+- **Visibility on direct link** (`web.listing_detail`, `app/web/routes.py`):
+  a non-active listing now 404s for the public but stays viewable for (a)
+  the owner and (b) anyone with a booking on it (new
+  `booking_service.has_booking_on_listing()`), so rental history/evidence
+  stays reachable. The booking sidebar swaps to "This listing is no longer
+  available to rent" for non-owner viewers of an archived listing.
+  Anonymous/unrelated users still get a 404 — no behavior change for them.
+- **My Listings** (`listings/my_listings.html`): each card shows an Active/
+  Archived badge and Archive/Reactivate + Edit buttons; **Delete only shows
+  when the listing has no booking history** (new
+  `booking_service.listing_ids_with_bookings()`) — otherwise it's replaced
+  by Archive with a "Has rental history — archive instead of delete" note,
+  exactly the case the earlier delete-listing 500 fix was guarding against.
+  Same Archive/Reactivate controls added to the listing-detail owner bar for
+  parity with the existing Edit/Delete there.
+- **Tests**: `tests/test_archive_listing.py` (5 new) — archive removes from
+  browse + stays visible to the owner + 404s for a logged-out visitor;
+  reactivate restores browse visibility; non-owner gets 403 on both actions;
+  a renter with a real booking can view an archived listing while an
+  unrelated verified user gets 404; My Listings hides Delete once a booking
+  exists. **68 tests pass** (was 63).
+- **Verified live** end-to-end in-browser (not just tests): created a
+  listing, archived it via My Listings, confirmed it vanished from the home
+  grid, confirmed the owner could still open it directly, confirmed a
+  logged-out visitor and an unrelated logged-in user both got 404; separately
+  created a second listing, had a different verified user book it, archived
+  it as the owner, confirmed My Listings showed only Archive (no Delete) for
+  it, and confirmed the renter could still open it directly by link. Test
+  data cleaned up after (back to 11 listings).
+
+### 2. v3 design rollout — remaining pages
+Applied the same "Organic Forest" system (`DESIGN_SYSTEM.md`) already used
+on home/listing-detail/auth to the pages that were still on the old v1
+navy/teal/sand look:
+- **My Rentals** (`rentals/my_rentals.html`) — the biggest of the four: all
+  macros (status badges, payment instructions, evidence upload, dispute/
+  review forms) re-skinned in place, same URLs/logic/params untouched. Owner
+  section tinted with the primary `accent` scale, renter section with the
+  secondary `accent2` scale, to keep the two-tone grouping the v1 page had
+  (navy owner / teal renter) using the new palette. Found and fixed a
+  pre-existing Jinja nesting bug while rewriting the payment-details block
+  (an `{% if %}` was missing its matching structure — was correct in the
+  original, a transcription slip introduced it here, caught immediately by
+  the test suite before it shipped).
+- **My Listings** (`listings/my_listings.html`) — frameless v3 card grid,
+  status badge, Archive/Reactivate/Edit/Delete controls (see above).
+- **Identity verification** (`verify/status.html`) — v3 card, pill file
+  inputs and submit button, accent-tinted "Verified" state.
+- **Create/edit listing form** (`listings/form.html`) — pill inputs/selects,
+  accent focus rings, pill buttons, matching the auth-page field style.
+- No routes/services/models changed for the design pass itself (only the
+  archive feature above touched backend logic). **68 tests pass.**
+- **Not yet migrated**: admin queues, profile, legal pages, forgot/reset
+  password — still v1 navy/teal/sand.
+
 ## Post-redesign bug fixes (DONE ✅, 2026-09-04)
 Three bugs reported after the v3 redesign shipped, all confirmed and fixed:
 1. **Oversized header search icon**: `base.html`'s search-bar SVG used

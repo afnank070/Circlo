@@ -14,13 +14,33 @@
   {% if current_user.is_authenticated and current_user.id == listing.owner_id %}
   <!-- Owner controls (only the listing's owner sees these) -->
   <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-divider bg-surface px-4 py-3">
-    <p class="text-sm font-semibold text-ink">This is your listing.</p>
+    <p class="text-sm font-semibold text-ink">
+      {% if listing.status == 'active' %}This is your listing.
+      {% else %}This listing is archived — it's off the marketplace, but not deleted.{% endif %}
+    </p>
     <div class="flex items-center gap-2">
       <a href="{{ url_for('web.edit_listing', listing_id=listing.id) }}"
          class="inline-flex items-center gap-1.5 rounded-full border border-divider bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
         Edit
       </a>
+      {% if listing.status == 'active' %}
+      <form method="post" action="{{ url_for('web.archive_listing', listing_id=listing.id) }}">
+        <button type="submit"
+                class="inline-flex items-center gap-1.5 rounded-full border border-divider bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+          Archive
+        </button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('web.reactivate_listing', listing_id=listing.id) }}">
+        <button type="submit"
+                class="inline-flex items-center gap-1.5 rounded-full border border-accent-200 bg-accent-100 px-3 py-1.5 text-sm font-bold text-accent-700 hover:bg-accent-200">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+          Reactivate
+        </button>
+      </form>
+      {% endif %}
       <form method="post" action="{{ url_for('web.delete_listing', listing_id=listing.id) }}"
             onsubmit="return confirm('Delete this listing? This cannot be undone.');">
         <button type="submit"
@@ -184,6 +204,10 @@
         {% if current_user.is_authenticated and current_user.id == listing.owner_id %}
         <p class="rounded-full border border-divider bg-white px-4 py-3 text-center text-sm text-neutral-700">
           This is your own listing.
+        </p>
+        {% elif listing.status != 'active' %}
+        <p class="rounded-full border border-divider bg-white px-4 py-3 text-center text-sm text-neutral-700">
+          This listing is no longer available to rent.
         </p>
         {% elif current_user.is_authenticated %}
         <form method="post" action="{{ url_for('web.request_booking', listing_id=listing.id) }}" id="booking-form">

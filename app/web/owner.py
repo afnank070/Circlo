@@ -19,6 +19,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 
+from app.services import booking as booking_service
 from app.services import listings as listings_service
 
 from . import web_bp
@@ -181,8 +182,31 @@ def delete_listing(listing_id: int):
     return redirect(url_for("web.my_listings"))
 
 
+@web_bp.route("/listings/<int:listing_id>/archive", methods=["POST"])
+@login_required
+def archive_listing(listing_id: int):
+    """Take a listing off the marketplace without deleting it (reversible)."""
+    listing = _owned_or_404(listing_id)
+    listings_service.archive_listing(listing)
+    flash("Listing archived — it's off the marketplace, but not deleted.", "info")
+    return redirect(url_for("web.my_listings"))
+
+
+@web_bp.route("/listings/<int:listing_id>/reactivate", methods=["POST"])
+@login_required
+def reactivate_listing(listing_id: int):
+    """Put an archived listing back on the marketplace."""
+    listing = _owned_or_404(listing_id)
+    listings_service.reactivate_listing(listing)
+    flash("Listing reactivated — it's back on the marketplace.", "success")
+    return redirect(url_for("web.my_listings"))
+
+
 @web_bp.route("/my/listings")
 @login_required
 def my_listings():
     owned = listings_service.listings_for_owner(current_user)
-    return render_template("listings/my_listings.html", listings=owned)
+    with_bookings = booking_service.listing_ids_with_bookings([l.id for l in owned])
+    return render_template(
+        "listings/my_listings.html", listings=owned, listings_with_bookings=with_bookings
+    )

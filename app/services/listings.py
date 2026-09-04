@@ -31,6 +31,11 @@ class ListingHasBookings(Exception):
 # Only listings in this status are shown to renters.
 BROWSABLE_STATUS = "active"
 
+# Off the marketplace but not deleted — reversible via reactivate_listing().
+# Reuses the "paused" value from the blueprint §5 status vocabulary
+# (draft/active/paused/removed) rather than adding a new column value.
+ARCHIVED_STATUS = "paused"
+
 # Guardrails for owner uploads.
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 _EXT_FOR_TYPE = {
@@ -196,3 +201,25 @@ def delete_listing(listing: Listing) -> None:
         storage.delete_object(img.object_key)
     db.session.delete(listing)
     db.session.commit()
+
+
+def archive_listing(listing: Listing) -> Listing:
+    """Take a listing off the public marketplace without deleting it.
+
+    Unlike :func:`delete_listing`, this works regardless of booking history —
+    it's the reversible alternative for a listing that has rental history (or
+    that the owner just wants off the marketplace for now). The listing stops
+    appearing in browse/search (``browse_listings`` only returns
+    :data:`BROWSABLE_STATUS`), but stays reachable by direct link for the
+    owner and anyone with a booking on it (see ``web.listing_detail``).
+    """
+    listing.status = ARCHIVED_STATUS
+    db.session.commit()
+    return listing
+
+
+def reactivate_listing(listing: Listing) -> Listing:
+    """Put an archived listing back on the public marketplace."""
+    listing.status = BROWSABLE_STATUS
+    db.session.commit()
+    return listing
