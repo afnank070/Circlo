@@ -3,74 +3,104 @@
 {% block title %}Sign up — CIRCLO{% endblock %}
 
 {% block content %}
-<div class="mx-auto flex max-w-md flex-col px-4 py-10 sm:py-14">
-  <div class="rounded-2xl border border-sand-200 bg-white p-6 shadow-sm sm:p-8">
-    <div class="mb-6 text-center">
-      <span class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-navy-800">
-        <span class="h-4 w-4 rounded-full border-2 border-white"></span>
-      </span>
-      <h1 class="mt-4 font-sora text-2xl font-extrabold tracking-tight text-navy-900">Create your account</h1>
-      <p class="mt-1 text-sm text-navy-700/70">Join CIRCLO to list your items and rent from neighbours.</p>
+<div class="mx-auto max-w-[1440px] px-4 pt-9 sm:px-14">
+  <div class="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_460px] lg:gap-20">
+
+    <!-- LEFT: marketing panel -->
+    <div class="flex flex-col gap-10 pt-6">
+      <div>
+        <div class="mb-3.5 text-[12px] tracking-[0.14em] uppercase text-accent-700">Join CIRCLO</div>
+        <h1 class="m-0 mb-4 max-w-[14ch] font-display text-[44px] font-bold uppercase leading-[0.94] tracking-[-0.01em] text-ink sm:text-[64px] lg:text-[80px]">Lend what sits idle.</h1>
+        <p class="max-w-[46ch] text-[17px] leading-[1.6] text-neutral-700">One account to borrow and to lend. Verify your CNIC once and your deposits, requests and handovers all run through CIRCLO.</p>
+      </div>
+
+      <div class="relative aspect-video max-w-[640px] overflow-hidden rounded-3xl bg-surface">
+        <div class="absolute inset-0 grid place-items-center text-neutral-400">
+          <svg class="h-12 w-12" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 6.75h18M3 6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75M3 6.75v10.5A2.25 2.25 0 005.25 19.5h13.5A2.25 2.25 0 0021 17.25V6.75"/></svg>
+        </div>
+      </div>
+
+      <div class="grid max-w-[640px] grid-cols-3 gap-6">
+        {% for stat in [
+          {'value': '6,400+', 'label': 'items listed across the twin cities'},
+          {'value': 'Rs 2.1M', 'label': 'deposits held and returned safely'},
+          {'value': '4.9', 'label': 'average handover rating'},
+        ] %}
+        <div class="flex flex-col gap-1">
+          <span class="font-display text-[32px] font-bold leading-none text-accent-700 sm:text-[38px]">{{ stat.value }}</span>
+          <span class="text-[13px] leading-[1.4] text-neutral-700">{{ stat.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
     </div>
 
-    <form method="post" action="{{ url_for('web.signup') }}" class="space-y-4">
-      <div>
-        <label for="name" class="block text-sm font-semibold text-navy-800">Full name</label>
-        <input id="name" name="name" type="text" value="{{ name }}" required autocomplete="name"
-               class="mt-1.5 w-full rounded-xl border border-sand-200 bg-sand-50 px-3.5 py-2.5 text-sm text-navy-900
-                      placeholder:text-navy-700/40 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100"
-               placeholder="Ayesha Khan">
-      </div>
-      <div>
-        <label for="email" class="block text-sm font-semibold text-navy-800">Email</label>
-        <input id="email" name="email" type="email" value="{{ email }}" required autocomplete="email"
-               class="mt-1.5 w-full rounded-xl border border-sand-200 bg-sand-50 px-3.5 py-2.5 text-sm text-navy-900
-                      placeholder:text-navy-700/40 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100"
-               placeholder="you@example.com">
-      </div>
-      <div>
-        <label for="password" class="block text-sm font-semibold text-navy-800">Password</label>
-        <input id="password" name="password" type="password" required autocomplete="new-password" minlength="8"
-               class="mt-1.5 w-full rounded-xl border border-sand-200 bg-sand-50 px-3.5 py-2.5 text-sm text-navy-900
-                      placeholder:text-navy-700/40 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100"
-               placeholder="At least 8 characters">
-      </div>
-      <div>
-        <label for="confirm" class="block text-sm font-semibold text-navy-800">Confirm password</label>
-        <input id="confirm" name="confirm" type="password" required autocomplete="new-password"
-               class="mt-1.5 w-full rounded-xl border border-sand-200 bg-sand-50 px-3.5 py-2.5 text-sm text-navy-900
-                      placeholder:text-navy-700/40 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100"
-               placeholder="Re-enter your password">
+    <!-- RIGHT: auth card -->
+    <div class="rounded-3xl border border-divider bg-surface p-[26px] shadow-circlo sm:p-[30px]">
+      <div class="mb-6 flex gap-1.5 rounded-full border border-divider bg-white p-1">
+        <a href="{{ url_for('web.login') }}" class="flex-1 rounded-full py-2.5 text-center font-display text-[16px] font-bold uppercase tracking-[0.07em] text-neutral-700 no-underline hover:text-ink">Sign in</a>
+        <span class="flex-1 rounded-full bg-accent-700 py-2.5 text-center font-display text-[16px] font-bold uppercase tracking-[0.07em] text-white">Sign up</span>
       </div>
 
-      <button type="submit"
-              class="w-full rounded-xl bg-navy-800 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-100">
-        Create account
-      </button>
-    </form>
+      <form method="post" action="{{ url_for('web.signup') }}" class="flex flex-col gap-3">
+        <div>
+          <label for="name" class="mb-1.5 block text-sm font-bold text-ink">Full name</label>
+          <input id="name" name="name" type="text" value="{{ name }}" required autocomplete="name"
+                 class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+                 placeholder="Hina Abbasi">
+        </div>
+        <div>
+          <label for="email" class="mb-1.5 block text-sm font-bold text-ink">Email</label>
+          <input id="email" name="email" type="email" value="{{ email }}" required autocomplete="email"
+                 class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+                 placeholder="you@example.com">
+        </div>
+        <div>
+          <label for="password" class="mb-1.5 block text-sm font-bold text-ink">Password</label>
+          <input id="password" name="password" type="password" required autocomplete="new-password" minlength="8"
+                 class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+                 placeholder="At least 8 characters">
+        </div>
+        <div>
+          <label for="confirm" class="mb-1.5 block text-sm font-bold text-ink">Confirm password</label>
+          <input id="confirm" name="confirm" type="password" required autocomplete="new-password"
+                 class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+                 placeholder="Re-enter your password">
+        </div>
 
-    {% if google_oauth_enabled %}
-    <div class="my-5 flex items-center gap-3">
-      <span class="h-px flex-1 bg-sand-200"></span>
-      <span class="text-xs font-medium uppercase tracking-wide text-navy-700/50">or</span>
-      <span class="h-px flex-1 bg-sand-200"></span>
+        <button type="submit"
+                class="mt-1.5 h-[52px] w-full rounded-full bg-accent font-display text-[19px] font-bold uppercase tracking-[0.08em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100">
+          Create account
+        </button>
+      </form>
+
+      {% if google_oauth_enabled %}
+      <div class="flex items-center gap-3 py-3.5">
+        <div class="h-px flex-1 bg-divider"></div>
+        <span class="text-[11px] tracking-[0.12em] uppercase text-neutral-500">or</span>
+        <div class="h-px flex-1 bg-divider"></div>
+      </div>
+      <a href="{{ url_for('web.google_login') }}"
+         class="flex w-full items-center justify-center gap-3 rounded-full border border-divider bg-white px-5 py-3 text-[14px] font-semibold text-ink hover:bg-neutral-100">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.57c2.08-1.92 3.27-4.74 3.27-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.76c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09a6.6 6.6 0 0 1 0-4.18V7.07H2.18a11 11 0 0 0 0 9.86l3.66-2.84z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/>
+        </svg>
+        Continue with Google
+      </a>
+      {% endif %}
+
+      <div class="mt-[18px] flex items-start gap-2.5 border-t border-divider pt-4">
+        <svg class="mt-px h-[18px] w-[18px] shrink-0 text-accent2-700" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.4 3 7.7 7 9 4-1.3 7-4.6 7-9V6Z"/></svg>
+        <div class="text-[12.5px] leading-[1.5] text-neutral-700">
+          By creating an account you agree to the <a href="{{ url_for('web.terms') }}" class="underline hover:text-ink">rental terms</a>
+          and <a href="{{ url_for('web.privacy') }}" class="underline hover:text-ink">privacy policy</a>. CNIC verification is required
+          before you can list or rent an item.
+        </div>
+      </div>
     </div>
-    <a href="{{ url_for('web.google_login') }}"
-       class="flex w-full items-center justify-center gap-3 rounded-xl border border-sand-200 bg-white px-5 py-3 text-sm font-semibold text-navy-800 shadow-sm hover:bg-sand-50 focus:outline-none focus:ring-2 focus:ring-teal-100">
-      <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.57c2.08-1.92 3.27-4.74 3.27-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.76c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09a6.6 6.6 0 0 1 0-4.18V7.07H2.18a11 11 0 0 0 0 9.86l3.66-2.84z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/>
-      </svg>
-      Sign up with Google
-    </a>
-    {% endif %}
 
-    <p class="mt-5 text-center text-sm text-navy-700/70">
-      Already have an account?
-      <a href="{{ url_for('web.login') }}" class="font-semibold text-teal-700 hover:text-teal-800">Log in</a>
-    </p>
   </div>
 </div>
 {% endblock %}

@@ -35,14 +35,14 @@ def _patch_google(monkeypatch, userinfo: dict) -> None:
 
 
 def test_google_button_hidden_when_not_configured(client):
-    assert b"Sign in with Google" not in client.get("/login").data
-    assert b"Sign up with Google" not in client.get("/signup").data
+    assert b"Continue with Google" not in client.get("/login").data
+    assert b"Continue with Google" not in client.get("/signup").data
 
 
 def test_google_button_shown_when_configured(client, app):
     _enable_google(app)
-    assert b"Sign in with Google" in client.get("/login").data
-    assert b"Sign up with Google" in client.get("/signup").data
+    assert b"Continue with Google" in client.get("/login").data
+    assert b"Continue with Google" in client.get("/signup").data
 
 
 def test_google_login_redirects_to_provider(client, app, monkeypatch):

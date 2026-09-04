@@ -1,290 +1,356 @@
-# CIRCLO — Design System Reference (v2, "White & Forest")
+# CIRCLO — Design System Reference (v3, source-exact "Organic Forest")
 
-Replaces the earlier navy/teal/sand system (preserved below other pages until
-they're migrated — see §0). This is the **single source of truth** for every
-future page. Built from reference screenshots: white background, forest-green
-accent, bold black condensed headlines, fully pill-shaped controls, frameless
-minimal listing cards.
+**Supersedes v2** (which was reverse-engineered from screenshots at ~60%
+accuracy). v3 is transcribed directly from an exported Claude Design source
+file covering three views — browse/home, auth (sign in/up), listing detail —
+so every color, font size, weight, and spacing value below is exact, not
+estimated, **except** the handful explicitly marked "chosen" in §0.2 where the
+source referenced a token (`--radius-lg`, `--shadow-md`, `--font-body`) whose
+definition lived in a sibling stylesheet we were not given.
 
-The stack is Tailwind via CDN with a `tailwind.config` override in
-`base.html` (`app/web/templates/base.html`). All custom tokens below are
-defined there.
-
----
-
-## 0. Migration status
-
-- **Done (v2 applied):** shared header/footer (`base.html`), home/browse
-  (`index.html`), listing detail (`listing_detail.html`).
-- **Not yet migrated (still old navy/teal/sand look):** auth pages, my-rentals,
-  my-listings, listing form, profile, admin queues, legal pages. These keep
-  working against the old tokens (still defined in `tailwind.config` for
-  backward compatibility) until their own redesign pass.
-- Do not delete the old `navy` / `teal` / `sand` tokens or the `font-sora`
-  family until every page has been migrated off them.
+The stack is unchanged: Tailwind via CDN with a `tailwind.config` override in
+`base.html`. Arbitrary-value classes (e.g. `text-[88px]`) are used freely
+where Tailwind has no stock utility for an exact px value — this is standard
+Tailwind JIT syntax and works on the Play CDN build.
 
 ---
 
-## 1. Color palette
+## 0. Migration status & adaptation notes
 
-### Green (primary accent — buttons, prices, active pill states, links)
-| Token | Hex | Used for |
-|---|---|---|
-| `green-50`  | `#F1F8F4` | tinted panel backgrounds, hover fills |
-| `green-100` | `#DCEEE2` | verified-pill background, soft badges |
-| `green-200` | `#B9DDC6` | subtle rings/borders on tinted panels |
-| `green-600` | `#1F6F4A` | link/hover state, secondary green accents |
-| `green-700` | `#1B5E3F` | **primary button fill**, prices, active category pill, focus rings |
-| `green-800` | `#154A32` | primary button hover/active |
-| `green-900` | `#0F3D26` | rarely used — deepest text-on-tint |
+### 0.1 Migrated to v3
+Shared header/footer (`base.html`), home/browse (`index.html`), listing
+detail (`listing_detail.html`), login (`auth/login.html`), signup
+(`auth/signup.html`).
 
-### Ink (near-black — headlines, body text)
-| Token | Hex | Used for |
-|---|---|---|
-| `ink` (DEFAULT) | `#0B0B0C` | hero headline, card titles, all bold caps text |
-| `ink-700`       | `#27272A` | standard body copy |
+**Not yet migrated** (still v1 navy/teal/sand): forgot/reset password,
+my-rentals, my-listings, listing form, profile, admin queues, legal pages.
+The v1 tokens stay in `tailwind.config` until those are migrated too.
 
-### Neutral gray (Tailwind defaults — surfaces, borders, muted text)
-| Role | Class |
-|---|---|
-| Page background | `bg-white` |
-| Image placeholder / empty media block | `bg-gray-100` (`#F3F4F6`) |
-| Card/section borders, pill outlines (inactive) | `border-gray-300` (`#D1D5DB`) |
-| Dividers | `border-gray-200` |
-| Muted/meta text (location, "8 items available", helper copy) | `text-gray-500` |
-| Placeholder text in inputs | `text-gray-400` |
-| Search bar fill | `bg-gray-100` |
+### 0.2 Values chosen where the source didn't define them
+The exported file references `--radius-lg`, `--radius-md`, `--shadow-md` and
+`--font-body` from a sibling design-system stylesheet (`_ds/organic-.../
+styles.css`) that wasn't part of the export. Chosen equivalents:
+- `--radius-lg` → **24px** (Tailwind `rounded-3xl`)
+- `--radius-md` → **16px** (Tailwind `rounded-2xl`)
+- `--shadow-md` → `0 8px 24px -8px rgba(16,26,22,0.14)` (custom `shadow-circlo`
+  utility added to `tailwind.config.boxShadow`)
+- `--font-body` → **Manrope** (already loaded from v2; the export never
+  overrides it beyond headings, so the existing body font carries over)
 
-### Semantic / status colors (unchanged from v1 — reused as-is)
-| Purpose | Classes |
-|---|---|
-| Success / positive | `border-green-200 bg-green-50 text-green-800` |
-| Error / destructive | `text-rose-600`, `border-rose-200 bg-rose-50 text-rose-700` |
-| Warning / pending | `bg-amber-100 text-amber-800` |
-| Rating stars | `text-amber-400` (filled), `text-gray-300` (empty) |
-| Notification badge | `bg-rose-600 text-white` |
+### 0.3 Content adapted to real data (not fabricated)
+The exported file is a static Claude Design mockup with placeholder
+copy/data. Where its content has no backing field in our models, the page
+uses real data instead of copying the mockup's placeholder values:
+- **Auth fields**: the mockup shows a `+92` mobile-number field and an
+  Islamabad/Rawalpindi/Both city selector. CIRCLO auth is email/password
+  only (no phone field, no user `city` column) — the form uses **email**
+  in the same pill input style, and the city selector is **dropped**
+  (nothing to persist it to).
+  - "Continue with Google" is wired to the real `web.google_login` route.
+    "Continue with Apple" is **dropped** — there's no Apple provider.
+  - "Keep me signed in" is dropped — `login_user()` isn't called with
+    `remember=` anywhere in the app; adding that is a backend change, out of
+    scope for a visual-only pass.
+  - The three auth-page stats (`6,400+ items`, `Rs 2.1M deposits`, `4.9
+    rating`) are kept as static marketing copy, exactly as authored in the
+    source — same category as the hero tagline, not a claim of live data.
+- **Listing detail "What's included" / "Pickup & rules"**: the mockup's
+  per-item accessory/rules lists don't exist on the `Listing` model (there's
+  no `included`/`rules` field). Rather than invent them, this section is
+  replaced with the same real, marketplace-wide trust content the v1/v2
+  pages already showed ("Protected by CIRCLO" — deposit escrow, before/after
+  evidence, Trust Fund), laid out in the mockup's two-column check-list
+  visual pattern.
+  - Owner strip: the mockup's "Renting since 2024 · 41 items lent" has no
+    backing fields. Uses real ones instead — `owner.created_at` year +
+    `owner.review_count`.
+  - "Message" button stays visual-only (no `onclick`) — this mirrors the
+    pre-existing v1/v2 behavior; there's no messaging feature in the backend.
+  - Meta row drops "· 1.2 km away" (no distance field, same gap flagged in
+    v2).
+  - **"Also nearby"**: wired for real via a small addition in
+    `web.listing_detail` — same-category listings via the existing
+    `listings_service.browse_listings()`, excluding the current one, capped
+    at 4. Not a new business-logic path, just reuses the existing service
+    call the browse page already makes.
+  - **Booking sidebar**: the mockup hardcodes a date range and a "Service
+    fee" line. CIRCLO has no service-fee concept (commission is taken from
+    the owner's payout, not added to the renter's charge) and no upfront
+    charge at request time ("You won't be charged yet"). The sidebar keeps
+    the mockup's visual shape (price, inline date fields, breakdown box,
+    pill CTA) but the breakdown shows **Rental estimate** (price × selected
+    days, computed client-side as the dates change) and **Refundable
+    deposit** only, and the CTA posts to the real `web.request_booking`
+    route — replacing the old `<dialog>` modal with an inline sidebar form
+    (same backend call, new location).
+- **Browse "Show more"**: dropped — `browse_listings()` returns the full
+  result set already (no pagination in the service), so a "Show more" button
+  would have nothing to load.
 
 ---
 
-## 2. Typography
+## 1. Color tokens (exact)
 
-Fonts loaded from Google Fonts in `base.html`: **Archivo Black** (display,
-900), **Manrope** (400–800, body/UI — unchanged from v1).
+```
+--color-bg:        #ffffff
+--color-surface:   #f4f7f5
+--color-divider:   #dde5e0
+--color-text:      #101a16   (near-black body/heading ink)
 
-| Family | Tailwind class | Usage |
-|---|---|---|
-| Manrope | `font-sans` (default on `body`) | all body copy, labels, inputs, buttons, nav |
-| Archivo Black | `font-display` | hero headline, item/listing names, big price figures — always with `uppercase` |
+--color-accent:     #0f6b5c   (primary — same as accent-500)
+--color-accent-100: #e6f2ef
+--color-accent-200: #c6e2db
+--color-accent-300: #9ecfc4
+--color-accent-400: #6bb5a6
+--color-accent-500: #0f6b5c
+--color-accent-600: #0c5a4d
+--color-accent-700: #0a4a40
+--color-accent-800: #073830
+--color-accent-900: #052922
 
-Body base: `body` has `font-sans text-ink-700 antialiased bg-white`.
+--color-accent-2:     #2f5d4a   (secondary accent — avatars, check icons)
+--color-accent-2-100: #eaf1ec
+--color-accent-2-200: #cfe0d5
+--color-accent-2-300: #b0cdbd
+--color-accent-2-400: #7ba992
+--color-accent-2-500: #2f5d4a
+--color-accent-2-600: #274f3f
+--color-accent-2-700: #1f4033
+--color-accent-2-800: #163027
+--color-accent-2-900: #0f231c
 
-### Heading scale (as used on migrated pages)
-| Role | Classes |
+--color-neutral-100: #f5f7f6
+--color-neutral-200: #e8edea
+--color-neutral-300: #d7ded9
+--color-neutral-400: #b9c3bd
+--color-neutral-500: #8e9a94
+--color-neutral-600: #6d7973
+--color-neutral-700: #4f5b55
+--color-neutral-800: #333c38
+--color-neutral-900: #1d2421
+```
+
+Tailwind config (`base.html`) exposes these as `accent` / `accent2` /
+`neutral` color scales (`bg-accent-700`, `text-neutral-600`, etc.), plus
+flat `bg`, `surface`, `divider`, `ink` for the four non-scaled tokens.
+`bg-accent` / `text-accent` (no shade) resolve to accent-500, matching
+`var(--color-accent)`.
+
+### Usage
+| Role | Token |
 |---|---|
-| Hero H1 (home) | `font-display uppercase text-5xl sm:text-6xl leading-[0.95] tracking-tight text-ink` |
-| Listing detail H1 | `font-display uppercase text-3xl sm:text-4xl leading-tight tracking-tight text-ink` |
-| Card / listing item name | `font-display uppercase text-sm sm:text-base leading-snug tracking-tight text-ink line-clamp-2` |
-| Section heading ("About this item") | `font-sans text-base font-extrabold uppercase tracking-wide text-ink` |
-| Logo wordmark | `font-display uppercase text-xl tracking-tight text-ink` |
+| Page background | `bg-white` (`--color-bg`) |
+| Card/panel surface | `bg-surface` (`--color-surface`) |
+| Borders, dividers, input borders | `border-divider` (`--color-divider`) |
+| Body text, headings | `text-ink` (`--color-text`) |
+| Primary buttons, prices, active pill, links | `bg-accent` / `text-accent-700` |
+| Avatar fills, "included" check icons, trust-panel icons | `bg-accent2-300` / `text-accent2-700` |
+| Muted/meta text | `text-neutral-600` / `text-neutral-700` |
+| Distance badge text | `text-neutral-800` |
 
-### Body / supporting text
-| Role | Classes |
-|---|---|
-| Standard body | `text-sm text-ink-700 leading-relaxed` |
-| Caption / meta (distance, area, "sorted by") | `text-xs text-gray-500` |
-| Price figure | `font-display text-lg text-green-700` (card) → `font-display text-3xl text-green-700` (detail) |
-| Prices always formatted | `Rs {{ "{:,}".format(value|int) }}` — "Rs" prefix, comma thousands, no decimals |
-| Button label | `text-sm font-extrabold uppercase tracking-wide` |
+Semantic colors (errors, warnings) are unchanged Tailwind defaults —
+`rose`/`amber` — since the source file has no error-state screens.
 
 ---
 
-## 3. Layout & spacing
+## 2. Typography (exact)
+
+Fonts: **Barlow Condensed** 500/600/700 (display — all headings, prices,
+buttons, pills, nav wordmark) + **Manrope** (body — chosen per §0.2).
+
+```
+h1,h2,h3,h4,h5,h6 { font-family: "Barlow Condensed"; font-weight: 700; letter-spacing: -0.01em; }
+```
+
+| Element | Classes (exact px/weight from source) |
+|---|---|
+| Nav wordmark "CIRCLO" | `font-display font-bold text-[30px] leading-none tracking-[0.06em] text-accent-700` |
+| Nav city caption | `text-[11px] tracking-[0.14em] uppercase text-neutral-600` |
+| Browse hero H1 | `font-display font-bold text-[88px] leading-[0.94] uppercase` |
+| Browse hero subtitle | `text-[17px] text-neutral-700` |
+| Search input text | `font-display font-medium text-[30px] tracking-[0.01em]` |
+| Search button | `font-display font-bold text-[19px] tracking-[0.08em] uppercase` |
+| "All areas" location label | `text-[15px] text-neutral-700` |
+| "Popular:" label | `text-[12px] text-neutral-600` |
+| Popular search term | `text-[13px] text-neutral-700` (underline `border-neutral-400`) |
+| Category pill | `font-display font-semibold text-[15px] tracking-[0.05em] uppercase` |
+| "N items available" | `text-[14px] text-neutral-700`, count in `font-bold` |
+| "Sorted by" | `text-[13px] text-neutral-700` |
+| Card title (h3) | `font-display font-bold text-[23px] leading-[1.05] uppercase` |
+| Card price | `font-display font-bold text-[20px] text-accent-700` |
+| Card "/ day" | `text-[13px] text-neutral-600` |
+| Card area/rating row | `text-[13px] text-neutral-600` |
+| Distance badge | `text-[11px] tracking-[0.06em] uppercase text-neutral-800` |
+| Auth kicker | `text-[12px] tracking-[0.14em] uppercase text-accent-700` |
+| Auth headline | `font-display font-bold text-[80px] leading-[0.94] uppercase` |
+| Auth subtitle | `text-[17px] leading-[1.6] text-neutral-700` |
+| Auth stat value | `font-display font-bold text-[38px] text-accent-700` |
+| Auth stat label | `text-[13px] leading-[1.4] text-neutral-700` |
+| Auth tab button | `font-display font-bold text-[16px] tracking-[0.07em] uppercase` |
+| Field label | (bundle default — kept at `text-sm font-bold text-ink`, matching the `.field label` role) |
+| "or" divider | `text-[11px] tracking-[0.12em] uppercase text-neutral-500` |
+| Fine-print | `text-[12.5px] leading-[1.5] text-neutral-700` |
+| Detail back link | `text-[13px] tracking-[0.08em] uppercase text-neutral-700` |
+| Detail category label | `text-[12px] tracking-[0.14em] uppercase text-accent-700` |
+| Detail H1 | `font-display font-bold text-[62px] leading-[0.95] uppercase` |
+| Detail meta row | `text-[14px] text-neutral-700` |
+| Section h4 ("About this item", etc.) | `font-display font-bold text-[22px] uppercase` |
+| About body copy | `text-[16px] leading-[1.65] text-neutral-800` |
+| Included/rules row | `text-[15px] text-neutral-800` |
+| Owner name | `font-display font-bold text-[22px] uppercase leading-[1.1]` |
+| Owner meta | `text-[13px] text-neutral-700` |
+| Related card title | `font-display font-bold text-[18px] leading-[1.05] uppercase` |
+| Related card meta | `text-[13px] text-neutral-600` |
+| Sidebar price | `font-display font-bold text-[44px] text-accent-700` |
+| Sidebar "per day" | `text-[14px] text-neutral-700` |
+| Sidebar breakdown rows | `text-[14px] text-neutral-800` |
+| Sidebar total row | `font-display font-bold text-[20px] uppercase` |
+| Sidebar CTA button | `font-display font-bold text-[19px] tracking-[0.08em] uppercase` |
+| "Usually replies within an hour" | `text-[12px] text-neutral-600` |
+
+Prices are still `Rs ` + comma-thousands, no decimals — unchanged rule from
+v1/v2.
+
+---
+
+## 3. Layout & spacing (exact px from source)
 
 | Pattern | Value |
 |---|---|
-| Page max width | `max-w-7xl` |
-| Horizontal gutter | `px-4` |
-| Hero vertical padding | `py-16 sm:py-20` |
-| Section rhythm | `mt-8`–`mt-10` between major sections |
-| Grid gap (card grids) | `gap-6` |
-| Card grid columns | `grid-cols-1 sm:grid-cols-2 xl:grid-cols-4` |
-| Two-column detail | `grid-cols-1 lg:grid-cols-2 gap-10` |
-| Header | `sticky top-0 z-30`, `bg-white`, `border-b border-gray-200` (no blur — flat white) |
-| Footer | `mt-16 border-t border-gray-200 bg-white` |
+| Page max width | `1440px` → `max-w-[1440px]` (was `max-w-7xl`) |
+| Horizontal gutter | `56px` → `px-14` |
+| Header row padding | `22px 56px` → `py-[22px] px-14` |
+| Hero top/bottom padding | `56px 0 12px` |
+| Search bar padding | `12px 12px 12px 30px`, height `58px` on the Search button |
+| Search bar → popular gap | `24px 0 10px` margin |
+| Popular row bottom margin | `44px` |
+| Category row bottom padding | `26px`, `border-bottom: 1px solid divider` |
+| "N items" row padding | `26px 0 22px` |
+| Card grid gap | `44px 32px` (row/column) — `gap-x-8 gap-y-11` |
+| Card grid columns | `4` desktop (`grid-cols-1 sm:grid-cols-2 xl:grid-cols-4` — source is a
+  fixed 1440px design with no responsive breakpoints defined; the 1/2/4
+  progression is added for our real, non-fixed viewport) |
+| Card image→text gap | `12px` |
+| Auth two-column gap | `80px`, card padding `30px` |
+| Auth stats grid gap | `26px` |
+| Detail two-column gap | `64px` |
+| Detail image grid | `2fr 1fr` columns, `190px 190px` rows, `12px` gap |
+| Detail included/rules gap | `34px` |
+| Detail owner strip padding | `22px 26px` |
+| Detail "also nearby" gap | `24px` |
+| Sidebar padding | `26px`, sticky `top: 24px` |
+| Sidebar date-fields gap | `10px` |
 
 ---
 
 ## 4. Cards
 
-**Listing card (frameless, minimal):**
+**Listing card (frameless, as v2 — now with exact spacing):**
 ```
-group flex flex-col
+flex flex-col gap-3
 ```
-- No border, no shadow, no rounded card wrapper — the card *is* just an image
-  block + text stack.
-- Image wrapper: `relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-100`
-- Image: `h-full w-full object-cover transition duration-300 group-hover:scale-105`
-- Distance badge: absolutely positioned top-left on the image (see §7).
-- Text stack starts directly below the image, `mt-3`, no card padding/border.
+- Image wrapper: `relative rounded-2xl overflow-hidden bg-surface`, aspect
+  ratio **4:5** (mockup's default `cardAspect: "portrait"`) —
+  `aspect-[4/5]`.
+- Image hover: `transition-transform duration-[280ms] ease-[cubic-bezier(.2,.7,.3,1)] group-hover:-translate-y-1`
+  (matches `.circ-shot:hover { transform: translateY(-4px) }`).
+- Distance badge: `absolute left-3 top-3 rounded-full bg-white/88 backdrop-blur-sm px-[11px] py-1`.
+- Text stack starts `gap-[5px]` below the image.
 
-**Content card (price/deposit box, owner card — detail page only):**
-Kept as a bordered surface since the reference screenshots show these as
-distinct panels, just restyled to the new palette:
+**Auth card / sidebar / owner strip / trust panels (surface cards):**
 ```
-rounded-2xl border border-gray-200 bg-white p-5
+bg-surface border border-divider rounded-3xl p-[26px] sm:p-[30px] shadow-circlo
 ```
-No `shadow-sm` — v2 favors flat borders over shadows.
-
-**Empty state:**
-```
-rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-center
-```
+Radius/shadow per §0.2. This replaces v2's plain white-bordered cards.
 
 ---
 
-## 5. Buttons
+## 5. Buttons & pills
 
-**Primary (forest green, pill):**
+**Primary (accent, pill):**
 ```
-rounded-full bg-green-700 px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white
-hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-200
+rounded-full bg-accent text-white hover:bg-accent-600
+font-display font-bold uppercase tracking-[0.08em]
 ```
-Compact/nav variant: `px-5 py-2.5`.
+Heights vary by context: `h-[58px]` (search), `h-[52px]` (auth CTA, sidebar
+CTA) — always `rounded-full`.
 
-**Secondary (outline on white, pill):**
+**Secondary (outline pill, `btn-secondary`):**
 ```
-rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-ink
-hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200
+rounded-full border border-divider bg-white text-ink
+font-display font-semibold uppercase tracking-[0.05em]
 ```
+Used for "Message", auth OAuth buttons.
 
-**Ghost / nav link:**
+**Category / tab pill (toggle):**
 ```
-rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-gray-100
-```
-
-**Destructive (outline):**
-```
-rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50
-```
-
-All buttons are `rounded-full` in v2 — no more `rounded-xl` rectangles.
-
----
-
-## 6. Form controls / search bar
-
-**Pill search bar (home hero):**
-Single fully-rounded container, divided into three zones — search icon +
-input, a vertical divider, an "All areas" location button, and a docked
-green SEARCH pill:
-```
-flex items-center gap-3 rounded-full border border-gray-200 bg-gray-100 p-2 pl-5
-```
-- Input: `flex-1 bg-transparent text-sm text-ink placeholder:text-gray-400 focus:outline-none`
-- Location button: `hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-white`
-- Search button: `rounded-full bg-green-700 px-6 py-3 text-sm font-extrabold uppercase tracking-wide text-white hover:bg-green-800`
-
-**Standard text input / select (detail page, forms):**
-```
-w-full rounded-2xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-ink
-placeholder:text-gray-400
-focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100
+rounded-full px-[18px] py-2 font-display font-semibold text-[15px] tracking-[0.05em] uppercase transition
+/* active:   */ bg-accent-700 text-white border border-accent-700
+/* inactive: */ bg-transparent text-neutral-800 border border-divider hover:text-accent-700 hover:border-accent-400
 ```
 
-**Label:** `block text-sm font-bold text-ink`
+**Auth sign-in/sign-up tab (segmented, no border on the pill itself):**
+```
+flex-1 rounded-full py-2.5 font-display font-bold text-[16px] tracking-[0.07em] uppercase transition
+/* active:   */ bg-accent-700 text-white
+/* inactive: */ bg-transparent text-neutral-700
+```
+wrapped in `flex gap-1.5 bg-white border border-divider rounded-full p-1`.
 
 ---
 
-## 7. Badges & pills
+## 6. Form controls
 
-**Distance badge (top-left on card image):**
+**Pill text input** (`.input` role — search, auth fields, sidebar dates):
 ```
-absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-ink shadow-sm
+rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink
+placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100
 ```
-Content: `{{ "%.1f"|format(distance_km) }} KM`
+Search-bar input itself is borderless/transparent (the pill *is* the search
+bar's outer container, per §4 spacing table) — larger text (30px, display
+font) per §2.
 
-**Verified pill (on cards / overlaid on images):**
-```
-inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1
-text-xs font-bold text-green-700 shadow-sm ring-1 ring-green-100
-```
+**Field label:** `block text-sm font-bold text-ink mb-1.5`.
 
-**Verified pill (inline, on tinted bg):**
-```
-inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5
-text-xs font-bold text-green-700 ring-1 ring-green-100
-```
+---
 
-**Category filter pill (home):**
-```
-shrink-0 rounded-full px-5 py-2.5 text-sm font-extrabold uppercase tracking-wide transition
-/* active:   */ bg-green-700 text-white
-/* inactive: */ bg-white text-ink border border-gray-300 hover:border-gray-400
-```
-(Matches the "black/dark when active" reference direction using the forest
-green primary rather than pure black, so the active state still reads as the
-brand accent.)
+## 7. Badges & icons
 
-**Popular-search link (home, under search bar):**
-```
-text-sm font-semibold text-ink-700 underline decoration-gray-300 underline-offset-4 hover:text-green-700 hover:decoration-green-700
-```
-
-**Status dot:** `h-2 w-2 rounded-full bg-green-600` (available).
+- **Distance badge**: white/88%-opacity pill, blurred backdrop, uppercase
+  11px neutral-800 text — see §4.
+- **Star rating icon**: solid star, `fill: var(--color-accent)`, 12–14px.
+- **Check icon** (trust/included lists): `stroke: accent2-700`, 2.75 stroke
+  width, 16–18px.
+- **Shield icon** (fine-print, trust note): `stroke: accent2-700`.
+- All icons: Heroicons-style outline, `stroke-width: 2.75` (heavier than
+  v1/v2's `2`), `stroke-linecap: round`. Filled icons (star) use
+  `fill="currentColor"` or a pinned accent fill, no stroke.
 
 ---
 
 ## 8. Avatars
 
 ```
-grid place-items-center rounded-full bg-green-700 font-bold text-white
+rounded-full bg-accent2-300 text-accent2-800 font-display font-bold
+grid place-items-center
 ```
-Sizes: `h-9 w-9 text-sm` (nav), `h-12 w-12 text-base` (owner card). Content is
-`user.initials`.
+Sizes: `34px` (nav), `62px` (detail owner strip). Content: `user.initials`.
 
 ---
 
-## 9. Icons
+## 9. Motion
 
-Inline SVG only. Heroicons outline set (`fill="none" stroke="currentColor"
-stroke-width="2"`) for line icons; solid (`fill="currentColor"`) for
-check/star. Sizes: `h-4 w-4` inline with text, `h-5 w-5` in buttons.
-
-Brand mark (header logo): wordmark only, no circle glyph —
-`font-display uppercase text-xl tracking-tight text-ink` reading "CIRCLO",
-with a small gray-500 uppercase caption beside it: `ISLAMABAD · RAWALPINDI`
-(`text-xs font-semibold tracking-wide text-gray-500`).
+- Card image lift on hover: `translateY(-4px)`, `280ms cubic-bezier(.2,.7,.3,1)`.
+- Buttons/pills: default Tailwind `transition` (150ms) on background/border/color.
 
 ---
 
-## 10. Flash messages
+## 10. Redesign checklist (apply when migrating a new page to v3)
 
-Same structure as v1, restyled:
-```
-success → border-green-200 bg-green-50 text-green-800
-error   → border-rose-200 bg-rose-50 text-rose-700
-info    → border-gray-200 bg-gray-50 text-ink-700
-```
-
----
-
-## 11. Motion
-
-- Card images: `transition duration-300 group-hover:scale-105`.
-- Buttons/pills: default Tailwind `transition` (150ms) on background/border.
-- No shadows-on-hover lift (v1's `-translate-y-0.5` is dropped — v2 favors flat,
-  whitespace-driven hierarchy over elevation).
-
----
-
-## 12. Redesign checklist (apply when migrating a new page to v2)
-
-- [ ] Body/page background is plain `bg-white`, not `bg-slate-50`.
-- [ ] Headlines/item names use `font-display uppercase`; body stays `font-sans`.
-- [ ] Every button/pill/search bar is `rounded-full`.
-- [ ] Primary action = `bg-green-700` solid; secondary = white + gray border outline.
-- [ ] Listing cards are frameless: no border/shadow on the card, only on the
-      image's `rounded-2xl bg-gray-100` placeholder.
-- [ ] Prices: `Rs ` + comma thousands, `font-display text-green-700`.
-- [ ] Category/filter pills: green-700 active, white+gray-300-border inactive.
-- [ ] Keep old `navy`/`teal`/`sand` tokens untouched for not-yet-migrated pages.
+- [ ] Page background `bg-white`; panels use `bg-surface` + `border-divider`, not `bg-white` + `border-gray-*`.
+- [ ] Headlines/prices/buttons use `font-display` (Barlow Condensed), uppercase where the source shows uppercase.
+- [ ] Exact px sizes from §2/§3 via arbitrary-value classes — don't round to the nearest Tailwind step.
+- [ ] Every button/pill/input is `rounded-full` (cards/panels use `rounded-3xl`/`rounded-2xl`).
+- [ ] Primary = `bg-accent`; secondary = white + `border-divider`; active toggle = `bg-accent-700`.
+- [ ] No fabricated data — if the mockup shows a field with no backing model column, replace with real data or drop it (see §0.3 for the running list of these adaptations).
+- [ ] Keep v1 `navy`/`teal`/`sand`/`font-sora` tokens untouched for not-yet-migrated pages.

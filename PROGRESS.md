@@ -4,7 +4,79 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
-## Visual redesign v2 — "White & Forest" (home + listing detail, DONE ✅, 2026-09-04)
+## Visual redesign v3 — "Organic Forest" (source-exact, DONE ✅, 2026-09-04)
+_Supersedes v2 below — v2 was reverse-engineered from screenshots (~60%
+accuracy); v3 is transcribed directly from an exported Claude Design source
+file the user provided, so colors/fonts/spacing are exact, not estimated._
+- **`DESIGN_SYSTEM.md` rewritten (v3)**: exact tokens — `#0f6b5c` forest-green
+  accent (9-step `accent` scale) + `#2f5d4a` secondary `accent2` scale (owner
+  avatars, check icons), `#101a16` `ink` text, `#f4f7f5` `surface` /
+  `#dde5e0` `divider`, custom `neutral` scale (not Tailwind's default gray —
+  the source's neutrals have different hex values). **Barlow Condensed**
+  replaces Archivo Black as the display font (`font-display`, still
+  uppercase). All heading/price/button sizes are exact px values from the
+  source via Tailwind arbitrary-value classes (`text-[88px]`, `text-[23px]`,
+  etc.), not rounded to Tailwind's scale. New `shadow-circlo` +
+  `rounded-3xl`/`rounded-2xl` stand in for the source's undefined
+  `--shadow-md`/`--radius-lg`/`--radius-md` (that stylesheet wasn't part of
+  the export — documented as a chosen approximation in `DESIGN_SYSTEM.md`
+  §0.2). v1 `navy`/`teal`/`sand`/`font-sora` tokens still kept for
+  not-yet-migrated pages.
+- **Migrated to v3**: shared header/footer (`base.html`), home/browse
+  (`index.html`), listing detail (`listing_detail.html`), **and now
+  login/signup** (`auth/login.html`, `auth/signup.html` — new this pass).
+- **Auth pages rebuilt**: two-column layout (marketing panel + tabbed card)
+  matching the source. Real differences from the mockup, since our backend
+  is email/password only (no phone/city columns on `User`): mobile-number
+  field → email; Islamabad/Rawalpindi/Both city selector → dropped (nothing
+  to persist it to); "Continue with Apple" → dropped (no Apple provider);
+  "Keep me signed in" → dropped (`login_user()` isn't called with `remember=`
+  anywhere — adding that is a backend change, out of scope for a visual
+  pass). **"Continue with Google" is wired to the real `web.google_login`**
+  (gated on the existing `google_oauth_enabled` flag, `next=` preserved on
+  login). The three stat figures (6,400+ items / Rs 2.1M deposits / 4.9
+  rating) are kept as static marketing copy exactly as authored in the
+  source — same category as the hero tagline, not a live-data claim.
+- **Listing detail rebuilt again** on top of the v2 pass: exact image grid
+  (2/3-width hero + two stacked, falls back to a single hero when a listing
+  has under 3 photos — no fabricated placeholder photos), owner strip using
+  real `owner.created_at`/`review_count` (mockup's "41 items lent" has no
+  backing field), "What's included"/"Pickup & rules" replaced with the same
+  real marketplace-wide trust content in the mockup's two-column check-list
+  layout (no per-listing accessory data exists), "Also nearby" wired for
+  real via a small addition to `web.listing_detail` (`app/web/routes.py`) —
+  reuses the existing `listings_service.browse_listings()` call, same-category,
+  capped at 4, not a new business-logic path. **Booking sidebar rebuilt as an
+  inline form** (replacing the old `<dialog>` modal) with real `From`/`Until`
+  date inputs, a client-side-computed "Rental estimate" (price × selected
+  days — no fabricated "service fee" since CIRCLO doesn't charge one), real
+  deposit amount, and a real `POST` to `web.request_booking`. **Verified
+  live**: submitting the form as a freshly-signed-up (unverified) user
+  correctly redirected to `/verify` — confirms the form hits the real,
+  unmodified booking/verification gate, not a stub.
+- Browse page's old price/area/verified filter sidebar (a v1/v2 visual
+  placeholder, never wired to the backend) is **dropped** — not present in
+  the v3 source design. "Show more" button also dropped — `browse_listings()`
+  has no pagination, so there's nothing for it to load.
+- Header/footer updated again on top of v2: exact `CIRCLO` wordmark styling
+  (Barlow Condensed, `0.06em` tracking, accent-700), "How it works" / "Trust
+  & deposits" nav links (decorative — no such pages exist yet, same status
+  as in the source mockup), nav collapses to a single "Sign in" (auth page's
+  tabs handle the sign-up switch, matching the source exactly).
+- **Verified live** via the dev overlay: home hero/search/pills/11-card grid,
+  listing detail (image grid, trust panels, owner strip, related listings,
+  booking form), login and signup pages (tab switching, Google button
+  presence) all render correctly — confirmed via DOM/text inspection after
+  the screenshot tool exhibited a scroll-capture timing artifact (blank
+  frames at certain mid-scroll offsets) unrelated to the page itself; content
+  was confirmed present and correctly styled via `getBoundingClientRect` and
+  page-text extraction at every scroll depth. Also ran a real signup →
+  logged-in nav check → booking-form submission end-to-end.
+- **Next**: migrate my-rentals/my-listings/listing-form/profile/admin/legal +
+  forgot/reset-password to v3; then retire the v1 `navy`/`teal`/`sand`/
+  `font-sora` tokens.
+
+## Visual redesign v2 — "White & Forest" (home + listing detail, superseded by v3 above, 2026-09-04)
 - **New `DESIGN_SYSTEM.md`** (v2): white background, forest-green primary
   (`green-700 #1B5E3F`), near-black `ink` headline/body color, Archivo Black
   display font (`font-display`, uppercase headlines/card titles/prices) +

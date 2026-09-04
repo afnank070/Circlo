@@ -95,4 +95,4 @@ def test_logout_ends_session(client, app):
     resp = client.post("/logout", follow_redirects=True)
     assert resp.status_code == 200
     # Back to logged-out chrome.
-    assert b"Sign up" in resp.data
+    assert b"Sign in" in resp.data

@@ -3,22 +3,21 @@
 {% block title %}{{ listing.title }} — CIRCLO{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-7xl px-4 py-6">
+<div class="mx-auto max-w-[1440px] px-4 sm:px-14">
 
-  <!-- Back link -->
   <a href="{{ url_for('web.index', category=listing.category.slug) }}"
-     class="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-ink">
-    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-    Back to marketplace
+     class="inline-flex items-center gap-1.5 py-[18px] pb-[26px] text-[13px] font-semibold uppercase tracking-[0.08em] text-neutral-700 hover:text-ink">
+    <svg class="h-[15px] w-[15px]" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg>
+    All items
   </a>
 
   {% if current_user.is_authenticated and current_user.id == listing.owner_id %}
   <!-- Owner controls (only the listing's owner sees these) -->
-  <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3">
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-divider bg-surface px-4 py-3">
     <p class="text-sm font-semibold text-ink">This is your listing.</p>
     <div class="flex items-center gap-2">
       <a href="{{ url_for('web.edit_listing', listing_id=listing.id) }}"
-         class="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-gray-50">
+         class="inline-flex items-center gap-1.5 rounded-full border border-divider bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
         Edit
       </a>
@@ -34,264 +33,238 @@
   </div>
   {% endif %}
 
-  <div class="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-2">
+  <div class="grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-16">
 
-    <!-- LEFT: gallery + about -->
-    <div>
-      <!-- Carousel -->
-      <div class="relative overflow-hidden rounded-2xl bg-gray-100" id="gallery">
-        {% if listing.is_verified %}
-        <span class="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1
-                     text-xs font-bold text-green-700 shadow-sm ring-1 ring-green-100">
-          <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z" clip-rule="evenodd"/></svg>
-          Verified item
-        </span>
-        {% endif %}
-
-        <div class="aspect-[4/3]">
-          {% if listing.cover_image %}
-          <img id="gallery-main" src="{{ image_url(listing.cover_image.object_key) }}" alt="{{ listing.title }}"
-               class="h-full w-full object-cover">
+    <!-- LEFT -->
+    <div class="flex flex-col gap-8">
+      <div>
+        <div class="mb-2.5 text-[12px] tracking-[0.14em] uppercase text-accent-700">{{ listing.category.name }}</div>
+        <h1 class="m-0 mb-3 max-w-[16ch] font-display text-[40px] font-bold uppercase leading-[0.95] tracking-[-0.01em] text-ink sm:text-[52px] lg:text-[62px]">{{ listing.title }}</h1>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-neutral-700">
+          {% if listing.owner_rating is not none %}
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5 text-accent" fill="currentColor" stroke="none" viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8Z"/></svg>
+            <span>{{ "%.1f"|format(listing.owner_rating) }} · {{ listing.owner.review_count }} review{{ 's' if listing.owner.review_count != 1 }}</span>
+          </span>
+          <span>·</span>
           {% endif %}
+          <span>{{ listing.area }}, {{ listing.city }}</span>
         </div>
-
-        {% if listing.images|length > 1 %}
-        <!-- Prev / next (only meaningful with multiple photos) -->
-        <button type="button" onclick="circloGallery(-1)"
-                class="absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-ink shadow hover:bg-white">
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-        </button>
-        <button type="button" onclick="circloGallery(1)"
-                class="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-ink shadow hover:bg-white">
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-        </button>
-        {% endif %}
       </div>
 
-      <!-- Thumbnail strip -->
-      {% if listing.images %}
-      <div class="mt-3 flex gap-3 overflow-x-auto pb-1">
-        {% for img in listing.images %}
-        <button type="button" onclick="circloGalleryTo({{ loop.index0 }})"
-                data-thumb="{{ loop.index0 }}"
-                class="circlo-thumb aspect-square h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-gray-100 transition
-                       {% if loop.first %}border-green-700{% else %}border-gray-200 hover:border-gray-300{% endif %}">
+      <!-- Image grid -->
+      {% set imgs = listing.images %}
+      {% if imgs|length >= 3 %}
+      <div class="grid grid-cols-[2fr_1fr] grid-rows-2 gap-3" style="grid-template-rows: 190px 190px">
+        <div class="relative row-span-2 overflow-hidden rounded-3xl bg-surface">
+          <img src="{{ image_url(imgs[0].object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-cover">
+        </div>
+        <div class="relative overflow-hidden rounded-2xl bg-surface">
+          <img src="{{ image_url(imgs[1].object_key) }}" alt="" class="h-full w-full object-cover">
+        </div>
+        <div class="relative overflow-hidden rounded-2xl bg-surface">
+          <img src="{{ image_url(imgs[2].object_key) }}" alt="" class="h-full w-full object-cover">
+        </div>
+      </div>
+      {% elif imgs %}
+      <div class="relative aspect-video overflow-hidden rounded-3xl bg-surface">
+        <img src="{{ image_url(imgs[0].object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-cover">
+      </div>
+      {% endif %}
+      {% if imgs|length > 3 %}
+      <div class="-mt-5 flex gap-3 overflow-x-auto pb-1">
+        {% for img in imgs[3:] %}
+        <div class="aspect-square h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-surface">
           <img src="{{ image_url(img.object_key) }}" alt="" class="h-full w-full object-cover">
-        </button>
+        </div>
         {% endfor %}
       </div>
       {% endif %}
 
       <!-- About this item -->
-      <div class="mt-8">
-        <h2 class="text-base font-extrabold uppercase tracking-wide text-ink">About this item</h2>
-        <p class="mt-2 whitespace-pre-line leading-relaxed text-ink-700">{{ listing.description }}</p>
-      </div>
-    </div>
-
-    <!-- RIGHT: title, price card, owner, trust panel -->
-    <div>
-      <p class="text-sm font-bold uppercase tracking-wide text-green-700">{{ listing.category.name }}</p>
-      <h1 class="mt-1 font-display uppercase text-3xl leading-tight tracking-tight text-ink sm:text-4xl">{{ listing.title }}</h1>
-      <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
-        {% if listing.owner_rating is not none %}
-        <span class="inline-flex items-center gap-1 font-semibold text-ink">
-          <svg class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
-          {{ "%.1f"|format(listing.owner_rating) }}
-        </span>
-        {% endif %}
-        <span class="inline-flex items-center gap-1">
-          <svg class="h-4 w-4 text-green-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-          {{ listing.area }}, {{ listing.city }}
-        </span>
+      <div class="max-w-[62ch]">
+        <h4 class="m-0 mb-2.5 font-display text-[22px] font-bold uppercase text-ink">About this item</h4>
+        <p class="whitespace-pre-line text-[16px] leading-[1.65] text-neutral-800">{{ listing.description }}</p>
       </div>
 
-      <!-- Price / deposit card -->
-      <div class="mt-5 rounded-2xl border border-gray-200 bg-white p-5">
-        <div class="flex items-baseline gap-1.5">
-          <span class="font-display text-3xl text-green-700">Rs {{ "{:,}".format(listing.price_per_day|int) }}</span>
-          <span class="text-gray-500">/ day</span>
-        </div>
-
-        <div class="mt-4 flex items-start gap-2.5 rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-200">
-          <svg class="mt-0.5 h-5 w-5 shrink-0 text-green-700" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <p class="text-sm text-ink-700">
-            Refundable deposit <span class="font-bold text-ink">Rs {{ "{:,}".format(listing.deposit_amount|int) }}</span>
-            — held securely, returned after inspection.
-          </p>
-        </div>
-
-        <!-- Availability (marketplace-wide placeholder — per-listing availability arrives with M3 booking) -->
-        <div class="mt-4">
-          <p class="text-sm font-bold text-ink">Availability</p>
-          <p class="mt-1 inline-flex items-center gap-1.5 text-sm text-ink-700">
-            <span class="h-2 w-2 rounded-full bg-green-600"></span>
-            Available now · book up to 14 days
-          </p>
-        </div>
-
-        <!-- CTAs -->
-        {% if current_user.is_authenticated and current_user.id == listing.owner_id %}
-        <p class="mt-5 rounded-full border border-gray-200 bg-gray-50 px-4 py-3 text-center text-sm text-ink-700">
-          This is your own listing.
-        </p>
-        {% elif current_user.is_authenticated %}
-        <button type="button" onclick="document.getElementById('request-modal').showModal()"
-                class="mt-5 w-full rounded-full bg-green-700 px-5 py-3 text-center text-sm font-extrabold uppercase tracking-wide text-white
-                       hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-200">
-          Request to Rent
-        </button>
-        {% else %}
-        <a href="{{ url_for('web.login', next=url_for('web.listing_detail', listing_id=listing.id)) }}"
-           class="mt-5 block w-full rounded-full bg-green-700 px-5 py-3 text-center text-sm font-extrabold uppercase tracking-wide text-white
-                  hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-200">
-          Log in to Request to Rent
-        </a>
-        {% endif %}
-        <button type="button"
-                class="mt-2.5 w-full rounded-full border border-gray-300 bg-white px-5 py-3 text-center text-sm font-extrabold uppercase tracking-wide text-ink
-                       hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200">
-          Message owner
-        </button>
-        <p class="mt-3 text-center text-xs text-gray-500">You won't be charged yet — the owner confirms first.</p>
-      </div>
-
-      <!-- Owner card -->
-      <div class="mt-4 rounded-2xl border border-gray-200 bg-white p-5">
-        <div class="flex items-center gap-3">
-          <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-green-700 text-base font-bold text-white">
-            {{ listing.owner.initials }}
-          </span>
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <a href="{{ url_for('web.user_profile', user_id=listing.owner_id) }}" class="font-bold text-ink hover:underline">{{ listing.owner_name }}</a>
-              {% if listing.is_verified %}
-              <span class="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-700 ring-1 ring-green-100">
-                <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z" clip-rule="evenodd"/></svg>
-                Verified identity
-              </span>
-              {% endif %}
+      <!-- Protected by CIRCLO — real trust content, laid out in the mockup's two-column check-list pattern -->
+      <div class="grid max-w-[760px] grid-cols-1 gap-8 sm:grid-cols-2">
+        <div>
+          <h4 class="m-0 mb-3 font-display text-[22px] font-bold uppercase text-ink">Protected by CIRCLO</h4>
+          <div class="flex flex-col gap-2.5">
+            <div class="flex items-start gap-2.5 text-[15px] text-neutral-800">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-accent2-700" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24"><path d="m5 13 4 4 10-10"/></svg>
+              <span>Deposit held in escrow, released after return</span>
             </div>
-            <p class="mt-0.5 inline-flex items-center gap-1 text-sm text-gray-500">
-              {% if listing.owner_rating is not none %}
-              <svg class="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
-              {{ "%.1f"|format(listing.owner_rating) }} · {{ listing.owner.review_count }} review{{ 's' if listing.owner.review_count != 1 }}
-              {% else %}
-              New owner
-              {% endif %}
-            </p>
+            <div class="flex items-start gap-2.5 text-[15px] text-neutral-800">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-accent2-700" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24"><path d="m5 13 4 4 10-10"/></svg>
+              <span>Before/after photo evidence, logged in-app</span>
+            </div>
+            <div class="flex items-start gap-2.5 text-[15px] text-neutral-800">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-accent2-700" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24"><path d="m5 13 4 4 10-10"/></svg>
+              <span>Trust Fund covers damage or disputes</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h4 class="m-0 mb-3 font-display text-[22px] font-bold uppercase text-ink">Good to know</h4>
+          <div class="flex flex-col gap-2.5">
+            <div class="flex items-start gap-2.5 text-[15px] text-neutral-800">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" stroke="currentColor" stroke-width="2.75" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+              <span>You won't be charged until the owner confirms</span>
+            </div>
+            {% if listing.is_verified %}
+            <div class="flex items-start gap-2.5 text-[15px] text-neutral-800">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" stroke="currentColor" stroke-width="2.75" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+              <span>This owner's identity is CNIC-verified</span>
+            </div>
+            {% endif %}
+            <div class="flex items-start gap-2.5 text-[15px] text-neutral-800">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" stroke="currentColor" stroke-width="2.75" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+              <span>Coordinate pickup/return with the owner directly</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Protected by CIRCLO trust panel -->
-      <div class="mt-4 rounded-2xl border border-gray-200 bg-white p-5">
-        <div class="flex items-center gap-2">
-          <svg class="h-5 w-5 text-green-700" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z" clip-rule="evenodd"/></svg>
-          <h2 class="text-base font-extrabold uppercase tracking-wide text-ink">Protected by CIRCLO</h2>
+      <!-- Owner strip -->
+      <div class="flex max-w-[760px] items-center gap-[18px] rounded-3xl bg-surface p-[22px_26px]">
+        <div class="grid h-[62px] w-[62px] shrink-0 place-items-center rounded-full bg-accent2-300 font-display text-[22px] font-bold text-accent2-800">
+          {{ listing.owner.initials }}
         </div>
-        <ul class="mt-4 space-y-4">
-          <li class="flex items-start gap-3">
-            <svg class="mt-0.5 h-5 w-5 shrink-0 text-green-700" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
-            <div>
-              <p class="text-sm font-bold text-ink">Deposit protected</p>
-              <p class="text-sm text-gray-500">Held in escrow, released after the item is returned.</p>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ url_for('web.user_profile', user_id=listing.owner_id) }}" class="font-display text-[22px] font-bold uppercase leading-[1.1] text-ink hover:underline">{{ listing.owner_name }}</a>
+            {% if listing.is_verified %}
+            <span class="inline-flex items-center gap-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-bold text-accent-700">Verified</span>
+            {% endif %}
+          </div>
+          <div class="text-[13px] text-neutral-700">
+            {% if listing.owner_rating is not none %}
+            Member since {{ listing.owner.created_at.year }} · {{ listing.owner.review_count }} review{{ 's' if listing.owner.review_count != 1 }}
+            {% else %}
+            Member since {{ listing.owner.created_at.year }} · new to CIRCLO
+            {% endif %}
+          </div>
+        </div>
+        <button type="button" class="shrink-0 rounded-full border border-divider bg-white px-[22px] py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.05em] text-ink hover:bg-neutral-100">
+          Message
+        </button>
+      </div>
+
+      <!-- Also nearby -->
+      {% if related %}
+      <div>
+        <h4 class="m-0 mb-[18px] font-display text-[22px] font-bold uppercase text-ink">Also nearby</h4>
+        <div class="grid grid-cols-2 gap-6 lg:grid-cols-4">
+          {% for r in related %}
+          <a href="{{ url_for('web.listing_detail', listing_id=r.id) }}" class="group flex flex-col gap-2.5">
+            <div class="relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface">
+              {% if r.cover_image %}
+              <img src="{{ image_url(r.cover_image.object_key) }}" alt="{{ r.title }}" class="h-full w-full object-cover transition-transform duration-[280ms] group-hover:-translate-y-1">
+              {% endif %}
             </div>
-          </li>
-          <li class="flex items-start gap-3">
-            <svg class="mt-0.5 h-5 w-5 shrink-0 text-green-700" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"/></svg>
+            <h3 class="m-0 font-display text-[18px] font-bold uppercase leading-[1.05] text-ink line-clamp-1">{{ r.title }}</h3>
+            <div class="text-[13px] text-neutral-600">Rs {{ "{:,}".format(r.price_per_day|int) }} / day · {{ r.area }}</div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- RIGHT: sticky booking sidebar -->
+    <div class="lg:sticky lg:top-6">
+      <div class="rounded-3xl border border-divider bg-surface p-[26px] shadow-circlo">
+        <div class="mb-5 flex items-baseline gap-2">
+          <span class="font-display text-[44px] font-bold leading-none text-accent-700">Rs {{ "{:,}".format(listing.price_per_day|int) }}</span>
+          <span class="text-[14px] text-neutral-700">per day</span>
+        </div>
+
+        {% if current_user.is_authenticated and current_user.id == listing.owner_id %}
+        <p class="rounded-full border border-divider bg-white px-4 py-3 text-center text-sm text-neutral-700">
+          This is your own listing.
+        </p>
+        {% elif current_user.is_authenticated %}
+        <form method="post" action="{{ url_for('web.request_booking', listing_id=listing.id) }}" id="booking-form">
+          <div class="mb-3 grid grid-cols-2 gap-2.5">
             <div>
-              <p class="text-sm font-bold text-ink">Before / after photo evidence</p>
-              <p class="text-sm text-gray-500">Both parties log the item's condition in-app.</p>
+              <label for="start_date" class="mb-1 block text-xs font-bold uppercase tracking-wide text-neutral-700">From</label>
+              <input id="start_date" name="start_date" type="date" required
+                     class="w-full rounded-full border border-divider bg-white px-3.5 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
             </div>
-          </li>
-          <li class="flex items-start gap-3">
-            <svg class="mt-0.5 h-5 w-5 shrink-0 text-green-700" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
             <div>
-              <p class="text-sm font-bold text-ink">CIRCLO Trust Fund</p>
-              <p class="text-sm text-gray-500">Damage or disputes covered up to Rs 100,000.</p>
+              <label for="end_date" class="mb-1 block text-xs font-bold uppercase tracking-wide text-neutral-700">Until</label>
+              <input id="end_date" name="end_date" type="date" required
+                     class="w-full rounded-full border border-divider bg-white px-3.5 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
             </div>
-          </li>
-        </ul>
+          </div>
+
+          <div class="mb-4">
+            <label for="message" class="mb-1 block text-xs font-bold uppercase tracking-wide text-neutral-700">Message to owner <span class="font-normal normal-case text-neutral-500">(optional)</span></label>
+            <textarea id="message" name="message" rows="2"
+                      class="w-full rounded-2xl border border-divider bg-white px-3.5 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+                      placeholder="Anything the owner should know?"></textarea>
+          </div>
+
+          <div class="mb-4 flex flex-col gap-2 border-y border-divider py-3.5 text-[14px] text-neutral-800">
+            <div class="flex justify-between">
+              <span>Rental estimate</span>
+              <span id="booking-estimate">Rs {{ "{:,}".format(listing.price_per_day|int) }} × 1 day</span>
+            </div>
+            <div class="flex justify-between text-neutral-600">
+              <span>Refundable deposit</span>
+              <span>Rs {{ "{:,}".format(listing.deposit_amount|int) }}</span>
+            </div>
+          </div>
+
+          <button type="submit"
+                  class="h-[52px] w-full rounded-full bg-accent font-display text-[19px] font-bold uppercase tracking-[0.08em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100">
+            Request to rent
+          </button>
+        </form>
+        {% else %}
+        <a href="{{ url_for('web.login', next=url_for('web.listing_detail', listing_id=listing.id)) }}"
+           class="flex h-[52px] w-full items-center justify-center rounded-full bg-accent font-display text-[19px] font-bold uppercase tracking-[0.08em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100">
+          Log in to request
+        </a>
+        {% endif %}
+
+        <div class="mt-[18px] flex items-start gap-2.5 border-t border-divider pt-4">
+          <svg class="mt-px h-[18px] w-[18px] shrink-0 text-accent2-700" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.4 3 7.7 7 9 4-1.3 7-4.6 7-9V6Z"/></svg>
+          <div class="text-[12.5px] leading-[1.5] text-neutral-700">Deposit is held by CIRCLO and released after the item is returned and inspected. You won't be charged yet — the owner confirms first.</div>
+        </div>
       </div>
     </div>
+
   </div>
 </div>
 
 {% if current_user.is_authenticated and current_user.id != listing.owner_id %}
-<!-- Request to Rent modal -->
-<dialog id="request-modal" class="w-full max-w-md rounded-2xl border border-gray-200 p-0 backdrop:bg-ink/40">
-  <form method="post" action="{{ url_for('web.request_booking', listing_id=listing.id) }}" class="p-6">
-    <h2 class="font-display uppercase text-lg text-ink">Request to Rent</h2>
-    <p class="mt-1 text-sm text-gray-500">{{ listing.title }}</p>
-
-    <div class="mt-4 grid grid-cols-2 gap-3">
-      <div>
-        <label for="start_date" class="block text-sm font-bold text-ink">Start date</label>
-        <input id="start_date" name="start_date" type="date" required
-               class="mt-1.5 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-ink focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100">
-      </div>
-      <div>
-        <label for="end_date" class="block text-sm font-bold text-ink">End date</label>
-        <input id="end_date" name="end_date" type="date" required
-               class="mt-1.5 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-ink focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100">
-      </div>
-    </div>
-
-    <div class="mt-4">
-      <label for="message" class="block text-sm font-bold text-ink">Message to owner <span class="font-normal text-gray-500">(optional)</span></label>
-      <textarea id="message" name="message" rows="3"
-                class="mt-1.5 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-ink focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-100"
-                placeholder="Anything the owner should know?"></textarea>
-    </div>
-
-    <div class="mt-5 flex items-center gap-2">
-      <button type="submit"
-              class="flex-1 rounded-full bg-green-700 px-4 py-2.5 text-sm font-extrabold uppercase tracking-wide text-white hover:bg-green-800">
-        Send request
-      </button>
-      <button type="button" onclick="document.getElementById('request-modal').close()"
-              class="rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-extrabold uppercase tracking-wide text-ink hover:bg-gray-50">
-        Cancel
-      </button>
-    </div>
-  </form>
-</dialog>
 <script>
   (function () {
-    const modal = document.getElementById('request-modal');
     const today = new Date().toISOString().split('T')[0];
     const start = document.getElementById('start_date');
     const end = document.getElementById('end_date');
+    const estimate = document.getElementById('booking-estimate');
+    const pricePerDay = {{ listing.price_per_day|int }};
     if (start) start.min = today;
     if (end) end.min = today;
-    if (start) start.addEventListener('change', () => { if (end) end.min = start.value || today; });
-    {% if request.args.get('open_request') %}
-    if (modal) modal.showModal();
-    {% endif %}
-  })();
-</script>
-{% endif %}
 
-{% if listing.images|length > 1 %}
-<script>
-  // Lightweight gallery — swaps the main image and highlights the active thumb.
-  (function () {
-    const keys = {{ listing.images | map(attribute='object_key') | list | tojson }};
-    window.__circloIndex = 0;
-    function render() {
-      const main = document.getElementById('gallery-main');
-      if (main) main.src = document.querySelectorAll('.circlo-thumb img')[window.__circloIndex].src;
-      document.querySelectorAll('.circlo-thumb').forEach((el, i) => {
-        el.classList.toggle('border-navy-800', i === window.__circloIndex);
-        el.classList.toggle('border-sand-200', i !== window.__circloIndex);
-      });
+    function updateEstimate() {
+      if (!start || !end || !estimate) return;
+      const s = new Date(start.value);
+      const e = new Date(end.value);
+      let days = 1;
+      if (start.value && end.value && e > s) {
+        days = Math.round((e - s) / 86400000);
+      }
+      const total = pricePerDay * days;
+      estimate.textContent = 'Rs ' + total.toLocaleString('en-US') + ' × ' + days + ' day' + (days === 1 ? '' : 's');
     }
-    window.circloGalleryTo = function (i) { window.__circloIndex = i; render(); };
-    window.circloGallery = function (d) {
-      window.__circloIndex = (window.__circloIndex + d + keys.length) % keys.length;
-      render();
-    };
+
+    if (start) start.addEventListener('change', () => { if (end) end.min = start.value || today; updateEstimate(); });
+    if (end) end.addEventListener('change', updateEstimate);
   })();
 </script>
 {% endif %}

@@ -13,7 +13,7 @@
   <!-- Google Fonts: Sora (headings) + Manrope (body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Archivo+Black&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Barlow+Condensed:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -22,23 +22,30 @@
           fontFamily: {
             sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             sora: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-            display: ['"Archivo Black"', 'Arial Black', 'ui-sans-serif', 'sans-serif'],
+            display: ['"Barlow Condensed"', 'ui-sans-serif', 'sans-serif'],
+          },
+          boxShadow: {
+            circlo: '0 8px 24px -8px rgba(16,26,22,0.14)',
           },
           colors: {
-            // v2 primary — forest green
-            green: {
-              50:  '#f1f8f4',
-              100: '#dceee2',
-              200: '#b9ddc6',
-              600: '#1f6f4a',
-              700: '#1b5e3f',
-              800: '#154a32',
-              900: '#0f3d26',
+            // v3 — exact tokens from the "Organic Forest" source export
+            bg: '#ffffff',
+            surface: '#f4f7f5',
+            divider: '#dde5e0',
+            ink: '#101a16',
+            accent: {
+              DEFAULT: '#0f6b5c',
+              100: '#e6f2ef', 200: '#c6e2db', 300: '#9ecfc4', 400: '#6bb5a6',
+              500: '#0f6b5c', 600: '#0c5a4d', 700: '#0a4a40', 800: '#073830', 900: '#052922',
             },
-            // v2 — near-black headline/body ink
-            ink: {
-              DEFAULT: '#0b0b0c',
-              700: '#27272a',
+            accent2: {
+              DEFAULT: '#2f5d4a',
+              100: '#eaf1ec', 200: '#cfe0d5', 300: '#b0cdbd', 400: '#7ba992',
+              500: '#2f5d4a', 600: '#274f3f', 700: '#1f4033', 800: '#163027', 900: '#0f231c',
+            },
+            neutral: {
+              100: '#f5f7f6', 200: '#e8edea', 300: '#d7ded9', 400: '#b9c3bd',
+              500: '#8e9a94', 600: '#6d7973', 700: '#4f5b55', 800: '#333c38', 900: '#1d2421',
             },
             // Deep-navy primary (v1 — kept for not-yet-migrated pages)
             navy: {
@@ -86,86 +93,86 @@
     }
   </style>
 </head>
-<body class="h-full bg-white font-sans text-ink-700 antialiased">
-  <header class="sticky top-0 z-30 border-b border-gray-200 bg-white">
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4">
+<body class="h-full bg-white font-sans text-ink antialiased">
+  <header class="sticky top-0 z-30 border-b border-divider bg-white">
+    <div class="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-[22px] sm:px-14">
       <!-- Logo -->
-      <a href="{{ url_for('web.index') }}" class="flex shrink-0 items-baseline gap-2">
-        <span class="font-display text-xl uppercase tracking-tight text-ink">circlo</span>
-        <span class="hidden text-xs font-semibold uppercase tracking-wide text-gray-500 sm:inline">Islamabad · Rawalpindi</span>
+      <a href="{{ url_for('web.index') }}" class="flex shrink-0 items-baseline gap-2.5">
+        <span class="font-display text-[30px] font-bold leading-none tracking-[0.06em] text-accent-700">CIRCLO</span>
+        <span class="hidden text-[11px] tracking-[0.14em] uppercase text-neutral-600 sm:inline">Islamabad · Rawalpindi</span>
       </a>
 
       <!-- Search (centered, grows) -->
       <form method="get" action="{{ url_for('web.index') }}"
             class="order-last w-full min-w-0 flex-1 basis-full sm:order-none sm:basis-0">
         <div class="relative mx-auto w-full max-w-xl">
-          <svg class="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400"
-               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+          <svg class="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-neutral-500"
+               fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/>
           </svg>
           <input type="search" name="q" value="{{ request.args.get('q', '') }}"
                  placeholder="Search tools, gear, cameras…"
-                 class="w-full rounded-full border border-gray-200 bg-gray-100 py-2.5 pl-11 pr-4 text-sm text-ink
-                        placeholder:text-gray-400 focus:border-green-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100">
+                 class="w-full rounded-full border border-divider bg-surface py-2.5 pl-11 pr-4 text-sm text-ink
+                        placeholder:text-neutral-500 focus:border-accent focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent-100">
         </div>
       </form>
 
       <!-- Right nav -->
       <nav class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+        <a href="#" class="hidden text-sm text-ink hover:underline lg:inline-block">How it works</a>
+        <a href="#" class="hidden text-sm text-ink hover:underline lg:inline-block">Trust &amp; deposits</a>
         <!-- List an item: goes to the create form when logged in, else to login. -->
         <a href="{% if current_user.is_authenticated %}{{ url_for('web.create_listing') }}{% else %}{{ url_for('web.login', next=url_for('web.create_listing')) }}{% endif %}"
-           class="inline-flex items-center gap-1.5 rounded-full bg-green-700 px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-white hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-200">
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+           class="inline-flex items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.04em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100">
           <span class="hidden sm:inline">List your item</span>
+          <span class="sm:hidden">List item</span>
         </a>
 
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('web.my_rentals') }}" class="relative hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-gray-100 md:inline-flex md:items-center md:gap-1.5">
+        <a href="{{ url_for('web.my_rentals') }}" class="relative hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-surface md:inline-flex md:items-center md:gap-1.5">
           My Rentals
           {% if pending_request_count %}
           <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-xs font-bold text-white">{{ pending_request_count }}</span>
           {% endif %}
         </a>
-        <a href="{{ url_for('web.my_listings') }}" class="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-gray-100 md:inline-block">My Listings</a>
+        <a href="{{ url_for('web.my_listings') }}" class="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-surface md:inline-block">My Listings</a>
         <!-- Account menu (pure CSS via <details>) -->
         <details class="relative">
           <summary class="flex cursor-pointer list-none items-center gap-1.5">
-            <span class="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-700 text-sm font-bold text-white">
+            <span class="relative grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-accent2-300 font-display text-[12px] font-bold text-accent2-800">
               {{ current_user.initials }}
               {% if pending_request_count %}
               <span class="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-rose-600 text-[10px] font-bold text-white ring-2 ring-white">{{ pending_request_count if pending_request_count < 10 else '9+' }}</span>
               {% endif %}
             </span>
-            <svg class="hidden h-4 w-4 text-gray-500 sm:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </summary>
-          <div class="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-2xl border border-gray-200 bg-white py-1 shadow-lg">
-            <div class="border-b border-gray-100 px-4 py-2">
+          <div class="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-2xl border border-divider bg-white py-1 shadow-circlo">
+            <div class="border-b border-neutral-200 px-4 py-2">
               <p class="truncate text-sm font-bold text-ink">{{ current_user.name }}</p>
-              <p class="truncate text-xs text-gray-500">{{ current_user.email }}</p>
+              <p class="truncate text-xs text-neutral-600">{{ current_user.email }}</p>
             </div>
-            <a href="{{ url_for('web.my_rentals') }}" class="flex items-center justify-between px-4 py-2 text-sm text-ink hover:bg-gray-50">
+            <a href="{{ url_for('web.my_rentals') }}" class="flex items-center justify-between px-4 py-2 text-sm text-ink hover:bg-surface">
               My Rentals
               {% if pending_request_count %}
               <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-xs font-bold text-white">{{ pending_request_count }}</span>
               {% endif %}
             </a>
-            <a href="{{ url_for('web.my_listings') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">My Listings</a>
-            <a href="{{ url_for('web.create_listing') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">List an item</a>
+            <a href="{{ url_for('web.my_listings') }}" class="block px-4 py-2 text-sm text-ink hover:bg-surface">My Listings</a>
+            <a href="{{ url_for('web.create_listing') }}" class="block px-4 py-2 text-sm text-ink hover:bg-surface">List an item</a>
             {% if current_user.role == 'admin' %}
-            <a href="{{ url_for('admin.queue') }}" class="block border-t border-gray-100 px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Verifications</a>
-            <a href="{{ url_for('admin.payments_queue') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Payments</a>
-            <a href="{{ url_for('admin.disputes_queue') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Disputes</a>
-            <a href="{{ url_for('admin.trust_fund_page') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Trust fund</a>
-            <a href="{{ url_for('admin.settings_page') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Settings</a>
+            <a href="{{ url_for('admin.queue') }}" class="block border-t border-neutral-200 px-4 py-2 text-sm text-ink hover:bg-surface">Admin · Verifications</a>
+            <a href="{{ url_for('admin.payments_queue') }}" class="block px-4 py-2 text-sm text-ink hover:bg-surface">Admin · Payments</a>
+            <a href="{{ url_for('admin.disputes_queue') }}" class="block px-4 py-2 text-sm text-ink hover:bg-surface">Admin · Disputes</a>
+            <a href="{{ url_for('admin.trust_fund_page') }}" class="block px-4 py-2 text-sm text-ink hover:bg-surface">Admin · Trust fund</a>
+            <a href="{{ url_for('admin.settings_page') }}" class="block px-4 py-2 text-sm text-ink hover:bg-surface">Admin · Settings</a>
             {% endif %}
-            <form method="post" action="{{ url_for('web.logout') }}" class="border-t border-gray-100">
-              <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-gray-50">Log out</button>
+            <form method="post" action="{{ url_for('web.logout') }}" class="border-t border-neutral-200">
+              <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-surface">Log out</button>
             </form>
           </div>
         </details>
         {% else %}
-        <a href="{{ url_for('web.login') }}" class="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-gray-100 sm:inline-block">Log in</a>
-        <a href="{{ url_for('web.signup') }}" class="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-ink hover:bg-gray-50">Sign up</a>
+        <span onclick="location.href='{{ url_for('web.login') }}'" class="hidden cursor-pointer text-sm text-ink hover:underline sm:inline-block">Sign in</span>
         {% endif %}
       </nav>
     </div>
@@ -175,15 +182,15 @@
     <!-- Flash messages (auth + listing feedback) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-      <div class="mx-auto max-w-7xl px-4 pt-4">
+      <div class="mx-auto max-w-[1440px] px-4 pt-4 sm:px-14">
         <div class="space-y-2">
           {% for category, message in messages %}
           {% set styles = {
-            'success': 'border-green-200 bg-green-50 text-green-800',
+            'success': 'border-accent-200 bg-accent-100 text-accent-800',
             'error':   'border-rose-200 bg-rose-50 text-rose-700',
-            'info':    'border-gray-200 bg-gray-50 text-ink-700'
+            'info':    'border-divider bg-surface text-ink'
           } %}
-          <div class="flex items-start gap-2 rounded-xl border px-4 py-3 text-sm {{ styles.get(category, styles['info']) }}">
+          <div class="flex items-start gap-2 rounded-2xl border px-4 py-3 text-sm {{ styles.get(category, styles['info']) }}">
             <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span>{{ message }}</span>
           </div>
@@ -196,11 +203,11 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="mt-16 border-t border-gray-200 bg-white">
-    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-gray-500 sm:flex-row">
+  <footer class="mt-16 border-t border-divider bg-white">
+    <div class="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-neutral-600 sm:flex-row sm:px-14">
       <div class="flex items-center gap-2">
-        <span class="font-display uppercase tracking-tight text-ink">circlo</span>
-        <span class="text-gray-500">· Rent within your community</span>
+        <span class="font-display text-lg font-bold tracking-[0.06em] text-accent-700">CIRCLO</span>
+        <span class="text-neutral-600">· Rent within your community</span>
       </div>
       <div class="flex items-center gap-5">
         <a href="{{ url_for('web.privacy') }}" class="hover:text-ink">Privacy</a>

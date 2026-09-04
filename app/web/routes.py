@@ -47,7 +47,15 @@ def listing_detail(listing_id: int):
     listing = listings_service.get_listing(listing_id)
     if listing is None or listing.status != listings_service.BROWSABLE_STATUS:
         abort(404)
-    return render_template("listing_detail.html", listing=listing)
+
+    # "Also nearby" — reuses the same browse query the home page uses, just
+    # filtered to this listing's category and capped at 4.
+    related = [
+        l for l in listings_service.browse_listings(category_slug=listing.category.slug)
+        if l.id != listing.id
+    ][:4]
+
+    return render_template("listing_detail.html", listing=listing, related=related)
 
 
 @web_bp.route("/privacy")
