@@ -4,6 +4,41 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Visual redesign v2 — "White & Forest" (home + listing detail, DONE ✅, 2026-09-04)
+- **New `DESIGN_SYSTEM.md`** (v2): white background, forest-green primary
+  (`green-700 #1B5E3F`), near-black `ink` headline/body color, Archivo Black
+  display font (`font-display`, uppercase headlines/card titles/prices) +
+  Manrope body (unchanged). Fully pill-shaped controls (`rounded-full`
+  everywhere — buttons, search bar, category pills). Listing cards are now
+  frameless: no border/shadow, just a `bg-gray-100` rounded image block +
+  text stack. Old navy/teal/sand tokens + `font-sora` **kept** in
+  `tailwind.config` (`base.html`) for pages not yet migrated — see the
+  migration-status table at the top of `DESIGN_SYSTEM.md`.
+- **Migrated**: shared header/footer (`base.html` — necessarily site-wide
+  since they're shared chrome; every other page's *body* is untouched and
+  still renders in the old navy/teal look until its own pass), home/browse
+  (`index.html` — bold caps hero, pill search bar with "All areas" + popular
+  searches, green/white category pills, frameless card grid), listing detail
+  (`listing_detail.html` — bold caps title, green price, pill "Request to
+  Rent"/"Message owner" buttons, restyled owner card + "Protected by CIRCLO"
+  panel as a bordered white card instead of a dark navy panel).
+- **Not migrated yet** (still old navy/teal/sand): auth pages, my-rentals,
+  my-listings, listing form, profile, admin queues, legal pages — planned as
+  follow-up passes.
+- No routes/services/models touched — visual-only. Distance badges
+  (`{{ "%.1f"|format(listing.distance_km) }} KM`, top-left on card image, per
+  the reference screenshots) are wired in the template but **guarded with
+  `is defined`** — there's no `distance_km` on `Listing`/the browse query yet,
+  so the badge silently doesn't render until that field exists. Flagged, not
+  fabricated.
+- Verified live via the dev overlay (`docker compose -f docker-compose.yml -f
+  docker-compose.dev.yml up -d app`): home hero/search/pills/cards and listing
+  detail (gallery, price card, owner card, trust panel, request modal) all
+  render correctly in-browser, no console errors.
+- **Next**: migrate auth/my-rentals/my-listings/admin/profile/legal to v2 in
+  follow-up passes; then retire the v1 `navy`/`teal`/`sand`/`font-sora` tokens
+  once nothing references them.
+
 ## Render deployment (in progress)
 - **R2 storage compatibility**: `app/services/storage.py` now uses
   virtual-hosted addressing (`addressing_style="virtual"`) when

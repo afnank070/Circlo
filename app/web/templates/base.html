@@ -13,7 +13,7 @@
   <!-- Google Fonts: Sora (headings) + Manrope (body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Archivo+Black&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -22,9 +22,25 @@
           fontFamily: {
             sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             sora: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            display: ['"Archivo Black"', 'Arial Black', 'ui-sans-serif', 'sans-serif'],
           },
           colors: {
-            // Deep-navy primary
+            // v2 primary — forest green
+            green: {
+              50:  '#f1f8f4',
+              100: '#dceee2',
+              200: '#b9ddc6',
+              600: '#1f6f4a',
+              700: '#1b5e3f',
+              800: '#154a32',
+              900: '#0f3d26',
+            },
+            // v2 — near-black headline/body ink
+            ink: {
+              DEFAULT: '#0b0b0c',
+              700: '#27272a',
+            },
+            // Deep-navy primary (v1 — kept for not-yet-migrated pages)
             navy: {
               50:  '#eef3f8',
               100: '#d6e0ec',
@@ -32,7 +48,7 @@
               800: '#0e2e4d',
               900: '#0a2540',
             },
-            // Teal accent
+            // Teal accent (v1 — kept for not-yet-migrated pages)
             teal: {
               50:  '#e8f7f4',
               100: '#c8ece5',
@@ -40,7 +56,7 @@
               600: '#0f9083',
               700: '#0c766b',
             },
-            // Warm neutral surfaces
+            // Warm neutral surfaces (v1 — kept for not-yet-migrated pages)
             sand: {
               50:  '#faf7f1',
               100: '#f5efe6',
@@ -70,37 +86,27 @@
     }
   </style>
 </head>
-<body class="h-full bg-slate-50 font-sans text-navy-900 antialiased">
-  <header class="sticky top-0 z-30 border-b border-sand-200 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3">
+<body class="h-full bg-white font-sans text-ink-700 antialiased">
+  <header class="sticky top-0 z-30 border-b border-gray-200 bg-white">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4">
       <!-- Logo -->
-      <a href="{{ url_for('web.index') }}" class="flex shrink-0 items-center gap-2">
-        <span class="grid h-8 w-8 place-items-center rounded-full bg-navy-800">
-          <span class="h-3.5 w-3.5 rounded-full border-2 border-white"></span>
-        </span>
-        <span class="font-sora text-2xl font-extrabold lowercase tracking-tight text-navy-900">circlo</span>
+      <a href="{{ url_for('web.index') }}" class="flex shrink-0 items-baseline gap-2">
+        <span class="font-display text-xl uppercase tracking-tight text-ink">circlo</span>
+        <span class="hidden text-xs font-semibold uppercase tracking-wide text-gray-500 sm:inline">Islamabad · Rawalpindi</span>
       </a>
-
-      <!-- City selector (visual — single-city MVP) -->
-      <button type="button"
-              class="hidden shrink-0 items-center gap-2 rounded-full border border-sand-200 bg-sand-50 px-3 py-1.5 text-sm font-medium text-navy-800 hover:bg-sand-100 sm:inline-flex">
-        <span class="h-2 w-2 rounded-full bg-teal-500"></span>
-        Islamabad
-        <svg class="h-4 w-4 text-navy-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-      </button>
 
       <!-- Search (centered, grows) -->
       <form method="get" action="{{ url_for('web.index') }}"
             class="order-last w-full min-w-0 flex-1 basis-full sm:order-none sm:basis-0">
         <div class="relative mx-auto w-full max-w-xl">
-          <svg class="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-navy-700/50"
+          <svg class="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400"
                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
           </svg>
           <input type="search" name="q" value="{{ request.args.get('q', '') }}"
                  placeholder="Search tools, gear, cameras…"
-                 class="w-full rounded-full border border-sand-200 bg-sand-50 py-2.5 pl-11 pr-4 text-sm text-navy-900
-                        placeholder:text-navy-700/45 focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-100">
+                 class="w-full rounded-full border border-gray-200 bg-gray-100 py-2.5 pl-11 pr-4 text-sm text-ink
+                        placeholder:text-gray-400 focus:border-green-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-100">
         </div>
       </form>
 
@@ -108,58 +114,58 @@
       <nav class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
         <!-- List an item: goes to the create form when logged in, else to login. -->
         <a href="{% if current_user.is_authenticated %}{{ url_for('web.create_listing') }}{% else %}{{ url_for('web.login', next=url_for('web.create_listing')) }}{% endif %}"
-           class="inline-flex items-center gap-1.5 rounded-full bg-navy-800 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-100">
+           class="inline-flex items-center gap-1.5 rounded-full bg-green-700 px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-white hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-200">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
-          <span class="hidden sm:inline">List an item</span>
+          <span class="hidden sm:inline">List your item</span>
         </a>
 
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('web.my_rentals') }}" class="relative hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-flex md:items-center md:gap-1.5">
+        <a href="{{ url_for('web.my_rentals') }}" class="relative hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-gray-100 md:inline-flex md:items-center md:gap-1.5">
           My Rentals
           {% if pending_request_count %}
           <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-xs font-bold text-white">{{ pending_request_count }}</span>
           {% endif %}
         </a>
-        <a href="{{ url_for('web.my_listings') }}" class="hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 md:inline-block">My Listings</a>
+        <a href="{{ url_for('web.my_listings') }}" class="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-gray-100 md:inline-block">My Listings</a>
         <!-- Account menu (pure CSS via <details>) -->
         <details class="relative">
           <summary class="flex cursor-pointer list-none items-center gap-1.5">
-            <span class="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-teal-600 text-sm font-bold text-white">
+            <span class="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-700 text-sm font-bold text-white">
               {{ current_user.initials }}
               {% if pending_request_count %}
               <span class="absolute -right-0.5 -top-0.5 grid h-4 w-4 place-items-center rounded-full bg-rose-600 text-[10px] font-bold text-white ring-2 ring-white">{{ pending_request_count if pending_request_count < 10 else '9+' }}</span>
               {% endif %}
             </span>
-            <svg class="hidden h-4 w-4 text-navy-700 sm:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            <svg class="hidden h-4 w-4 text-gray-500 sm:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </summary>
-          <div class="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-xl border border-sand-200 bg-white py-1 shadow-lg">
-            <div class="border-b border-sand-100 px-4 py-2">
-              <p class="truncate text-sm font-semibold text-navy-900">{{ current_user.name }}</p>
-              <p class="truncate text-xs text-navy-700/70">{{ current_user.email }}</p>
+          <div class="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-2xl border border-gray-200 bg-white py-1 shadow-lg">
+            <div class="border-b border-gray-100 px-4 py-2">
+              <p class="truncate text-sm font-bold text-ink">{{ current_user.name }}</p>
+              <p class="truncate text-xs text-gray-500">{{ current_user.email }}</p>
             </div>
-            <a href="{{ url_for('web.my_rentals') }}" class="flex items-center justify-between px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">
+            <a href="{{ url_for('web.my_rentals') }}" class="flex items-center justify-between px-4 py-2 text-sm text-ink hover:bg-gray-50">
               My Rentals
               {% if pending_request_count %}
               <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-xs font-bold text-white">{{ pending_request_count }}</span>
               {% endif %}
             </a>
-            <a href="{{ url_for('web.my_listings') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">My Listings</a>
-            <a href="{{ url_for('web.create_listing') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">List an item</a>
+            <a href="{{ url_for('web.my_listings') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">My Listings</a>
+            <a href="{{ url_for('web.create_listing') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">List an item</a>
             {% if current_user.role == 'admin' %}
-            <a href="{{ url_for('admin.queue') }}" class="block border-t border-sand-100 px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Verifications</a>
-            <a href="{{ url_for('admin.payments_queue') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Payments</a>
-            <a href="{{ url_for('admin.disputes_queue') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Disputes</a>
-            <a href="{{ url_for('admin.trust_fund_page') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Trust fund</a>
-            <a href="{{ url_for('admin.settings_page') }}" class="block px-4 py-2 text-sm text-navy-800 hover:bg-sand-50">Admin · Settings</a>
+            <a href="{{ url_for('admin.queue') }}" class="block border-t border-gray-100 px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Verifications</a>
+            <a href="{{ url_for('admin.payments_queue') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Payments</a>
+            <a href="{{ url_for('admin.disputes_queue') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Disputes</a>
+            <a href="{{ url_for('admin.trust_fund_page') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Trust fund</a>
+            <a href="{{ url_for('admin.settings_page') }}" class="block px-4 py-2 text-sm text-ink hover:bg-gray-50">Admin · Settings</a>
             {% endif %}
-            <form method="post" action="{{ url_for('web.logout') }}" class="border-t border-sand-100">
-              <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-sand-50">Log out</button>
+            <form method="post" action="{{ url_for('web.logout') }}" class="border-t border-gray-100">
+              <button type="submit" class="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-gray-50">Log out</button>
             </form>
           </div>
         </details>
         {% else %}
-        <a href="{{ url_for('web.login') }}" class="hidden rounded-full px-3 py-2 text-sm font-medium text-navy-800 hover:bg-sand-100 sm:inline-block">Log in</a>
-        <a href="{{ url_for('web.signup') }}" class="rounded-full border border-sand-200 bg-white px-4 py-2 text-sm font-semibold text-navy-800 hover:bg-sand-50">Sign up</a>
+        <a href="{{ url_for('web.login') }}" class="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-gray-100 sm:inline-block">Log in</a>
+        <a href="{{ url_for('web.signup') }}" class="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-ink hover:bg-gray-50">Sign up</a>
         {% endif %}
       </nav>
     </div>
@@ -173,9 +179,9 @@
         <div class="space-y-2">
           {% for category, message in messages %}
           {% set styles = {
-            'success': 'border-teal-200 bg-teal-50 text-teal-800',
+            'success': 'border-green-200 bg-green-50 text-green-800',
             'error':   'border-rose-200 bg-rose-50 text-rose-700',
-            'info':    'border-navy-100 bg-navy-50 text-navy-800'
+            'info':    'border-gray-200 bg-gray-50 text-ink-700'
           } %}
           <div class="flex items-start gap-2 rounded-xl border px-4 py-3 text-sm {{ styles.get(category, styles['info']) }}">
             <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -190,19 +196,16 @@
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="mt-12 border-t border-sand-200 bg-sand-50">
-    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-navy-700 sm:flex-row">
-      <div class="flex items-center gap-2 font-medium">
-        <span class="grid h-6 w-6 place-items-center rounded-full bg-navy-800">
-          <span class="h-2.5 w-2.5 rounded-full border-2 border-white"></span>
-        </span>
-        <span class="font-sora font-semibold lowercase text-navy-900">circlo</span>
-        <span class="text-navy-700/70">· Rent within your community</span>
+  <footer class="mt-16 border-t border-gray-200 bg-white">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-gray-500 sm:flex-row">
+      <div class="flex items-center gap-2">
+        <span class="font-display uppercase tracking-tight text-ink">circlo</span>
+        <span class="text-gray-500">· Rent within your community</span>
       </div>
-      <div class="flex items-center gap-5 text-navy-700/80">
-        <a href="{{ url_for('web.privacy') }}" class="hover:text-navy-900">Privacy</a>
-        <a href="{{ url_for('web.terms') }}" class="hover:text-navy-900">Terms</a>
-        <a href="mailto:help@circlo.pk" class="hover:text-navy-900">Help</a>
+      <div class="flex items-center gap-5">
+        <a href="{{ url_for('web.privacy') }}" class="hover:text-ink">Privacy</a>
+        <a href="{{ url_for('web.terms') }}" class="hover:text-ink">Terms</a>
+        <a href="mailto:help@circlo.pk" class="hover:text-ink">Help</a>
       </div>
     </div>
   </footer>
