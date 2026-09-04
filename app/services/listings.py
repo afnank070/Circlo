@@ -15,8 +15,18 @@ from sqlalchemy import or_
 from werkzeug.datastructures import FileStorage
 
 from app.extensions import db
-from app.models import Category, Listing, ListingImage
+from app.models import Booking, Category, Listing, ListingImage
 from app.services import storage
+
+
+class ListingHasBookings(Exception):
+    """Raised when deleting a listing that has rental history.
+
+    ``bookings.listing_id`` is a required (non-nullable) FK with no delete
+    cascade — hard-deleting a listing with bookings would otherwise hit an
+    ``IntegrityError`` at commit time. Rental history (and the ledger/evidence
+    tied to it) must be preserved, so deletion is refused instead.
+    """
 
 # Only listings in this status are shown to renters.
 BROWSABLE_STATUS = "active"
@@ -169,7 +179,19 @@ def update_listing(listing: Listing, *, title: str, description: str,
 
 
 def delete_listing(listing: Listing) -> None:
-    """Delete a listing and its stored images (storage objects first)."""
+    """Delete a listing and its stored images (storage objects first).
+
+    Raises :class:`ListingHasBookings` if any booking (pending, active, or
+    historical) references this listing — see that class's docstring.
+    """
+    has_bookings = db.session.query(
+        Booking.query.filter(Booking.listing_id == listing.id).exists()
+    ).scalar()
+    if has_bookings:
+        raise ListingHasBookings(
+            "This listing has rental history and can't be deleted."
+        )
+
     for img in listing.images:
         storage.delete_object(img.object_key)
     db.session.delete(listing)

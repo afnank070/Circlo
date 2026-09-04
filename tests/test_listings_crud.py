@@ -134,3 +134,56 @@ def test_non_owner_cannot_edit_listing(client, app):
         f"/listings/{listing_id}/delete", follow_redirects=False
     )
     assert resp.status_code == 403
+
+
+def test_delete_listing_with_bookings_is_refused_not_500(client, app):
+    """A listing with rental history can't be hard-deleted (would violate the
+    bookings.listing_id NOT NULL FK) — the route must flash a friendly error,
+    not 500."""
+    from datetime import date, timedelta
+
+    from app.services import booking as booking_service
+
+    category_id = _make_category(app)
+    _signup(client, app, email="bookedowner@example.com")
+    client.post(
+        "/listings/new",
+        data={
+            "title": "Has A Booking",
+            "category_id": str(category_id),
+            "city": "Islamabad",
+            "area": "F-8",
+            "price_per_day": "800",
+            "deposit_amount": "5000",
+        },
+    )
+    with app.app_context():
+        listing = Listing.query.filter_by(title="Has A Booking").first()
+        listing_id = listing.id
+
+    client.post("/logout")
+    _signup(client, app, email="bookedrenter@example.com")
+    with app.app_context():
+        renter = auth_service.get_user_by_email("bookedrenter@example.com")
+        renter.verification_status = VERIFICATION_APPROVED
+        listing = db.session.get(Listing, listing_id)
+        booking_service.request_to_rent(
+            listing, renter,
+            start_date=date.today() + timedelta(days=1),
+            end_date=date.today() + timedelta(days=3),
+            message=None,
+        )
+        db.session.commit()
+
+    client.post("/logout")
+    client.post(
+        "/login",
+        data={"email": "bookedowner@example.com", "password": "supersecret"},
+    )
+    resp = client.post(
+        f"/listings/{listing_id}/delete", follow_redirects=True
+    )
+    assert resp.status_code == 200
+    assert b"can&#39;t be deleted" in resp.data or b"can't be deleted" in resp.data
+    with app.app_context():
+        assert db.session.get(Listing, listing_id) is not None

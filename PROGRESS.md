@@ -4,6 +4,46 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Post-redesign bug fixes (DONE ✅, 2026-09-04)
+Three bugs reported after the v3 redesign shipped, all confirmed and fixed:
+1. **Oversized header search icon**: `base.html`'s search-bar SVG used
+   `h-4.5 w-4.5` — not a real Tailwind utility (the default spacing scale has
+   no `4.5` step), so it resolved to no explicit size and the SVG rendered at
+   its browser-default intrinsic dimensions, ballooning over the nav. Fixed
+   to `h-[18px] w-[18px]`. Grepped the whole template tree for the same
+   `[hw]-N.5` mistake pattern — no other occurrences.
+2. **Category mismatch — investigated, not a bug**: confirmed the real
+   `Category` table (Cameras, Camping, Events, Formal Wear, Gaming, Tools —
+   6 rows) against what `index.html` renders. The category pills loop over
+   `categories` passed from `listings_service.all_categories()` (a real DB
+   query) — the mockup's placeholder category list (Tools & DIY, Sport,
+   Music, Baby & kids, etc.) was never hardcoded anywhere in the rebuilt
+   templates/routes. Live page confirmed showing exactly the 6 real
+   categories. No fix needed.
+3. **Admin/owner delete-listing 500**: reproduced locally — deleting a
+   listing that has any booking (even just a pending request) hit
+   `IntegrityError: null value in column "listing_id" of relation "bookings"
+   violates not-null constraint`. `bookings.listing_id` is a required FK with
+   no delete cascade; `Listing.delete()` was hard-deleting the row regardless
+   of booking history. **Fix**: `listings_service.delete_listing()`
+   (`app/services/listings.py`) now checks for any existing booking first and
+   raises a new `ListingHasBookings` exception instead of deleting (rental
+   history, and the ledger/evidence tied to it, must be preserved); the route
+   (`app/web/owner.py`) catches it and flashes "This listing has rental
+   history and can't be deleted." instead of letting the `IntegrityError`
+   500. Pre-existing bug, not something the redesign introduced — the redesign
+   just made someone click Delete on a listing that had bookings for the
+   first time. **Verified live**: reproduced the 500 exactly (created an
+   admin-owned listing, had a second verified user request a booking on it,
+   deleted as the owner — got the raw `IntegrityError` traceback), applied
+   the fix, reproduced again — got a 200 with the friendly flash and the
+   listing intact. Deleting a listing with *no* bookings still works
+   (regression-checked). Added `tests/test_listings_crud.py::
+   test_delete_listing_with_bookings_is_refused_not_500` to lock this in.
+   Test DB cleaned up after manual repro (stray test listings/booking/user
+   removed) — back to the standard 11 listings.
+- **63 tests pass** (was 62 — one new regression test added).
+
 ## Visual redesign v3 — "Organic Forest" (source-exact, DONE ✅, 2026-09-04)
 _Supersedes v2 below — v2 was reverse-engineered from screenshots (~60%
 accuracy); v3 is transcribed directly from an exported Claude Design source

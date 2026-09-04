@@ -172,7 +172,11 @@ def edit_listing(listing_id: int):
 @login_required
 def delete_listing(listing_id: int):
     listing = _owned_or_404(listing_id)
-    listings_service.delete_listing(listing)
+    try:
+        listings_service.delete_listing(listing)
+    except listings_service.ListingHasBookings as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("web.listing_detail", listing_id=listing.id))
     flash("Listing deleted.", "info")
     return redirect(url_for("web.my_listings"))
 
