@@ -52,6 +52,11 @@ def all_categories() -> list[Category]:
     return Category.query.order_by(Category.name).all()
 
 
+def total_listings_count() -> int:
+    """All listings ever created, any status — a "items listed" trust stat."""
+    return Listing.query.count()
+
+
 def browse_listings(*, category_slug: str | None = None,
                     query: str | None = None) -> list[Listing]:
     """Active listings, optionally filtered by category and/or a text query.

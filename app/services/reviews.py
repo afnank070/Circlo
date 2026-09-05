@@ -96,6 +96,14 @@ def recompute_user_rating(user: User) -> None:
         user.rating = Decimal(str(avg)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
 
 
+def platform_average_rating() -> Decimal | None:
+    """Average rating across every review ever left — homepage stats row."""
+    avg = db.session.query(func.avg(Review.rating)).scalar()
+    if avg is None:
+        return None
+    return Decimal(str(avg)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+
+
 def reviews_about(user: User, *, limit: int | None = None) -> list[Review]:
     q = (
         Review.query.filter_by(subject_id=user.id)

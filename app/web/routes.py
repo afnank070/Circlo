@@ -12,6 +12,7 @@ from flask_login import current_user
 
 from app.services import booking as booking_service
 from app.services import listings as listings_service
+from app.services import reviews as reviews_service
 from app.services import storage
 
 from . import web_bp
@@ -34,12 +35,20 @@ def index():
     results = listings_service.browse_listings(category_slug=category, query=query)
     categories = listings_service.all_categories()
 
+    # Real marketplace stats for the homepage stats row — never hardcoded.
+    stats = {
+        "listings": listings_service.total_listings_count(),
+        "completed_rentals": booking_service.completed_count(),
+        "avg_rating": reviews_service.platform_average_rating(),
+    }
+
     return render_template(
         "index.html",
         listings=results,
         categories=categories,
         active_category=category,
         query=query or "",
+        stats=stats,
     )
 
 

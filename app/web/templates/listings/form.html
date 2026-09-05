@@ -11,6 +11,12 @@
   {%- endif -%}
 {%- endmacro %}
 
+{% block extra_head %}
+<!-- Cropper.js — lightweight crop UI for listing photo uploads only (blueprint: not used on
+     CNIC/selfie/evidence uploads, those stay plain file inputs). -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+{% endblock %}
+
 {% block content %}
 <div class="mx-auto max-w-3xl px-4 py-10 sm:px-14">
   <a href="{{ url_for('web.my_listings') if is_edit else url_for('web.index') }}"
@@ -115,7 +121,7 @@
         <div class="mt-3 flex flex-wrap gap-3">
           {% for img in listing.images %}
           <label class="group relative block h-24 w-24 cursor-pointer overflow-hidden rounded-2xl border-2 border-divider bg-surface">
-            <img src="{{ image_url(img.object_key) }}" alt="" class="h-full w-full object-contain">
+            <img src="{{ image_url(img.object_key) }}" alt="" class="h-full w-full object-cover">
             <span class="absolute inset-0 hidden items-center justify-center bg-rose-600/70 group-has-[:checked]:flex">
               <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </span>
@@ -135,7 +141,7 @@
                class="mt-1.5 block w-full text-sm text-neutral-700
                       file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2
                       file:font-display file:text-sm file:font-semibold file:uppercase file:tracking-wide file:text-white hover:file:bg-accent-600">
-        <p class="mt-1 text-xs text-neutral-600">JPG, PNG, WEBP or GIF. Up to 8 photos.</p>
+        <p class="mt-1 text-xs text-neutral-600">JPG, PNG, WEBP or GIF. Up to 8 photos. You'll be asked to frame each one into a 4:3 crop before it's added.</p>
       </div>
 
       <div class="flex items-center gap-3 pt-2">
@@ -151,4 +157,141 @@
     </form>
   </div>
 </div>
+
+<!-- Crop modal — shown once per newly-selected photo before it's attached to the form. -->
+<div id="cropModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink/60 p-4">
+  <div class="w-full max-w-lg rounded-3xl bg-white p-6 shadow-circlo">
+    <div class="flex items-center justify-between">
+      <h2 class="font-display text-[20px] font-bold uppercase text-ink">Frame your photo</h2>
+      <span id="cropStatus" class="text-xs font-semibold uppercase tracking-wide text-neutral-500"></span>
+    </div>
+    <p class="mt-1 text-xs text-neutral-600">Drag to reposition, use the corners to resize. Crops to a 4:3 frame.</p>
+    <div class="mt-4 max-h-[60vh] overflow-hidden rounded-2xl bg-surface">
+      <img id="cropImage" class="block max-w-full" alt="Photo to crop">
+    </div>
+    <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+      <button type="button" id="cropCancelBtn" class="rounded-full border border-divider bg-white px-4 py-2 text-sm font-bold text-ink hover:bg-neutral-100">Cancel all</button>
+      <div class="flex items-center gap-2">
+        <button type="button" id="cropSkipBtn" class="rounded-full border border-divider bg-white px-4 py-2 text-sm font-bold text-ink hover:bg-neutral-100">Use original</button>
+        <button type="button" id="cropUseBtn" class="rounded-full bg-accent-700 px-5 py-2 text-sm font-bold text-white hover:bg-accent-800">Crop &amp; continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script>
+(function () {
+  const input = document.getElementById('images');
+  const modal = document.getElementById('cropModal');
+  const cropImage = document.getElementById('cropImage');
+  const statusEl = document.getElementById('cropStatus');
+  const useBtn = document.getElementById('cropUseBtn');
+  const skipBtn = document.getElementById('cropSkipBtn');
+  const cancelBtn = document.getElementById('cropCancelBtn');
+  if (!input) return;
+
+  let cropper = null;
+  let pendingFiles = [];
+  let processedFiles = [];
+  let currentIndex = 0;
+  let settingFilesProgrammatically = false;
+
+  function destroyCropper() {
+    if (cropper) { cropper.destroy(); cropper = null; }
+  }
+
+  function closeModal() {
+    destroyCropper();
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  function resetState() {
+    pendingFiles = [];
+    processedFiles = [];
+    currentIndex = 0;
+  }
+
+  function finish() {
+    closeModal();
+    const dt = new DataTransfer();
+    processedFiles.forEach((f) => dt.items.add(f));
+    settingFilesProgrammatically = true;
+    input.files = dt.files;
+    resetState();
+  }
+
+  function showCurrent() {
+    if (currentIndex >= pendingFiles.length) {
+      finish();
+      return;
+    }
+    const file = pendingFiles[currentIndex];
+    if (!file.type || !file.type.startsWith('image/')) {
+      // Not an image the browser can preview (shouldn't happen given accept="image/*") — pass through untouched.
+      processedFiles.push(file);
+      currentIndex += 1;
+      showCurrent();
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      cropImage.src = ev.target.result;
+      statusEl.textContent = 'Photo ' + (currentIndex + 1) + ' of ' + pendingFiles.length;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      destroyCropper();
+      cropper = new Cropper(cropImage, {
+        aspectRatio: 4 / 3,
+        viewMode: 1,
+        autoCropArea: 1,
+        background: false,
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  input.addEventListener('change', function (e) {
+    if (settingFilesProgrammatically) {
+      settingFilesProgrammatically = false;
+      return;
+    }
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    resetState();
+    pendingFiles = files;
+    showCurrent();
+  });
+
+  useBtn.addEventListener('click', function () {
+    if (!cropper) return;
+    const original = pendingFiles[currentIndex];
+    const canvas = cropper.getCroppedCanvas({ width: 1600, height: 1200, imageSmoothingQuality: 'high' });
+    canvas.toBlob(function (blob) {
+      const baseName = (original.name || 'photo').replace(/\.[^.]+$/, '');
+      processedFiles.push(new File([blob], baseName + '.jpg', { type: 'image/jpeg' }));
+      currentIndex += 1;
+      destroyCropper();
+      showCurrent();
+    }, 'image/jpeg', 0.9);
+  });
+
+  skipBtn.addEventListener('click', function () {
+    processedFiles.push(pendingFiles[currentIndex]);
+    currentIndex += 1;
+    destroyCropper();
+    showCurrent();
+  });
+
+  cancelBtn.addEventListener('click', function () {
+    closeModal();
+    resetState();
+    settingFilesProgrammatically = true;
+    input.value = '';
+  });
+})();
+</script>
 {% endblock %}

@@ -170,6 +170,11 @@ def pending_count_for_owner(owner: User) -> int:
     return Booking.query.filter_by(owner_id=owner.id, status=STATUS_REQUESTED).count()
 
 
+def completed_count() -> int:
+    """Platform-wide count of completed rentals — used in the homepage stats row."""
+    return Booking.query.filter_by(status=STATUS_COMPLETED).count()
+
+
 def active_for_owner(owner: User) -> list[Booking]:
     """Owner's in-flight bookings (accepted → returned), soonest return first."""
     return (

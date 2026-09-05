@@ -132,3 +132,10 @@ def _register_context_processors(app: Flask) -> None:
                 and app.config.get("GOOGLE_CLIENT_SECRET")
             )
         }
+
+    @app.context_processor
+    def inject_current_year() -> dict:
+        """Footer copyright line — computed server-side, never hardcoded."""
+        from datetime import date
+
+        return {"current_year": date.today().year}

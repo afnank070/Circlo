@@ -92,8 +92,9 @@
       background: #0e2e4d; cursor: pointer; border: 3px solid #ffffff;
     }
   </style>
+  {% block extra_head %}{% endblock %}
 </head>
-<body class="h-full bg-white font-sans text-ink antialiased">
+<body class="h-full bg-white font-sans font-medium text-ink antialiased">
   <header class="sticky top-0 z-30 border-b border-divider bg-white">
     <div class="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-[22px] sm:px-14">
       <!-- Logo -->
@@ -117,27 +118,39 @@
         </div>
       </form>
 
-      <!-- Right nav -->
-      <nav class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-        <a href="{{ url_for('web.how_it_works') }}" class="hidden text-sm text-ink hover:underline lg:inline-block">How it works</a>
-        <a href="{{ url_for('web.trust_deposits') }}" class="hidden text-sm text-ink hover:underline lg:inline-block">Trust &amp; deposits</a>
-        <!-- List an item: goes to the create form when logged in, else to login. -->
+      <!-- Right nav: grouped so the CTA reads as an intentional highlight, not
+           an interruption — marketing links | account links | CTA | avatar. -->
+      <nav class="ml-auto flex shrink-0 items-center sm:gap-1">
+        <!-- Marketing links (guide sections on the homepage) -->
+        <div class="hidden items-center lg:flex">
+          <a href="{{ url_for('web.index') }}#how-it-works" class="rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-surface">How it works</a>
+          <a href="{{ url_for('web.index') }}#trust-safety" class="rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-surface">Trust &amp; deposits</a>
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <!-- Account links, visually grouped and separated from the marketing links -->
+        <div class="hidden items-center border-l border-divider pl-1 ml-1 md:flex lg:pl-2 lg:ml-2">
+          <a href="{{ url_for('web.my_rentals') }}" class="relative inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-surface">
+            My Rentals
+            {% if pending_request_count %}
+            <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-xs font-bold text-white">{{ pending_request_count }}</span>
+            {% endif %}
+          </a>
+          <a href="{{ url_for('web.my_listings') }}" class="rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-surface">My Listings</a>
+        </div>
+        {% endif %}
+
+        <!-- List an item: the one clear CTA, set off from the link groups either side.
+             Goes to the create form when logged in, else to login. -->
         <a href="{% if current_user.is_authenticated %}{{ url_for('web.create_listing') }}{% else %}{{ url_for('web.login', next=url_for('web.create_listing')) }}{% endif %}"
-           class="inline-flex items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.04em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100">
+           class="ml-2 inline-flex items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.04em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100">
           <span class="hidden sm:inline">List your item</span>
           <span class="sm:hidden">List item</span>
         </a>
 
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('web.my_rentals') }}" class="relative hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-surface md:inline-flex md:items-center md:gap-1.5">
-          My Rentals
-          {% if pending_request_count %}
-          <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1 text-xs font-bold text-white">{{ pending_request_count }}</span>
-          {% endif %}
-        </a>
-        <a href="{{ url_for('web.my_listings') }}" class="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink hover:bg-surface md:inline-block">My Listings</a>
         <!-- Account menu (pure CSS via <details>) -->
-        <details class="relative">
+        <details class="relative ml-2">
           <summary class="flex cursor-pointer list-none items-center gap-1.5">
             <span class="relative grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-accent2-300 font-display text-[12px] font-bold text-accent2-800">
               {{ current_user.initials }}
@@ -172,7 +185,7 @@
           </div>
         </details>
         {% else %}
-        <span onclick="location.href='{{ url_for('web.login') }}'" class="hidden cursor-pointer text-sm text-ink hover:underline sm:inline-block">Sign in</span>
+        <span onclick="location.href='{{ url_for('web.login') }}'" class="ml-2 hidden cursor-pointer text-sm font-semibold text-ink hover:underline sm:inline-block">Sign in</span>
         {% endif %}
       </nav>
     </div>
@@ -205,10 +218,7 @@
 
   <footer class="mt-16 border-t border-divider bg-white">
     <div class="mx-auto flex max-w-[1440px] flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-neutral-600 sm:flex-row sm:px-14">
-      <div class="flex items-center gap-2">
-        <span class="font-display text-lg font-bold tracking-[0.06em] text-accent-700">CIRCLO</span>
-        <span class="text-neutral-600">· Rent within your community</span>
-      </div>
+      <p class="m-0">&copy; {{ current_year }} CIRCLO. All rights reserved.</p>
       <div class="flex items-center gap-5">
         <a href="{{ url_for('web.privacy') }}" class="hover:text-ink">Privacy</a>
         <a href="{{ url_for('web.terms') }}" class="hover:text-ink">Terms</a>
@@ -216,5 +226,6 @@
       </div>
     </div>
   </footer>
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>

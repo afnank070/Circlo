@@ -34,7 +34,7 @@
   <a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}"
      class="block h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-surface sm:h-[72px] sm:w-[72px]">
     {% if listing.cover_image %}
-    <img src="{{ image_url(listing.cover_image.object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-contain">
+    <img src="{{ image_url(listing.cover_image.object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-cover">
     {% else %}
     <span class="grid h-full w-full place-items-center text-neutral-400">
       <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 8.25l18-.001M4.5 6.75h15A1.5 1.5 0 0121 8.25v9a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.25v-9a1.5 1.5 0 011.5-1.5z"/></svg>

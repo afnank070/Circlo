@@ -4,6 +4,85 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Homepage sections, nav/typography fixes, upload-time crop (DONE ✅, 2026-09-05)
+
+### 1. Homepage now has a real body below the item grid
+`index.html` gained four full-bleed sections after the browse grid, plus a
+proper footer, closing the "stops after hero + grid" gap:
+- **How it works** (`#how-it-works`) — 3-step visual (Browse & request →
+  Verified handover → Return & review), links out to the existing full
+  `/how-it-works` page.
+- **Trust & safety** (`#trust-safety`) — the 4 trust mechanisms (verified
+  identities, deposit protection, evidence photos, Trust & Safety Fund)
+  consolidated in one place instead of scattered across pages; links out to
+  `/trust-deposits`.
+- **Stats row** — real numbers, never hardcoded: `listings_service.
+  total_listings_count()`, `booking_service.completed_count()`, `reviews_
+  service.platform_average_rating()` (new service functions), computed in
+  `web.index` and rendered as `stats.listings` / `stats.completed_rentals` /
+  `stats.avg_rating`. Shows "No ratings yet" instead of a fake "0.0" or "5.0"
+  when nobody's reviewed anything yet.
+- **FAQ accordion** — 5 questions using native `<details>/<summary>` (no JS
+  library needed; `group-open:rotate-45` on a plus icon for the expand/
+  collapse affordance). Answers are grounded in real backend behavior — e.g.
+  the cancellation answer matches exactly what `booking_service.cancel()`
+  allows (free before payment is confirmed, locked after).
+- **Footer** (`base.html`) simplified to one row: a real `© {{ current_year
+  }} CIRCLO` copyright line (new `inject_current_year` context processor in
+  `app/__init__.py` — never a hardcoded year) on the left, Privacy/Terms/Help
+  on the right.
+- "How it works" / "Trust & deposits" in the nav now link to `#how-it-works`
+  / `#trust-safety` (`web.index` + anchor) instead of `#` — they scroll to
+  these new sections rather than a dead link. `scroll-mt-20` on both sections
+  keeps the sticky header from covering the heading on arrival.
+
+### 2. Nav hierarchy redesigned
+`base.html`'s header nav was one flat row (marketing links, a filled CTA
+pill, then more plain links) that read as visually disjointed. Regrouped
+left to right into three clusters: **marketing links** (How it works, Trust &
+deposits), then **account links** (My Rentals, My Listings — signed-in only,
+set off by a `border-l`), then the **List an item CTA pill** — now the *only*
+filled pill in the nav, immediately before the avatar/sign-in. See
+`DESIGN_SYSTEM.md` §12.
+
+### 3. Body text weight fixed
+Subtitle/meta text (e.g. "Manage rental requests for your items…") read as
+too thin against the heavy Barlow Condensed headings. `<body>` now carries
+`font-medium` (Manrope 500) as the site-wide default instead of the browser's
+normal 400 — plain text with no explicit weight utility inherits this, so it
+pairs properly; anything already using `font-semibold`/`font-bold` is
+unaffected. See `DESIGN_SYSTEM.md` §11.
+
+### 4. Upload-time photo crop (Cropper.js)
+`listings/form.html` now intercepts the `images` file input: each newly
+selected photo opens in a crop modal (Cropper.js via CDN, scoped to this page
+only through new `{% block extra_head %}` / `{% block extra_scripts %}`
+hooks in `base.html`) fixed to a 4:3 aspect ratio, with drag/resize and a
+"Use original" skip option. The cropped canvas replaces the original `File`
+via `DataTransfer` before the form submits — the server-side upload path
+(`app/services/storage.py`) is untouched, it just receives different bytes.
+**Not** applied to `/verify` (CNIC/selfie) or booking evidence uploads —
+those stay plain file inputs, a different concern from marketplace listing
+photos.
+- **Now that uploads are crop-normalized, listing photo containers went
+  back to `object-cover`** (from the `object-contain` pass two sessions
+  ago): browse grid (card aspect changed `4/5` → `4/3` to match the crop
+  ratio), My Listings, My Rentals thumbnails, listing detail hero/gallery/
+  related cards, and the edit-listing existing-photo gallery. Photos
+  uploaded before this feature shipped may still be off-ratio and could crop
+  slightly until re-uploaded — that's expected, not a bug. See
+  `DESIGN_SYSTEM.md` §0.5/§0.6.
+- **Verified end-to-end in-browser**, not just code review: simulated
+  selecting a real portrait photo (via `DataTransfer` + a dispatched `change`
+  event — no OS file dialog needed), confirmed the crop modal opens with a
+  4:3 box over the actual image, clicked "Crop & continue", verified the
+  file input held a single cropped JPEG (via `input.files[0]`), filled out
+  and submitted the listing form with a patched storage layer, and confirmed
+  the resulting listing shows the cropped photo filling the frame with
+  `object-cover` on both the listing detail page and the browse grid — no
+  letterboxing, no crop mismatch. **68 tests still pass** — no backend logic
+  changed.
+
 ## Listing image crop fix + profile/admin-settings v3 migration (DONE ✅, 2026-09-05)
 
 ### 1. Fixed cropped listing photos (root cause + fix everywhere)

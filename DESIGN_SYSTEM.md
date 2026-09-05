@@ -43,19 +43,33 @@ balance tiles). Section headers are plain uppercase labels with a count,
 not another card. The profile page (`users/profile.html`) and admin settings
 (`settings.html`) were migrated to v3 + this philosophy the same day.
 
-### 0.5 Listing photo display: `object-contain`, not `object-cover`
-Every place a stored listing photo renders (browse grid, My Listings, My
-Rentals thumbnails, listing detail hero/gallery/related cards, the edit-listing
-existing-photo gallery) uses `object-contain` inside a `bg-surface` box, not
-`object-cover`. Uploads have no server-side resize or aspect-ratio enforcement
-(`app/services/storage.py` stores whatever file the browser sends), so a
-phone's portrait photo, a DSLR's landscape photo, and a square crop all need
-to render without cropping — `cover` silently discards whatever doesn't fit
-the box, `contain` letterboxes instead (the `bg-surface` fill makes the
-letterbox look intentional). Photos that aren't listing photos — CNIC/selfie
-verification images, before/after booking evidence — are deliberately left on
-`object-cover`: those are framed close-up document/condition shots where
-filling the box matters more than showing the absolute full frame.
+### 0.5 Listing photo display: crop at upload, `object-cover` everywhere
+Listing photos are normalized to a **4:3** crop at upload time (Cropper.js,
+`listings/form.html` — see §0.6), so every place a listing photo renders
+(browse grid, My Listings, My Rentals thumbnails, listing detail hero/gallery/
+related cards, the edit-listing existing-photo gallery) can safely use
+`object-cover` inside a 4:3 (or square, for small list thumbnails) box for a
+clean, uniform grid — no letterboxing. The browse-grid card was changed from
+`aspect-[4/5]` to `aspect-[4/3]` to match. This superseded an earlier
+`object-contain` pass done before upload-time cropping existed; photos
+uploaded before the crop tool shipped may still be off-ratio and can crop
+slightly until re-uploaded. Photos that aren't listing photos — CNIC/selfie
+verification images, before/after booking evidence — were always on
+`object-cover` and are unaffected: those are framed close-up document/
+condition shots, not put through the crop tool.
+
+### 0.6 Upload-time photo crop
+`listings/form.html` loads Cropper.js (CDN, scoped to this page only via
+`{% block extra_head %}` / `{% block extra_scripts %}` in `base.html`) and
+intercepts the `images` file input's `change` event: each newly-selected photo
+is shown in a crop modal (4:3 fixed aspect, drag/resize), and the cropped
+canvas replaces the original `File` (via `DataTransfer`) before the form ever
+submits — the server still just stores whatever bytes it receives
+(`app/services/storage.py` untouched). A "Use original" skip button exists per
+photo for the rare case a user doesn't want to crop. Deliberately **not**
+applied to `/verify` (CNIC/selfie) or booking evidence uploads — those are
+document/condition photos, a different concern from marketplace listing
+photos.
 
 ### 0.2 Values chosen where the source didn't define them
 The exported file references `--radius-lg`, `--radius-md`, `--shadow-md` and
@@ -385,3 +399,58 @@ Sizes: `34px` (nav), `62px` (detail owner strip). Content: `user.initials`.
 - [ ] Primary = `bg-accent`; secondary = white + `border-divider`; active toggle = `bg-accent-700`.
 - [ ] No fabricated data — if the mockup shows a field with no backing model column, replace with real data or drop it (see §0.3 for the running list of these adaptations).
 - [ ] Keep v1 `navy`/`teal`/`sand`/`font-sora` tokens untouched for not-yet-migrated pages.
+
+---
+
+## 11. Body text weight (2026-09-05)
+
+`<body>` carries `font-medium` (Manrope 500) as the site-wide default, not the
+browser's normal 400. Plain paragraph text with no explicit `font-*` utility
+(subtitles under headings, meta lines, descriptions) inherits this, so it
+pairs properly against the heavy `font-display` (Barlow Condensed 700)
+headings instead of reading as thin/mismatched. Elements that already set
+their own weight (`font-semibold`, `font-bold`, etc.) are unaffected — this
+only changes the *default* for text that doesn't specify one. Don't add
+`font-normal` back to body copy; if something needs to look lighter, that's a
+color/size choice (`text-neutral-600` etc.), not a weight one.
+
+## 12. Nav hierarchy (2026-09-05)
+
+The header nav is grouped into three visually distinct clusters, left to
+right: **marketing links** (How it works, Trust & deposits — plain text,
+`lg:` and up only), **account links** (My Rentals, My Listings — only when
+signed in, separated from the marketing links by a `border-l border-divider`),
+then the **List an item CTA pill** (`bg-accent`, always the one filled pill in
+the nav), then the avatar menu / sign-in. The CTA is deliberately the only
+filled pill so it reads as *the* highlight rather than one interruption among
+several — don't add another filled pill to the nav without reconsidering this
+hierarchy. "How it works" / "Trust & deposits" link to `#how-it-works` /
+`#trust-safety` anchors on the homepage (§13), not to standalone pages.
+
+## 13. Homepage sections below the grid (2026-09-05)
+
+`index.html` continues past the item grid with four full-bleed sections
+(alternating `bg-surface` / `bg-white`, each `id`-anchored for the nav links
+in §12), then the shared footer:
+
+1. `#how-it-works` — 3-step visual (Browse & request → Verified handover →
+   Return & review), links out to the full `/how-it-works` page for detail.
+2. `#trust-safety` — the 4 trust mechanisms (verified identities, deposit
+   protection, evidence photos, Trust & Safety Fund) consolidated in one
+   place instead of scattered across pages; links out to `/trust-deposits`.
+3. Stats row (`bg-accent-700`, high-contrast) — **real numbers from the DB**,
+   never hardcoded: `listings_service.total_listings_count()`,
+   `booking_service.completed_count()`, `reviews_service.
+   platform_average_rating()`, computed in `web.index` and passed as `stats`.
+   Average rating shows "—" / "No ratings yet" when nobody has left a review
+   rather than fabricating a number.
+4. `#faq` — a 5-question accordion using native `<details>/<summary>` (no JS
+   library needed — `group-open:rotate-45` on a plus icon gives the
+   expand/collapse affordance). Answers are grounded in actual backend
+   behavior (e.g. the cancellation-policy answer matches exactly what
+   `booking_service.cancel()` allows), not generic marketing copy.
+
+The footer (`base.html`) is a single minimal row: a real `©
+{{ current_year }} CIRCLO` copyright line (year injected by the
+`inject_current_year` context processor in `app/__init__.py`, never
+hardcoded) on the left, Privacy/Terms/Help on the right.
