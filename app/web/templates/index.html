@@ -81,7 +81,7 @@
       <div class="relative aspect-[4/5] overflow-hidden rounded-2xl bg-surface">
         {% if listing.cover_image %}
         <img src="{{ image_url(listing.cover_image.object_key) }}" alt="{{ listing.title }}"
-             class="h-full w-full object-cover transition-transform duration-[280ms] ease-[cubic-bezier(.2,.7,.3,1)] group-hover:-translate-y-1">
+             class="h-full w-full object-contain transition-transform duration-[280ms] ease-[cubic-bezier(.2,.7,.3,1)] group-hover:-translate-y-1">
         {% endif %}
         {% if listing.distance_km is defined and listing.distance_km is not none %}
         <div class="pointer-events-none absolute left-3 top-3 rounded-full bg-white/90 px-[11px] py-1 text-[11px] uppercase tracking-[0.06em] text-neutral-800 backdrop-blur-sm">

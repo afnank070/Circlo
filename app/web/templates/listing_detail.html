@@ -77,25 +77,25 @@
       {% if imgs|length >= 3 %}
       <div class="grid grid-cols-[2fr_1fr] grid-rows-2 gap-3" style="grid-template-rows: 190px 190px">
         <div class="relative row-span-2 overflow-hidden rounded-3xl bg-surface">
-          <img src="{{ image_url(imgs[0].object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-cover">
+          <img src="{{ image_url(imgs[0].object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-contain">
         </div>
         <div class="relative overflow-hidden rounded-2xl bg-surface">
-          <img src="{{ image_url(imgs[1].object_key) }}" alt="" class="h-full w-full object-cover">
+          <img src="{{ image_url(imgs[1].object_key) }}" alt="" class="h-full w-full object-contain">
         </div>
         <div class="relative overflow-hidden rounded-2xl bg-surface">
-          <img src="{{ image_url(imgs[2].object_key) }}" alt="" class="h-full w-full object-cover">
+          <img src="{{ image_url(imgs[2].object_key) }}" alt="" class="h-full w-full object-contain">
         </div>
       </div>
       {% elif imgs %}
       <div class="relative aspect-video overflow-hidden rounded-3xl bg-surface">
-        <img src="{{ image_url(imgs[0].object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-cover">
+        <img src="{{ image_url(imgs[0].object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-contain">
       </div>
       {% endif %}
       {% if imgs|length > 3 %}
       <div class="-mt-5 flex gap-3 overflow-x-auto pb-1">
         {% for img in imgs[3:] %}
         <div class="aspect-square h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-surface">
-          <img src="{{ image_url(img.object_key) }}" alt="" class="h-full w-full object-cover">
+          <img src="{{ image_url(img.object_key) }}" alt="" class="h-full w-full object-contain">
         </div>
         {% endfor %}
       </div>
@@ -181,7 +181,7 @@
           <a href="{{ url_for('web.listing_detail', listing_id=r.id) }}" class="group flex flex-col gap-2.5">
             <div class="relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface">
               {% if r.cover_image %}
-              <img src="{{ image_url(r.cover_image.object_key) }}" alt="{{ r.title }}" class="h-full w-full object-cover transition-transform duration-[280ms] group-hover:-translate-y-1">
+              <img src="{{ image_url(r.cover_image.object_key) }}" alt="{{ r.title }}" class="h-full w-full object-contain transition-transform duration-[280ms] group-hover:-translate-y-1">
               {% endif %}
             </div>
             <h3 class="m-0 font-display text-[18px] font-bold uppercase leading-[1.05] text-ink line-clamp-1">{{ r.title }}</h3>

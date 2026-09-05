@@ -4,6 +4,49 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Listing image crop fix + profile/admin-settings v3 migration (DONE ✅, 2026-09-05)
+
+### 1. Fixed cropped listing photos (root cause + fix everywhere)
+Root cause: every place a listing photo renders used `object-cover` inside a
+fixed-ratio box (`aspect-[4/5]` browse cards, `aspect-[4/3]` My Listings
+cards, fixed square My Rentals thumbnails, plus listing-detail's hero/gallery/
+related cards and the edit-form photo gallery — all the same pattern).
+`app/services/storage.py` does no server-side resize or aspect-ratio
+enforcement at upload time, so real uploads are portrait phone photos,
+landscape camera photos, and square crops all mixed together — `cover` was
+silently cropping whichever dimension didn't fit the box, which is what
+showed up as "half the photo visible."
+- **Fix**: swapped `object-cover` → `object-contain` (keeps the `bg-surface`
+  fill as an intentional-looking letterbox) everywhere a *listing* photo
+  renders: `index.html` (browse grid), `listings/my_listings.html`,
+  `rentals/my_rentals.html` (thumbnail), `listing_detail.html` (hero image,
+  3-image grid, extra-photos strip, "Also nearby" cards), and
+  `listings/form.html` (existing-photos gallery on edit).
+  Deliberately **left on `cover`**: CNIC/selfie verification photos
+  (`admin/verify_queue.html`) and booking before/after evidence thumbnails
+  (`rentals/my_rentals.html` evidence panel) — those are framed close-up
+  document/condition shots, a different concern from marketplace listing
+  photos, and cropping to fill the box is fine there.
+- **Verified with real images of three proportions**, not just code review:
+  seeded 3 listings with actual generated JPEGs (900×1600 portrait, 1600×900
+  landscape, 1200×1200 square, each with a full-frame border + corner-to-
+  corner crosshair so any cropping would be immediately visible), monkey-
+  patched the storage layer to serve them from local disk (no MinIO needed
+  for the check), and confirmed in-browser that the full photo — border and
+  crosshair intact — renders on the browse grid, My Listings, My Rentals
+  (both as a booking thumbnail), and the listing detail page for all three
+  orientations. Scratch DB/script/images discarded after, nothing committed.
+- **68 tests still pass** — this was a template-only class change, no
+  route/service/model touched.
+
+### 2. Profile + admin settings migrated to v3
+Per the same spacious-sections philosophy from the previous session
+(`DESIGN_SYSTEM.md` §0.4): `users/profile.html` (plain header, reviews as
+divided rows instead of bordered cards) and admin `settings.html` (v3 tokens,
+the payment-details form kept as a light contained panel since it collects
+input). Only `auth/forgot_password.html`, `auth/reset_password.html`, and the
+legal pages are still v1 navy/teal/sand.
+
 ## Layout philosophy rework: spacious sections over stacked cards (DONE ✅, 2026-09-05)
 Backend logic untouched — visual/IA pass only, per `DESIGN_SYSTEM.md` §0.4.
 

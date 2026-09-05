@@ -27,8 +27,8 @@ detail (`listing_detail.html`), login (`auth/login.html`), signup
 `trust_fund.html`).
 
 **Not yet migrated** (still v1 navy/teal/sand): forgot/reset password,
-profile, legal pages, admin settings. The v1 tokens stay in
-`tailwind.config` until those are migrated too.
+legal pages. The v1 tokens stay in `tailwind.config` until those are
+migrated too.
 
 ### 0.4 Layout philosophy (2026-09-05 rework)
 My Rentals, My Listings, and the four admin panels moved away from
@@ -40,7 +40,22 @@ form collecting input (resolve-dispute form, review form, payment
 confirmation, trust-fund starting-balance form), a photo thumbnail (CNIC/
 selfie, booking evidence), or a distinct status readout (trust fund
 balance tiles). Section headers are plain uppercase labels with a count,
-not another card.
+not another card. The profile page (`users/profile.html`) and admin settings
+(`settings.html`) were migrated to v3 + this philosophy the same day.
+
+### 0.5 Listing photo display: `object-contain`, not `object-cover`
+Every place a stored listing photo renders (browse grid, My Listings, My
+Rentals thumbnails, listing detail hero/gallery/related cards, the edit-listing
+existing-photo gallery) uses `object-contain` inside a `bg-surface` box, not
+`object-cover`. Uploads have no server-side resize or aspect-ratio enforcement
+(`app/services/storage.py` stores whatever file the browser sends), so a
+phone's portrait photo, a DSLR's landscape photo, and a square crop all need
+to render without cropping — `cover` silently discards whatever doesn't fit
+the box, `contain` letterboxes instead (the `bg-surface` fill makes the
+letterbox look intentional). Photos that aren't listing photos — CNIC/selfie
+verification images, before/after booking evidence — are deliberately left on
+`object-cover`: those are framed close-up document/condition shots where
+filling the box matters more than showing the absolute full frame.
 
 ### 0.2 Values chosen where the source didn't define them
 The exported file references `--radius-lg`, `--radius-md`, `--shadow-md` and

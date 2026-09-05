@@ -4,55 +4,59 @@
 
 {% macro stars(n) -%}
   {% for i in range(1, 6) %}
-  <svg class="h-4 w-4 {{ 'text-amber-400' if i <= n else 'text-sand-300' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
+  <svg class="h-4 w-4 {{ 'text-amber-400' if i <= n else 'text-neutral-300' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.05 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.367 2.446a1 1 0 00-.364 1.118l1.287 3.957c.3.922-.755 1.688-1.54 1.118l-3.366-2.446a1 1 0 00-1.176 0l-3.366 2.446c-.784.57-1.838-.196-1.539-1.118l1.286-3.957a1 1 0 00-.363-1.118L2.354 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.957z"/></svg>
   {% endfor %}
 {%- endmacro %}
 
 {% block content %}
-<div class="mx-auto max-w-3xl px-4 py-8">
-  <div class="flex items-center gap-4 rounded-2xl border border-sand-200 bg-white p-6 shadow-sm">
-    <span class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-teal-600 text-xl font-bold text-white">{{ profile_user.initials }}</span>
+<div class="mx-auto max-w-[760px] px-4 py-12 sm:px-14 sm:py-16">
+  <div class="flex items-center gap-5">
+    <span class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-accent2-300 font-display text-[22px] font-bold text-accent2-800">{{ profile_user.initials }}</span>
     <div class="min-w-0">
-      <h1 class="font-sora text-2xl font-extrabold tracking-tight text-navy-900">{{ profile_user.name }}</h1>
-      <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-navy-700/70">
+      <h1 class="m-0 font-display text-[32px] font-bold uppercase leading-none tracking-[-0.01em] text-ink sm:text-[36px]">{{ profile_user.name }}</h1>
+      <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-neutral-700">
         {% if profile_user.is_verified %}
-        <span class="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 ring-1 ring-teal-100">
+        <span class="inline-flex items-center gap-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-bold text-accent-700">
           <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z" clip-rule="evenodd"/></svg>
           Verified
         </span>
         {% endif %}
         {% if profile_user.rating is not none %}
-        <span class="inline-flex items-center gap-1 font-semibold text-navy-800">
+        <span class="inline-flex items-center gap-1 font-semibold text-ink">
           {{ stars((profile_user.rating|float)|round|int) }}
           {{ "%.1f"|format(profile_user.rating) }}
-          <span class="font-normal text-navy-700/60">({{ profile_user.review_count }} review{{ 's' if profile_user.review_count != 1 }})</span>
+          <span class="font-normal text-neutral-600">({{ profile_user.review_count }} review{{ 's' if profile_user.review_count != 1 }})</span>
         </span>
         {% else %}
-        <span class="text-navy-700/60">No reviews yet</span>
+        <span class="text-neutral-600">No reviews yet</span>
         {% endif %}
-        <span>· Joined {{ profile_user.created_at.strftime('%b %Y') }}</span>
+        <span class="text-neutral-500">· Joined {{ profile_user.created_at.strftime('%b %Y') }}</span>
       </div>
     </div>
   </div>
 
-  <h2 class="mt-8 font-sora text-lg font-bold text-navy-900">Reviews</h2>
-  {% if reviews %}
-  <div class="mt-3 space-y-3">
-    {% for r in reviews %}
-    <div class="rounded-xl border border-sand-200 bg-white p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <p class="text-sm font-semibold text-navy-900">{{ r.author.name }}</p>
-        <span class="flex">{{ stars(r.rating) }}</span>
-      </div>
-      {% if r.comment %}<p class="mt-1.5 text-sm text-navy-700/85">{{ r.comment }}</p>{% endif %}
-      <p class="mt-1 text-xs text-navy-700/50">{{ r.created_at.strftime('%d %b %Y') }}</p>
+  <section class="mt-12">
+    <div class="flex items-baseline gap-2">
+      <h2 class="font-display text-[15px] font-bold uppercase tracking-[0.08em] text-ink">Reviews</h2>
+      {% if reviews %}<span class="text-[13px] font-semibold text-neutral-500">{{ reviews|length }}</span>{% endif %}
     </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="mt-3 rounded-xl border border-dashed border-sand-300 bg-sand-50/60 px-4 py-8 text-center text-sm text-navy-700/50">
-    No reviews yet.
-  </div>
-  {% endif %}
+
+    {% if reviews %}
+    <div class="mt-1 divide-y divide-divider">
+      {% for r in reviews %}
+      <div class="py-5 first:pt-0">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-bold text-ink">{{ r.author.name }}</p>
+          <span class="flex">{{ stars(r.rating) }}</span>
+        </div>
+        {% if r.comment %}<p class="mt-1.5 text-sm text-neutral-700">{{ r.comment }}</p>{% endif %}
+        <p class="mt-1 text-xs text-neutral-500">{{ r.created_at.strftime('%d %b %Y') }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mt-6 text-sm text-neutral-500">No reviews yet.</p>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}
