@@ -148,6 +148,7 @@ def test_email_password_signup_still_works(client, app):
         data={
             "name": "Normal Signup",
             "email": "normal@example.com",
+            "phone": "03001234567",
             "password": "supersecret",
             "confirm": "supersecret",
         },

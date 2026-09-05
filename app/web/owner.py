@@ -45,6 +45,8 @@ def _parse_form(form):
         "category_id": form.get("category_id") or "",
         "price_per_day": (form.get("price_per_day") or "").strip(),
         "deposit_amount": (form.get("deposit_amount") or "").strip(),
+        "pickup_location": (form.get("pickup_location") or "").strip(),
+        "map_link": (form.get("map_link") or "").strip(),
     }
     errors = []
 
@@ -70,6 +72,9 @@ def _parse_form(form):
             data[field] = value
         except (InvalidOperation, TypeError):
             errors.append(f"{label} must be a number (0 or more).")
+
+    if data["map_link"] and not data["map_link"].startswith(("http://", "https://")):
+        errors.append("Map link must be a full URL (starting with http:// or https://).")
 
     return data, errors
 
@@ -109,6 +114,8 @@ def create_listing():
             area=data["area"],
             price_per_day=data["price_per_day"],
             deposit_amount=data["deposit_amount"],
+            pickup_location=data["pickup_location"],
+            map_link=data["map_link"],
             images=images,
         )
         flash("Listing published.", "success")
@@ -154,6 +161,8 @@ def edit_listing(listing_id: int):
             area=data["area"],
             price_per_day=data["price_per_day"],
             deposit_amount=data["deposit_amount"],
+            pickup_location=data["pickup_location"],
+            map_link=data["map_link"],
             new_images=new_images,
             remove_image_ids=remove_ids,
         )

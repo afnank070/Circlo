@@ -38,6 +38,12 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    # Required at signup going forward (see app/web/auth.py); nullable in the DB
+    # so accounts created before this field existed (and OAuth signups, which
+    # skip the phone step) don't violate a NOT NULL constraint. Used to let a
+    # renter/owner reach each other once a booking is accepted (blueprint: no
+    # in-app messaging, just a plain data reveal).
+    phone = db.Column(db.String(20), nullable=True)
     # Nullable: accounts created via "Sign in with Google" have no password —
     # they authenticate through the OAuth provider. Email/password accounts
     # always have a hash. See ``has_password`` / ``check_password``.

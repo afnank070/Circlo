@@ -42,6 +42,7 @@ def signup():
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         email = (request.form.get("email") or "").strip()
+        phone = (request.form.get("phone") or "").strip()
         password = request.form.get("password") or ""
         confirm = request.form.get("confirm") or ""
 
@@ -50,6 +51,8 @@ def signup():
             errors.append("Please enter your name.")
         if not email or "@" not in email:
             errors.append("Please enter a valid email address.")
+        if not phone:
+            errors.append("Please enter a phone number — the other party needs it to arrange handover.")
         if len(password) < 8:
             errors.append("Password must be at least 8 characters.")
         if password != confirm:
@@ -57,7 +60,7 @@ def signup():
 
         if not errors:
             try:
-                user = auth_service.create_user(name, email, password)
+                user = auth_service.create_user(name, email, password, phone=phone)
             except auth_service.EmailAlreadyRegistered:
                 errors.append("That email is already registered — try logging in.")
             else:
@@ -68,9 +71,9 @@ def signup():
         for msg in errors:
             flash(msg, "error")
         # Re-render with the values the user already typed (except passwords).
-        return render_template("auth/signup.html", name=name, email=email)
+        return render_template("auth/signup.html", name=name, email=email, phone=phone)
 
-    return render_template("auth/signup.html", name="", email="")
+    return render_template("auth/signup.html", name="", email="", phone="")
 
 
 @web_bp.route("/login", methods=["GET", "POST"])

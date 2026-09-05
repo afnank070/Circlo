@@ -29,7 +29,7 @@ def _make_category(app, name="Tools", slug="tools"):
 def _signup_verified(client, app, email):
     client.post(
         "/signup",
-        data={"name": email.split("@")[0], "email": email,
+        data={"name": email.split("@")[0], "email": email, "phone": "03001234567",
               "password": "supersecret", "confirm": "supersecret"},
         follow_redirects=True,
     )

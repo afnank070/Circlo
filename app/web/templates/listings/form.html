@@ -113,6 +113,26 @@
         </div>
       </div>
 
+      <!-- Pickup details, revealed to the renter once a booking is accepted -->
+      <div>
+        <label for="pickup_location" class="mb-1.5 block text-sm font-bold text-ink">Pickup location <span class="font-normal text-neutral-500">(optional)</span></label>
+        <input id="pickup_location" name="pickup_location" type="text" maxlength="160"
+               value="{{ val('pickup_location', listing.pickup_location if listing else '') }}"
+               class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink
+                      placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+               placeholder="e.g. F-7 Markaz, near Chase Value">
+        <p class="mt-1 text-xs text-neutral-600">Shown to a renter only once you've accepted their booking — not public.</p>
+      </div>
+      <div>
+        <label for="map_link" class="mb-1.5 block text-sm font-bold text-ink">Google Maps link <span class="font-normal text-neutral-500">(optional)</span></label>
+        <input id="map_link" name="map_link" type="url" maxlength="500"
+               value="{{ val('map_link', listing.map_link if listing else '') }}"
+               class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink
+                      placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+               placeholder="https://maps.app.goo.gl/…">
+        <p class="mt-1 text-xs text-neutral-600">Paste a shareable pin link from Google Maps — shown as a link, nothing embedded.</p>
+      </div>
+
       <!-- Existing images (edit only) -->
       {% if is_edit and listing.images %}
       <div>

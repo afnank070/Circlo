@@ -4,6 +4,74 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Font-weight verification + contact/pickup reveal (DONE ✅, 2026-09-06)
+
+### 1. Verified (and revised) the body font-weight fix
+Last session's `font-medium` (Manrope 500) body-weight change was checked
+live, not just re-read from source: `getComputedStyle(document.body).
+fontWeight` on `/my-rentals` confirmed it really was applying (`"500"`, not
+the browser default `400`). Visually, though, 500 was still too close to
+default to read as an intentional pairing against the very heavy Barlow
+Condensed headings. Rendered a live side-by-side (500 vs 600 on the actual
+"Manage rental requests…" subtitle) and asked which to keep — **bumped to
+`font-semibold` (Manrope 600)** in `base.html` per that comparison. See
+`DESIGN_SYSTEM.md` §11.
+
+### 2. Contact reveal + pickup location (new feature)
+Once a booking reaches ACCEPTED or later (not before, not if cancelled), the
+renter and owner now see a "Contact & pickup" panel on their `/my-rentals`
+booking row: each other's phone number and the listing's pickup location /
+optional Google Maps link. Plain data reveal — **no chat, no messaging**, as
+specified.
+- **`users.phone`** (new, nullable — migration `a3d8e1f4c6b7`): required at
+  signup going forward (`app/web/auth.py`), nullable in the DB so existing
+  accounts and OAuth signups (which skip the phone step entirely — there's no
+  onboarding flow for that path) don't violate a NOT NULL constraint. Users
+  without a phone (or who want to change it) can set one from their own
+  profile page (`/users/<id>` — a "Your contact number" panel appears only
+  when viewing your own profile, posts to new `POST /account/phone`).
+- **`listings.pickup_location`** (`String(160)`, optional) and
+  **`listings.map_link`** (`String(500)`, optional, validated as an
+  `http(s)://` URL) — new fields on the create/edit listing form
+  (`listings/form.html`), persisted via `listings_service.create_listing()` /
+  `update_listing()`. The map link is stored and rendered as a plain
+  `target="_blank"` link — no Maps API/embed, exactly as scoped.
+- **Gating lives in the service layer**: `booking_service.
+  CONTACT_REVEAL_STATUSES` (accepted through completed, i.e.
+  `BLOCKING_STATUSES + (COMPLETED,)`) and `can_reveal_contact(booking)`.
+  `web.my_rentals` computes this per booking into `booking_detail`, same
+  pattern as `can_review`/`can_dispute`; requested/cancelled bookings are
+  never in that dict's "in-flight" input set, so the reveal is structurally
+  absent, not just hidden by CSS.
+- **Styling**: one light `bg-surface` panel per booking row (`rentals/
+  my_rentals.html`'s new `contact_reveal` macro) — matches the existing
+  spacious-section rows, not a dense new card.
+
+### Verification
+- **New tests** (`tests/test_contact_reveal.py`, 3 tests): phone/pickup NOT
+  present in `/my-rentals` HTML while a request is still REQUESTED; both
+  parties' phone + pickup details ARE present once the owner accepts (checked
+  from both the owner's and the renter's view); a direct unit check of
+  `can_reveal_contact()` against every status. **72 tests pass** (was 69 —
+  also added `test_signup_requires_phone` and updated every existing
+  `/signup` test call site across 7 files to include a phone value now that
+  it's a required form field).
+- **Verified live end-to-end in-browser**: confirmed the computed 600 weight
+  really applies; added a pickup location + map link to a real listing;
+  requested it as one user (confirmed no contact/pickup leak while pending —
+  checked both rendered text and raw HTML for the phone/pickup strings);
+  accepted it as the owner; confirmed the "Contact & pickup" panel appears
+  correctly on **both** the owner's and the renter's `/my-rentals` view, with
+  working `tel:` and map links. Used each user's own profile page to set
+  their phone via the new self-edit form as part of the same walkthrough.
+  Scratch DB/script discarded after — nothing committed.
+
+### Known gap (documented, not fixed this pass)
+Google OAuth signups skip the phone step entirely (no onboarding form exists
+for that path) and land with `phone = NULL`. They see "no phone on file"
+instead of a number until they visit their profile and add one. Building a
+post-OAuth onboarding step was out of scope for this pass.
+
 ## Homepage sections, nav/typography fixes, upload-time crop (DONE ✅, 2026-09-05)
 
 ### 1. Homepage now has a real body below the item grid

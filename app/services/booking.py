@@ -53,6 +53,18 @@ class BookingConflict(BookingError):
     """Raised when accepting would double-book an item's dates."""
 
 
+# Contact details (phone numbers) and the listing's pickup location/map link are
+# revealed once a booking has been accepted — i.e. any status at or past ACCEPTED,
+# including a finished rental. Not revealed for a still-pending request or a
+# cancelled one. This is a plain data reveal, not messaging (blueprint: no chat).
+CONTACT_REVEAL_STATUSES = BLOCKING_STATUSES + (STATUS_COMPLETED,)
+
+
+def can_reveal_contact(booking: Booking) -> bool:
+    """True once both parties should see each other's phone + pickup details."""
+    return booking.status in CONTACT_REVEAL_STATUSES
+
+
 def _dates_overlap(start_a: date, end_a: date, start_b: date, end_b: date) -> bool:
     return start_a <= end_b and start_b <= end_a
 

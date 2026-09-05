@@ -402,17 +402,24 @@ Sizes: `34px` (nav), `62px` (detail owner strip). Content: `user.initials`.
 
 ---
 
-## 11. Body text weight (2026-09-05)
+## 11. Body text weight (2026-09-05, bumped 2026-09-06)
 
-`<body>` carries `font-medium` (Manrope 500) as the site-wide default, not the
-browser's normal 400. Plain paragraph text with no explicit `font-*` utility
-(subtitles under headings, meta lines, descriptions) inherits this, so it
-pairs properly against the heavy `font-display` (Barlow Condensed 700)
+`<body>` carries `font-semibold` (Manrope 600) as the site-wide default, not
+the browser's normal 400. Plain paragraph text with no explicit `font-*`
+utility (subtitles under headings, meta lines, descriptions) inherits this, so
+it pairs properly against the heavy `font-display` (Barlow Condensed 700)
 headings instead of reading as thin/mismatched. Elements that already set
-their own weight (`font-semibold`, `font-bold`, etc.) are unaffected — this
-only changes the *default* for text that doesn't specify one. Don't add
-`font-normal` back to body copy; if something needs to look lighter, that's a
-color/size choice (`text-neutral-600` etc.), not a weight one.
+their own weight (`font-bold`, etc.) are unaffected — this only changes the
+*default* for text that doesn't specify one. Don't add `font-normal` back to
+body copy; if something needs to look lighter, that's a color/size choice
+(`text-neutral-600` etc.), not a weight one.
+
+Verified twice, not just assumed from the CSS: confirmed via
+`getComputedStyle(document.body).fontWeight` in-browser on `/my-rentals` that
+the value actually applies (not just present in source), then A/B-compared
+500 vs 600 side by side on the real subtitle text and 600 read clearly better
+against the heading — the original 500 (from the first pass) was too close to
+the browser default to read as an intentional pairing.
 
 ## 12. Nav hierarchy (2026-09-05)
 

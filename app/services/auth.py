@@ -34,7 +34,7 @@ def get_user_by_email(email: str) -> User | None:
     return User.query.filter_by(email=normalize_email(email)).first()
 
 
-def create_user(name: str, email: str, password: str) -> User:
+def create_user(name: str, email: str, password: str, phone: str | None = None) -> User:
     """Create and persist a new user.
 
     :raises EmailAlreadyRegistered: if the (normalised) email already exists.
@@ -43,9 +43,16 @@ def create_user(name: str, email: str, password: str) -> User:
     if get_user_by_email(email):
         raise EmailAlreadyRegistered(email)
 
-    user = User(name=name.strip(), email=email)
+    user = User(name=name.strip(), email=email, phone=(phone or "").strip() or None)
     user.set_password(password)
     db.session.add(user)
+    db.session.commit()
+    return user
+
+
+def set_phone(user: User, phone: str) -> User:
+    """Set/update a user's phone number (profile self-edit)."""
+    user.phone = (phone or "").strip() or None
     db.session.commit()
     return user
 

@@ -55,6 +55,13 @@
                  placeholder="you@example.com">
         </div>
         <div>
+          <label for="phone" class="mb-1.5 block text-sm font-bold text-ink">Phone number</label>
+          <input id="phone" name="phone" type="tel" value="{{ phone }}" required autocomplete="tel"
+                 class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+                 placeholder="03xx xxxxxxx">
+          <p class="mt-1 text-xs text-neutral-600">Shared with the other party only once a booking is accepted — never shown publicly.</p>
+        </div>
+        <div>
           <label for="password" class="mb-1.5 block text-sm font-bold text-ink">Password</label>
           <input id="password" name="password" type="password" required autocomplete="new-password" minlength="8"
                  class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"

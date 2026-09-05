@@ -23,7 +23,7 @@ def _make_category(app, name="Tools", slug="tools"):
 def _signup_verified(client, email):
     client.post(
         "/signup",
-        data={"name": email.split("@")[0], "email": email,
+        data={"name": email.split("@")[0], "email": email, "phone": "03001234567",
               "password": "supersecret", "confirm": "supersecret"},
         follow_redirects=True,
     )
@@ -72,6 +72,7 @@ def test_request_requires_verification(client, app):
     client.post("/logout")
 
     client.post("/signup", data={"name": "Unverified", "email": "unverified@example.com",
+                                  "phone": "03001234567",
                                   "password": "supersecret", "confirm": "supersecret"},
                 follow_redirects=True)
     resp = _request(client, listing_id)

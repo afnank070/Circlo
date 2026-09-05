@@ -279,6 +279,36 @@
 </div>
 {%- endmacro %}
 
+{# --- contact + pickup reveal, shown once a booking is accepted or later --- #}
+{% macro contact_reveal(b, viewer) -%}
+  {% set d = booking_detail.get(b.id) %}
+  {% if d and d.can_reveal_contact %}
+    {% set other = b.renter if viewer == 'owner' else b.owner %}
+    <div class="mt-3 rounded-2xl bg-surface p-3 ring-1 ring-divider">
+      <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">Contact &amp; pickup</p>
+      <p class="mt-1.5 text-sm text-ink">
+        {{ other.name }}
+        {% if other.phone %}
+        · <a href="tel:{{ other.phone }}" class="font-semibold text-accent-700 hover:underline">{{ other.phone }}</a>
+        {% else %}
+        · <span class="text-neutral-500">no phone on file</span>
+        {% endif %}
+      </p>
+      {% if b.listing.pickup_location or b.listing.map_link %}
+      <p class="mt-1 text-sm text-ink">
+        {% if b.listing.pickup_location %}{{ b.listing.pickup_location }}{% endif %}
+        {% if b.listing.map_link %}
+        {% if b.listing.pickup_location %}·{% endif %}
+        <a href="{{ b.listing.map_link }}" target="_blank" rel="noopener" class="font-semibold text-accent-700 hover:underline">View on map</a>
+        {% endif %}
+      </p>
+      {% else %}
+      <p class="mt-1 text-sm text-neutral-500">Owner hasn't added a pickup location yet — coordinate directly.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+{%- endmacro %}
+
 {% macro inflight_row(b, viewer) -%}
 <div class="flex flex-wrap items-start gap-4 py-5">
   {{ booking_thumb(b.listing) }}
@@ -291,6 +321,7 @@
       {{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}
       {% if viewer == 'owner' %}· Rented by <a href="{{ url_for('web.user_profile', user_id=b.renter_id) }}" class="font-semibold text-ink hover:underline">{{ b.renter.name }}</a>{% else %}· from <a href="{{ url_for('web.user_profile', user_id=b.owner_id) }}" class="font-semibold text-ink hover:underline">{{ b.owner.name }}</a>{% endif %}
     </p>
+    {{ contact_reveal(b, viewer) }}
     {{ evidence_panel(b, viewer) }}
     {{ dispute_and_review(b, viewer) }}
   </div>

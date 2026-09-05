@@ -10,6 +10,7 @@ def test_signup_creates_user_and_logs_in(client, app):
         data={
             "name": "Ayesha Khan",
             "email": "Ayesha@Example.com",
+            "phone": "03001234567",
             "password": "supersecret",
             "confirm": "supersecret",
         },
@@ -24,9 +25,26 @@ def test_signup_creates_user_and_logs_in(client, app):
         assert user is not None
         assert user.name == "Ayesha Khan"
         assert user.email == "ayesha@example.com"  # normalised
+        assert user.phone == "03001234567"
         assert user.password_hash and user.password_hash != "supersecret"
         assert user.verification_status == "pending"
         assert user.role == "user"
+
+
+def test_signup_requires_phone(client, app):
+    resp = client.post(
+        "/signup",
+        data={
+            "name": "No Phone",
+            "email": "nophone@example.com",
+            "password": "supersecret",
+            "confirm": "supersecret",
+        },
+    )
+    assert resp.status_code == 200
+    assert b"phone number" in resp.data
+    with app.app_context():
+        assert auth_service.get_user_by_email("nophone@example.com") is None
 
 
 def test_signup_rejects_mismatched_passwords(client, app):
@@ -35,6 +53,7 @@ def test_signup_rejects_mismatched_passwords(client, app):
         data={
             "name": "Bad Confirm",
             "email": "bad@example.com",
+            "phone": "03001234567",
             "password": "supersecret",
             "confirm": "different",
         },
@@ -54,6 +73,7 @@ def test_signup_rejects_duplicate_email(client, app):
         data={
             "name": "Second",
             "email": "dupe@example.com",
+            "phone": "03001234567",
             "password": "supersecret",
             "confirm": "supersecret",
         },

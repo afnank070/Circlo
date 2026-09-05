@@ -21,7 +21,7 @@ PNG_BYTES = (
 def _signup(client, email="renter@example.com", name="Renter Person"):
     return client.post(
         "/signup",
-        data={"name": name, "email": email, "password": "supersecret", "confirm": "supersecret"},
+        data={"name": name, "email": email, "phone": "03001234567", "password": "supersecret", "confirm": "supersecret"},
         follow_redirects=True,
     )
 

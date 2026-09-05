@@ -27,6 +27,18 @@ def user_profile(user_id: int):
     )
 
 
+@web_bp.route("/account/phone", methods=["POST"])
+@login_required
+def update_phone():
+    phone = (request.form.get("phone") or "").strip()
+    if not phone:
+        flash("Enter a phone number.", "error")
+    else:
+        auth_service.set_phone(current_user, phone)
+        flash("Phone number saved.", "success")
+    return redirect(url_for("web.user_profile", user_id=current_user.id))
+
+
 @web_bp.route("/bookings/<int:booking_id>/review", methods=["POST"])
 @login_required
 def leave_review(booking_id: int):

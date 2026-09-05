@@ -28,6 +28,7 @@ def _signup(client, app, email="owner@example.com"):
         data={
             "name": "Owner Person",
             "email": email,
+            "phone": "03001234567",
             "password": "supersecret",
             "confirm": "supersecret",
         },

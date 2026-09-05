@@ -191,6 +191,7 @@ def my_rentals():
                     open_dispute is None
                     and b.status in disputes_service.DISPUTABLE_STATUSES
                 ),
+                "can_reveal_contact": booking_service.can_reveal_contact(b),
             }
         return out
 

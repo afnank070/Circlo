@@ -34,6 +34,12 @@ class Listing(db.Model):
     price_per_day = db.Column(db.Numeric(10, 2), nullable=False)
     deposit_amount = db.Column(db.Numeric(10, 2), nullable=False)
 
+    # Handover details, revealed to the renter once a booking is accepted
+    # (see app/services/booking.py CONTACT_REVEAL_STATUSES). Both optional —
+    # an owner may not have a fixed pickup spot yet or may skip the map link.
+    pickup_location = db.Column(db.String(160), nullable=True)
+    map_link = db.Column(db.String(500), nullable=True)
+
     # The member who owns this item (blueprint §5). Replaces the M2 denormalised
     # owner_name/owner_rating/is_verified columns.
     owner_id = db.Column(

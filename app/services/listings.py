@@ -133,6 +133,7 @@ def _store_images(listing: Listing, files, *, start_order: int = 0) -> int:
 
 def create_listing(*, owner, title: str, description: str, category_id: int,
                    city: str, area: str, price_per_day, deposit_amount,
+                   pickup_location: str | None = None, map_link: str | None = None,
                    images=None) -> Listing:
     """Create an ``active`` listing owned by ``owner`` and store any images.
 
@@ -148,6 +149,8 @@ def create_listing(*, owner, title: str, description: str, category_id: int,
         area=area.strip(),
         price_per_day=price_per_day,
         deposit_amount=deposit_amount,
+        pickup_location=(pickup_location or "").strip() or None,
+        map_link=(map_link or "").strip() or None,
         status=BROWSABLE_STATUS,
     )
     db.session.add(listing)
@@ -162,7 +165,8 @@ def create_listing(*, owner, title: str, description: str, category_id: int,
 
 def update_listing(listing: Listing, *, title: str, description: str,
                    category_id: int, city: str, area: str, price_per_day,
-                   deposit_amount, new_images=None,
+                   deposit_amount, pickup_location: str | None = None,
+                   map_link: str | None = None, new_images=None,
                    remove_image_ids=None) -> Listing:
     """Update a listing's fields, optionally removing and/or adding images."""
     listing.title = title.strip()
@@ -172,6 +176,8 @@ def update_listing(listing: Listing, *, title: str, description: str,
     listing.area = area.strip()
     listing.price_per_day = price_per_day
     listing.deposit_amount = deposit_amount
+    listing.pickup_location = (pickup_location or "").strip() or None
+    listing.map_link = (map_link or "").strip() or None
 
     if remove_image_ids:
         remove = set(remove_image_ids)

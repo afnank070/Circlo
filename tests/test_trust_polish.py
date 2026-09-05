@@ -86,7 +86,7 @@ def _completed_booking(app):
 
 # --- Password reset -------------------------------------------------------
 def test_forgot_password_flow(client, app, _mock_email):
-    client.post("/signup", data={"name": "Sam", "email": "sam@example.com",
+    client.post("/signup", data={"name": "Sam", "email": "sam@example.com", "phone": "03001234567",
                                  "password": "originalpass", "confirm": "originalpass"},
                 follow_redirects=True)
     client.post("/logout")
