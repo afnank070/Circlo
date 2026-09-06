@@ -1,0 +1,37 @@
+{# Searchable area picker.
+
+   The native <select> is the source of truth and what the form submits — it
+   works on its own with no JS (native type-to-jump, zero free typing). When JS
+   is present, base.html's area-combobox script enhances it into a filterable
+   dropdown (type to narrow the list; you can still only pick a listed area).
+
+   Args:
+     name         form field name (e.g. "area")
+     selected     currently-selected area name
+     include_all  add a leading "no filter" option (browse page)
+     all_label    label for that option
+     required     mark the select required (listing form)
+     id           element id
+#}
+{% macro area_select(name, selected='', include_all=False, all_label='All areas', required=False, id='area') -%}
+<div class="area-combobox relative" data-area-combobox>
+  <select id="{{ id }}" name="{{ name }}" {{ 'required' if required }} data-area-combobox-select
+          class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink
+                 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
+    {% if include_all %}
+    <option value="" {{ 'selected' if not selected }}>{{ all_label }}</option>
+    {% elif not selected %}
+    <option value="" disabled selected>Choose an area…</option>
+    {% endif %}
+    {% for city, areas in areas_by_city.items() %}
+    {% if areas %}
+    <optgroup label="{{ city }}">
+      {% for a in areas %}
+      <option value="{{ a.name }}" {{ 'selected' if selected == a.name }}>{{ a.name }}</option>
+      {% endfor %}
+    </optgroup>
+    {% endif %}
+    {% endfor %}
+  </select>
+</div>
+{%- endmacro %}

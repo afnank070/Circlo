@@ -4,6 +4,65 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Standardized area vocabulary + working location filter (DONE ✅, 2026-09-07)
+
+`listings.area` was free text typed by owners, so the browse filter couldn't
+match "F-7" vs "F7" vs "F-7 Islamabad". Fixed by making area a fixed
+vocabulary.
+
+### The vocabulary
+- **`app/services/areas.py`** — `CANONICAL_AREAS`: ~90 real Islamabad &
+  Rawalpindi sectors/neighbourhoods (E/F/G/H/I/D sector series, Blue Area,
+  DHA phases, Bahria Town + phases, Gulberg Greens/Residencia, Bani Gala,
+  Bhara Kahu … / Saddar, Satellite Town, Chaklala schemes, Cantt, Westridge,
+  Askari, Committee Chowk, Dhoke *, Murree Road …). Single source of truth
+  for validation, dropdown rendering, and legacy remapping. Functions:
+  `is_valid_area`, `city_for_area`, `areas_by_city` (optgroup source, falls
+  back to the frozen list if the table is empty), `closest_area` (fuzzy map
+  of legacy free text → canonical), `sync_areas` (idempotent upsert into DB).
+- **`areas` reference table** (`app/models/area.py`) — `name` (the stored
+  value), `slug`, `city`, `sort_order`. Migration **`e7a2c4b9f1d3`**
+  (revises `d4f1a7c9e2b6`) creates it, populates it from `CANONICAL_AREAS`,
+  then **remaps every existing listing** — `area` → `closest_area(...)`,
+  `city` re-derived from that area. `flask seed` also calls `sync_areas()` and
+  maps its 11 demo listings the same way.
+
+### City is now derived from area
+`listings_service._resolve_area()` validates the area and returns
+`(area, city)` where city comes from the area — the two can't drift.
+`create_listing` / `update_listing` raise the new `InvalidArea` on anything
+off-list. The `city` kwarg is kept in the signatures (API compat) but ignored.
+
+### Browse filter actually filters
+- `browse_listings(..., area=?, city=?)` — `area` is an **exact** match on
+  `Listing.area` (both sides now come from the same vocabulary), `city`
+  narrows to one city. `web.index` reads `?area=` / `?city=` and passes
+  `active_area` / `active_city`; category pills + the search form preserve the
+  chosen area.
+- The homepage's dead **"All areas"** `<span>` is now a real
+  `<select name="area">` grouped by `<optgroup>` per city
+  (`_partials/area_select.html`).
+
+### Form: searchable dropdown, no free typing
+- `listings/form.html` — the free-text area `<input>` is replaced by the same
+  `area_select` macro (native `<select>`, optgroup per city). The City select
+  is gone (derived from area).
+- **`base.html`** carries a small progressive-enhancement script: it turns any
+  `[data-area-combobox]` into a type-to-filter dropdown (filter the list as
+  you type; you can still only pick a listed area). No JS → the native select
+  still works (native type-to-jump, zero free typing).
+
+### Verification
+- **New tests** `tests/test_area_filter.py` (17): canonical list covers both
+  cities; `is_valid_area` rejects "F7" / "F-7 Islamabad"; `closest_area` maps
+  the common variants + falls back safely; `browse_listings` filters by exact
+  area with **no cross-contamination** (F-7 filter never returns F-8), by
+  city, and combined with category; archived listings excluded; create/update
+  reject off-list areas and derive city; `/?area=F-7` route filter; the
+  dropdown HTML is grouped by city; the listing form's area is a `<select>`
+  not a text input; a free-text POST is rejected; `sync_areas` is idempotent;
+  every seeded listing ends up canonical. **117 tests pass** (was 100).
+
 ## Stage-aware booking cancellation flow (DONE ✅, 2026-09-07)
 
 Cancellation rules now depend on how far the booking has progressed

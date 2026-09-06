@@ -15,6 +15,7 @@ from .identity_document import IdentityDocument  # noqa: F401
 
 # M2 — Listings & Search.
 from .category import Category  # noqa: F401
+from .area import Area  # noqa: F401
 from .listing import Listing  # noqa: F401
 from .listing_image import ListingImage  # noqa: F401
 
@@ -38,6 +39,7 @@ __all__ = [
     "User",
     "IdentityDocument",
     "Category",
+    "Area",
     "Listing",
     "ListingImage",
     "Booking",

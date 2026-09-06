@@ -27,6 +27,7 @@ import urllib.request
 
 from app.extensions import db
 from app.models import Category, Listing, ListingImage, User
+from app.services import areas as areas_service
 from app.services import storage
 
 # Shared password for every seeded demo owner (dev only — see PROGRESS.md).
@@ -172,6 +173,10 @@ def seed_all() -> dict[str, int]:
     storage.ensure_buckets()
     _wipe()
 
+    # Standardized Islamabad/Rawalpindi areas — the fixed location vocabulary
+    # every listing's area must belong to (see app/services/areas.py).
+    areas_service.sync_areas()
+
     cats: dict[str, Category] = {}
     colors: dict[str, tuple[str, str]] = {}
     for name, slug, c1, c2 in CATEGORIES:
@@ -199,13 +204,16 @@ def seed_all() -> dict[str, int]:
     db.session.flush()  # assign category + user ids
 
     image_count = 0
-    for (title, cat_slug, city, area, price, deposit,
+    for (title, cat_slug, _seed_city, area, price, deposit,
          owner_name, _rating, _verified, description) in LISTINGS:
+        # Area must be a standardized value; city is derived from it so the two
+        # never drift (matches the listing-form / service behaviour).
+        area = areas_service.closest_area(area)
         listing = Listing(
             title=title,
             description=description,
             category_id=cats[cat_slug].id,
-            city=city,
+            city=areas_service.city_for_area(area),
             area=area,
             price_per_day=price,
             deposit_amount=deposit,

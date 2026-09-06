@@ -134,6 +134,14 @@ def _register_context_processors(app: Flask) -> None:
         }
 
     @app.context_processor
+    def inject_areas() -> dict:
+        """Standardized Islamabad/Rawalpindi areas for the listing form + browse
+        filter dropdowns (never free text — see app/services/areas.py)."""
+        from .services import areas as areas_service
+
+        return {"areas_by_city": areas_service.areas_by_city()}
+
+    @app.context_processor
     def inject_current_year() -> dict:
         """Footer copyright line — computed server-side, never hardcoded."""
         from datetime import date

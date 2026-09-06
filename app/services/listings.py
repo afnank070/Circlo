@@ -16,7 +16,16 @@ from werkzeug.datastructures import FileStorage
 
 from app.extensions import db
 from app.models import Booking, Category, Listing, ListingImage
+from app.services import areas as areas_service
 from app.services import storage
+
+
+class InvalidArea(Exception):
+    """Raised when a listing's area isn't one of the standardized areas.
+
+    Area is a fixed vocabulary (``app.services.areas.CANONICAL_AREAS``), not
+    free text — so browse/search can match it reliably.
+    """
 
 
 class ListingHasBookings(Exception):
@@ -58,16 +67,26 @@ def total_listings_count() -> int:
 
 
 def browse_listings(*, category_slug: str | None = None,
-                    query: str | None = None) -> list[Listing]:
-    """Active listings, optionally filtered by category and/or a text query.
+                    query: str | None = None, area: str | None = None,
+                    city: str | None = None) -> list[Listing]:
+    """Active listings, optionally filtered by category, text query, area, city.
 
-    The text query matches title, description or area (case-insensitive) so a
-    renter can search "drill", "camera" or "F-7" and get sensible results.
+    ``area`` is matched exactly against the standardized area name (the browse
+    filter passes a value straight from the ``areas`` table, and every listing's
+    stored area is one of those names), so "F-7" reliably returns F-7 listings
+    and nothing else. ``city`` narrows to Islamabad / Rawalpindi. The free-text
+    ``query`` still also matches title / description / area loosely.
     """
     q = Listing.query.filter(Listing.status == BROWSABLE_STATUS)
 
     if category_slug:
         q = q.join(Category).filter(Category.slug == category_slug)
+
+    if area and area.strip():
+        q = q.filter(Listing.area == area.strip())
+
+    if city and city.strip():
+        q = q.filter(Listing.city == city.strip())
 
     if query and query.strip():
         like = f"%{query.strip()}%"
@@ -131,6 +150,19 @@ def _store_images(listing: Listing, files, *, start_order: int = 0) -> int:
     return stored
 
 
+def _resolve_area(area: str) -> tuple[str, str]:
+    """Validate ``area`` against the standardized list, returning (area, city).
+
+    City is derived from the chosen area so the two can never drift apart.
+
+    :raises InvalidArea: the value isn't one of the standardized areas.
+    """
+    area = (area or "").strip()
+    if not areas_service.is_valid_area(area):
+        raise InvalidArea("Please choose an area from the list.")
+    return area, areas_service.city_for_area(area)
+
+
 def create_listing(*, owner, title: str, description: str, category_id: int,
                    city: str, area: str, price_per_day, deposit_amount,
                    pickup_location: str | None = None, map_link: str | None = None,
@@ -139,14 +171,17 @@ def create_listing(*, owner, title: str, description: str, category_id: int,
 
     The listing is flushed first so it has an id to key images under, then images
     are uploaded and the whole thing is committed atomically.
+
+    :raises InvalidArea: ``area`` isn't one of the standardized areas.
     """
+    area, city = _resolve_area(area)
     listing = Listing(
         owner_id=owner.id,
         title=title.strip(),
         description=(description or "").strip(),
         category_id=category_id,
-        city=city.strip(),
-        area=area.strip(),
+        city=city,
+        area=area,
         price_per_day=price_per_day,
         deposit_amount=deposit_amount,
         pickup_location=(pickup_location or "").strip() or None,
@@ -168,12 +203,16 @@ def update_listing(listing: Listing, *, title: str, description: str,
                    deposit_amount, pickup_location: str | None = None,
                    map_link: str | None = None, new_images=None,
                    remove_image_ids=None) -> Listing:
-    """Update a listing's fields, optionally removing and/or adding images."""
+    """Update a listing's fields, optionally removing and/or adding images.
+
+    :raises InvalidArea: ``area`` isn't one of the standardized areas.
+    """
+    area, city = _resolve_area(area)
     listing.title = title.strip()
     listing.description = (description or "").strip()
     listing.category_id = category_id
-    listing.city = city.strip()
-    listing.area = area.strip()
+    listing.city = city
+    listing.area = area
     listing.price_per_day = price_per_day
     listing.deposit_amount = deposit_amount
     listing.pickup_location = (pickup_location or "").strip() or None

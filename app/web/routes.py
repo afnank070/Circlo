@@ -31,8 +31,12 @@ def index():
     """Browse page: card grid with category-chip and text search filters."""
     category = request.args.get("category") or None
     query = request.args.get("q") or None
+    area = request.args.get("area") or None
+    city = request.args.get("city") or None
 
-    results = listings_service.browse_listings(category_slug=category, query=query)
+    results = listings_service.browse_listings(
+        category_slug=category, query=query, area=area, city=city,
+    )
     categories = listings_service.all_categories()
 
     # Real marketplace stats for the homepage stats row — never hardcoded.
@@ -47,6 +51,8 @@ def index():
         listings=results,
         categories=categories,
         active_category=category,
+        active_area=area or "",
+        active_city=city or "",
         query=query or "",
         stats=stats,
     )

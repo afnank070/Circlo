@@ -19,6 +19,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 
+from app.services import areas as areas_service
 from app.services import booking as booking_service
 from app.services import listings as listings_service
 
@@ -52,10 +53,13 @@ def _parse_form(form):
 
     if not data["title"]:
         errors.append("Title is required.")
-    if not data["city"]:
-        errors.append("City is required.")
     if not data["area"]:
         errors.append("Area is required.")
+    elif not areas_service.is_valid_area(data["area"]):
+        errors.append("Please choose an area from the list.")
+    else:
+        # City is derived from the standardized area — keep them in lock-step.
+        data["city"] = areas_service.city_for_area(data["area"])
 
     try:
         data["category_id"] = int(data["category_id"])

@@ -227,6 +227,105 @@
       </div>
     </div>
   </footer>
+  <!-- Searchable area picker: progressive enhancement over the native <select>
+       rendered by _partials/area_select.html. No JS => the native select still
+       works (type-to-jump, no free typing). -->
+  <script>
+  (function () {
+    function enhance(container) {
+      var select = container.querySelector('select[data-area-combobox-select]');
+      if (!select || container.dataset.enhanced) return;
+      container.dataset.enhanced = '1';
+
+      var items = [];
+      Array.prototype.forEach.call(select.children, function (node) {
+        if (node.tagName === 'OPTGROUP') {
+          items.push({ group: node.label });
+          Array.prototype.forEach.call(node.children, function (o) {
+            items.push({ value: o.value, label: o.textContent.trim() });
+          });
+        } else if (node.tagName === 'OPTION' && !node.disabled) {
+          items.push({ value: node.value, label: node.textContent.trim() });
+        }
+      });
+
+      function currentLabel() {
+        var o = select.options[select.selectedIndex];
+        return o && o.value ? o.textContent.trim() : '';
+      }
+
+      select.classList.add('sr-only');
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.autocomplete = 'off';
+      input.setAttribute('role', 'combobox');
+      input.placeholder = select.hasAttribute('required') ? 'Search for an area…' : 'All areas';
+      input.value = currentLabel();
+      input.className = select.className.replace('sr-only', '').trim();
+
+      var panel = document.createElement('div');
+      panel.className = 'absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded-2xl border border-divider bg-white py-1 text-[15px] shadow-circlo';
+      panel.hidden = true;
+
+      container.appendChild(input);
+      container.appendChild(panel);
+
+      var rows = [];
+      function render(filter) {
+        panel.innerHTML = '';
+        rows = [];
+        var f = (filter || '').toLowerCase();
+        items.forEach(function (it) {
+          if (it.group) {
+            var anyMatch = items.some(function (x) {
+              return x.value !== undefined && x.label.toLowerCase().indexOf(f) > -1;
+            });
+            if (!f || anyMatch) {
+              var h = document.createElement('div');
+              h.className = 'px-4 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-neutral-500';
+              h.textContent = it.group;
+              panel.appendChild(h);
+            }
+            return;
+          }
+          if (f && it.label.toLowerCase().indexOf(f) === -1) return;
+          var row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'block w-full px-4 py-1.5 text-left text-ink hover:bg-surface';
+          row.textContent = it.label || 'All areas';
+          row.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            select.value = it.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            input.value = it.value ? it.label : '';
+            close();
+          });
+          panel.appendChild(row);
+          rows.push(row);
+        });
+      }
+
+      function open() { render(''); panel.hidden = false; }
+      function close() { panel.hidden = true; input.value = currentLabel(); }
+
+      input.addEventListener('focus', function () { open(); input.select(); });
+      input.addEventListener('input', function () { render(input.value); panel.hidden = false; });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !panel.hidden && rows[0]) {
+          e.preventDefault();
+          rows[0].dispatchEvent(new Event('mousedown'));
+        } else if (e.key === 'Escape') {
+          close();
+        }
+      });
+      document.addEventListener('click', function (e) {
+        if (!container.contains(e.target)) close();
+      });
+    }
+
+    document.querySelectorAll('[data-area-combobox]').forEach(enhance);
+  })();
+  </script>
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>

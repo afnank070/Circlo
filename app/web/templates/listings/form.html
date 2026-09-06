@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_partials/area_select.html" import area_select with context %}
 
 {% set is_edit = (mode == 'edit') %}
 {% block title %}{{ 'Edit listing' if is_edit else 'List an item' }} — CIRCLO{% endblock %}
@@ -70,27 +71,12 @@
                   placeholder="Condition, what’s included, pickup details…">{{ val('description', listing.description if listing else '') }}</textarea>
       </div>
 
-      <!-- City + Area -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label for="city" class="mb-1.5 block text-sm font-bold text-ink">City</label>
-          {% set current_city = form.get('city') if form.get('city') is not none else (listing.city if listing else '') %}
-          <select id="city" name="city" required
-                  class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink
-                         focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
-            {% for c in ['Islamabad', 'Rawalpindi'] %}
-            <option value="{{ c }}" {{ 'selected' if current_city == c }}>{{ c }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label for="area" class="mb-1.5 block text-sm font-bold text-ink">Area</label>
-          <input id="area" name="area" type="text" required maxlength="80"
-                 value="{{ val('area', listing.area if listing else '') }}"
-                 class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink
-                        placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
-                 placeholder="e.g. F-8, Bahria Town">
-        </div>
+      <!-- Area (standardized — city follows automatically) -->
+      <div>
+        <label for="area" class="mb-1.5 block text-sm font-bold text-ink">Area</label>
+        {% set current_area = form.get('area') if form.get('area') is not none else (listing.area if listing else '') %}
+        {{ area_select('area', selected=current_area, required=True, id='area') }}
+        <p class="mt-1 text-xs text-neutral-600">Pick your sector or neighbourhood in Islamabad or Rawalpindi — start typing to filter the list. The city is set from your choice.</p>
       </div>
 
       <!-- Price + Deposit -->
