@@ -4,6 +4,54 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Account dropdown "Profile" link + profile/account page (DONE ✅, 2026-09-07)
+
+### 1. "Profile" link in the account dropdown
+`base.html`'s account menu (`<details>` dropdown) was missing a Profile entry —
+it went straight from the name/email header to My Rentals. Added
+`<a href="{{ url_for('web.user_profile', user_id=current_user.id) }}">Profile</a>`
+as the first item under the header, linking to the existing public profile
+route (`GET /users/<id>`).
+
+### 2. Profile page now doubles as the account page (own view only)
+`users/profile.html` already had a public profile (avatar, verified badge,
+combined rating, joined date, reviews list) plus a self-only "Your contact
+number" phone form. Extended the self-only region — nothing public changed —
+with what was missing:
+- **Editable name / email / phone** — the phone-only form became an "Account
+  details" section (`POST /account` → new `web.update_account`). Backed by
+  `auth_service.update_account(user, name, email, phone)`, which rejects an
+  email already registered to another account (`EmailAlreadyRegistered`). The
+  old `POST /account/phone` route is kept (unused by the template now, no
+  callers removed).
+- **Verification prompt** — a self-only amber panel shows when
+  `not is_verified`, linking to `/verify`, with distinct copy for the
+  `rejected` vs `pending` case. The existing green ✓ Verified badge in the
+  header already covers the approved case.
+- **Rating breakdown** — new `reviews_service.rating_breakdown(user)` groups
+  received reviews by `Review.direction` into `as_owner`
+  (`renter_on_owner`) / `as_renter` (`owner_on_renter`) / `overall`, each a
+  `(Decimal|None, count)`. Rendered as a two-card "Reputation" section (shown
+  to everyone; the header keeps the combined star). "No reviews yet" per card
+  when empty.
+- **Change password** — new `GET/POST /account/password`
+  (`web.change_password` + `users/change_password.html`), backed by
+  `auth_service.change_password(user, current, new)` which raises
+  `IncorrectPassword` on a bad current password. The link and the route are
+  **hidden / 404 for OAuth-only accounts** (`not current_user.has_password`).
+
+### Verification
+- **New tests** (`tests/test_profile_account.py`, 13): dropdown contains the
+  Profile link → own `/users/<id>`; own profile renders the name/email/phone
+  form + rating breakdown; verify prompt shows for pending & rejected, badge
+  (no prompt) for approved; `POST /account` updates all three fields and
+  rejects a duplicate email; change-password page loads, updates the hash,
+  rejects a wrong current password; change-password link absent and route
+  404s for an OAuth-only user. **85 tests pass** (was 72).
+- Styled with the v3 "Organic Forest" tokens + spacious-section layout
+  (labelled sections, `rounded-full` pill inputs, `bg-surface` cards) to match
+  the rest of the migrated pages.
+
 ## Font-weight verification + contact/pickup reveal (DONE ✅, 2026-09-06)
 
 ### 1. Verified (and revised) the body font-weight fix

@@ -57,6 +57,40 @@ def set_phone(user: User, phone: str) -> User:
     return user
 
 
+class IncorrectPassword(Exception):
+    """Raised by :func:`change_password` when the current password doesn't match."""
+
+
+def update_account(user: User, *, name: str, email: str, phone: str | None) -> User:
+    """Update a user's own editable identity fields (profile self-edit).
+
+    :raises EmailAlreadyRegistered: if ``email`` belongs to a different account.
+    """
+    email = normalize_email(email)
+    existing = get_user_by_email(email)
+    if existing is not None and existing.id != user.id:
+        raise EmailAlreadyRegistered(email)
+
+    user.name = name.strip()
+    user.email = email
+    user.phone = (phone or "").strip() or None
+    db.session.commit()
+    return user
+
+
+def change_password(user: User, current_password: str, new_password: str) -> User:
+    """Change the password of an email/password account.
+
+    :raises IncorrectPassword: if ``current_password`` is wrong (or the account
+        is OAuth-only and has no password to verify against).
+    """
+    if not user.check_password(current_password):
+        raise IncorrectPassword()
+    user.set_password(new_password)
+    db.session.commit()
+    return user
+
+
 def authenticate(email: str, password: str) -> User | None:
     """Return the user if the email exists and the password matches, else None."""
     user = get_user_by_email(email)

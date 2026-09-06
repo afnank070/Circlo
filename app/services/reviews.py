@@ -104,6 +104,55 @@ def platform_average_rating() -> Decimal | None:
     return Decimal(str(avg)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
 
 
+def rating_breakdown(user: User) -> dict:
+    """Split a user's received ratings by the role they played.
+
+    Returns ``{"as_owner": (avg, count), "as_renter": (avg, count),
+    "overall": (avg, count)}`` where each ``avg`` is a 1-decimal ``Decimal`` or
+    ``None`` when that bucket has no reviews. ``as_owner`` counts reviews a
+    renter left about them (``renter_on_owner``); ``as_renter`` counts reviews an
+    owner left about them (``owner_on_renter``).
+    """
+    rows = (
+        db.session.query(
+            Review.direction, func.avg(Review.rating), func.count(Review.id)
+        )
+        .filter(Review.subject_id == user.id)
+        .group_by(Review.direction)
+        .all()
+    )
+    by_direction = {d: (a, c) for d, a, c in rows}
+
+    def _bucket(direction: str):
+        avg, count = by_direction.get(direction, (None, 0))
+        if avg is None:
+            return None, 0
+        return Decimal(str(avg)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP), int(count)
+
+    owner_avg, owner_count = _bucket(DIRECTION_RENTER_ON_OWNER)
+    renter_avg, renter_count = _bucket(DIRECTION_OWNER_ON_RENTER)
+
+    total_count = owner_count + renter_count
+    if total_count:
+        overall_avg = (
+            db.session.query(func.avg(Review.rating))
+            .filter(Review.subject_id == user.id)
+            .scalar()
+        )
+        overall = (
+            Decimal(str(overall_avg)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP),
+            total_count,
+        )
+    else:
+        overall = (None, 0)
+
+    return {
+        "as_owner": (owner_avg, owner_count),
+        "as_renter": (renter_avg, renter_count),
+        "overall": overall,
+    }
+
+
 def reviews_about(user: User, *, limit: int | None = None) -> list[Review]:
     q = (
         Review.query.filter_by(subject_id=user.id)

@@ -24,6 +24,7 @@ def user_profile(user_id: int):
         "users/profile.html",
         profile_user=user,
         reviews=reviews_service.reviews_about(user),
+        ratings=reviews_service.rating_breakdown(user),
     )
 
 
@@ -37,6 +38,65 @@ def update_phone():
         auth_service.set_phone(current_user, phone)
         flash("Phone number saved.", "success")
     return redirect(url_for("web.user_profile", user_id=current_user.id))
+
+
+@web_bp.route("/account", methods=["POST"])
+@login_required
+def update_account():
+    name = (request.form.get("name") or "").strip()
+    email = (request.form.get("email") or "").strip()
+    phone = (request.form.get("phone") or "").strip()
+
+    errors = []
+    if not name:
+        errors.append("Please enter your name.")
+    if not email or "@" not in email:
+        errors.append("Please enter a valid email address.")
+
+    if not errors:
+        try:
+            auth_service.update_account(current_user, name=name, email=email, phone=phone)
+        except auth_service.EmailAlreadyRegistered:
+            errors.append("That email is already registered to another account.")
+        else:
+            flash("Profile updated.", "success")
+
+    for msg in errors:
+        flash(msg, "error")
+    return redirect(url_for("web.user_profile", user_id=current_user.id))
+
+
+@web_bp.route("/account/password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    # OAuth-only accounts have no password to change — nothing to show here.
+    if not current_user.has_password:
+        abort(404)
+
+    if request.method == "POST":
+        current_password = request.form.get("current_password") or ""
+        new_password = request.form.get("new_password") or ""
+        confirm = request.form.get("confirm") or ""
+
+        errors = []
+        if len(new_password) < 8:
+            errors.append("New password must be at least 8 characters.")
+        if new_password != confirm:
+            errors.append("New passwords do not match.")
+
+        if not errors:
+            try:
+                auth_service.change_password(current_user, current_password, new_password)
+            except auth_service.IncorrectPassword:
+                errors.append("Your current password is incorrect.")
+            else:
+                flash("Password changed.", "success")
+                return redirect(url_for("web.user_profile", user_id=current_user.id))
+
+        for msg in errors:
+            flash(msg, "error")
+
+    return render_template("users/change_password.html")
 
 
 @web_bp.route("/bookings/<int:booking_id>/review", methods=["POST"])

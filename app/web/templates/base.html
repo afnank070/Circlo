@@ -164,6 +164,7 @@
               <p class="truncate text-sm font-bold text-ink">{{ current_user.name }}</p>
               <p class="truncate text-xs text-neutral-600">{{ current_user.email }}</p>
             </div>
+            <a href="{{ url_for('web.user_profile', user_id=current_user.id) }}" class="block px-4 py-2 text-sm text-ink hover:bg-surface">Profile</a>
             <a href="{{ url_for('web.my_rentals') }}" class="flex items-center justify-between px-4 py-2 text-sm text-ink hover:bg-surface">
               My Rentals
               {% if pending_request_count %}
