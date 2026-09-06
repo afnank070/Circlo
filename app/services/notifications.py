@@ -135,6 +135,77 @@ def payment_confirmed(booking) -> None:
 
 
 @_safe
+def booking_cancelled(booking, by_user=None) -> None:
+    """To the party who *didn't* cancel: the booking is off (pre-payment, free)."""
+    canceller = by_user
+    other = (
+        booking.owner if canceller and canceller.id == booking.renter_id
+        else booking.renter
+    )
+    who = canceller.name if canceller else "The other party"
+    _send(
+        other.email, f"Booking cancelled: {booking.listing.title}",
+        f"<p>Hi {_first_name(other)},</p><p><strong>{who}</strong> cancelled the "
+        f"booking for <strong>{booking.listing.title}</strong> "
+        f"({booking.rental_date_start:%d %b} – {booking.rental_date_end:%d %b %Y}). "
+        f"No payment had been made, so there's nothing to refund.</p>"
+        f'<p><a href="{_abs_url("web.index")}">Keep browsing</a></p>',
+    )
+
+
+@_safe
+def cancellation_requested(booking, by_user=None) -> None:
+    """To the other party: a cancellation has been requested; an admin is on it."""
+    requester = by_user
+    other = (
+        booking.owner if requester and requester.id == booking.renter_id
+        else booking.renter
+    )
+    who = requester.name if requester else "The other party"
+    _send(
+        other.email, f"Cancellation requested: {booking.listing.title}",
+        f"<p>Hi {_first_name(other)},</p><p><strong>{who}</strong> asked to cancel "
+        f"the booking for <strong>{booking.listing.title}</strong>. Because payment "
+        f"is already in play, a CIRCLO admin will review it and arrange any refund "
+        f"before the booking is cancelled. We'll email you when it's done.</p>"
+        f'<p><a href="{_abs_url("web.my_rentals")}">Open My Rentals</a></p>',
+    )
+
+
+@_safe
+def cancellation_confirmed(booking) -> None:
+    """To both parties: the admin has cancelled the booking and sent the refund."""
+    link = _abs_url("web.my_rentals")
+    for user in (booking.renter, booking.owner):
+        _send(
+            user.email, f"Booking cancelled: {booking.listing.title}",
+            f"<p>Hi {_first_name(user)},</p><p>The booking for "
+            f"<strong>{booking.listing.title}</strong> has been cancelled by "
+            f"CIRCLO"
+            + (
+                " and your refund has been sent back to you" if user is booking.renter
+                else ""
+            )
+            + f".</p><p><a href=\"{link}\">Open My Rentals</a></p>",
+        )
+
+
+@_safe
+def cancellation_rejected(booking, requester=None) -> None:
+    """To whoever asked: the cancellation request was declined."""
+    if requester is None:
+        return
+    _send(
+        requester.email, f"Cancellation request declined: {booking.listing.title}",
+        f"<p>Hi {_first_name(requester)},</p><p>A CIRCLO admin reviewed your request "
+        f"to cancel <strong>{booking.listing.title}</strong> and it wasn't approved "
+        f"— the booking still stands. If something's wrong with the item once it's "
+        f"handed over, use <strong>Report a problem</strong> on the booking.</p>"
+        f'<p><a href="{_abs_url("web.my_rentals")}">Open My Rentals</a></p>',
+    )
+
+
+@_safe
 def booking_completed(booking) -> None:
     """To both parties, with a review prompt."""
     link = _abs_url("web.my_rentals")

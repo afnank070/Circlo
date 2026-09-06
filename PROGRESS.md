@@ -4,6 +4,78 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Stage-aware booking cancellation flow (DONE ✅, 2026-09-07)
+
+Cancellation rules now depend on how far the booking has progressed
+(blueprint §5, §7). All logic in `app/services/cancellation.py`.
+
+### Rules by stage
+- **REQUESTED / ACCEPTED** (`booking_service.FREE_CANCEL_STATUSES`) — either
+  party cancels instantly via `booking_service.cancel()`. No money involved:
+  booking → CANCELLED, the *other* party is emailed
+  (`notifications.booking_cancelled`). `cancel()` was tightened — it used to
+  also allow AWAITING_PAYMENT; that path now goes through the request flow.
+- **AWAITING_PAYMENT / PAID** (`cancellation.ADMIN_CANCEL_STATUSES`) — money
+  has moved, so an instant cancel is refused. Either party raises a
+  **`CancellationRequest`** (`pending`) via
+  `cancellation.request_cancellation()`; the other party is emailed
+  (`notifications.cancellation_requested`). An admin then either:
+  - **confirms** (`confirm_cancellation`) — records a matching **confirmed
+    `refund` ledger entry** for whatever the renter actually paid in
+    (`refundable_amount()` = confirmed `rental_payment` + `deposit` entries;
+    zero if an AWAITING_PAYMENT booking was never payment-confirmed), moves
+    the booking to CANCELLED, emails both parties. Reuses the M4
+    manual-refund pattern (`ledger_service.record(..., TYPE_REFUND,
+    status=confirmed)`).
+  - **declines** (`reject_cancellation`) — request → `rejected`, booking
+    untouched, requester emailed.
+- **HANDED_OVER / ACTIVE / RETURNED** (`cancellation.DISPUTE_ONLY_STATUSES`) —
+  the item is physically exchanged; cancellation is gone. Users are pointed at
+  the existing dispute flow ("Report a problem").
+- **COMPLETED / CANCELLED** — nothing offered.
+
+### Surfacing the right control (`/my-rentals`)
+`cancellation.available_action(booking, user)` → `"cancel"` / `"request"` /
+`"pending"` / `"dispute"` / `None`. `web.my_rentals` computes it (plus the
+open `CancellationRequest`) into `booking_detail`; the new
+`cancellation_controls` macro in `rentals/my_rentals.html` renders, on each
+in-flight booking row: an instant **Cancel booking** button, a **Request
+cancellation** disclosure (with an optional reason box), a "cancellation
+requested — admin is on it" note, or the "can't be cancelled, use Report a
+problem" hint.
+
+### Admin
+New **Cancellation requests** section on `/admin/payments` (routes
+`POST /admin/cancellations/<id>/confirm|reject` in `app/admin/payments.py`) —
+lists each pending request with the booking's ledger, the exact refund amount
+to send, and Confirm / Decline buttons.
+
+### Schema
+- **`cancellation_requests`** table — migration `d4f1a7c9e2b6` (revises
+  `a3d8e1f4c6b7`, hand-written in the existing style). Columns: `booking_id`,
+  `requested_by`, `reason` (nullable), `status`
+  (`pending`/`confirmed`/`rejected`), timestamps, `resolved_by`. **Run `flask
+  db upgrade` + sanity-check on Docker/Postgres.**
+- New model `app/models/cancellation_request.py`, registered in
+  `app/models/__init__.py`.
+
+### New web/notification pieces
+- `POST /bookings/<id>/request-cancellation` (`web.request_booking_cancellation`).
+- `notifications.booking_cancelled` / `cancellation_requested` /
+  `cancellation_confirmed` / `cancellation_rejected` — all `@_safe`,
+  best-effort like the rest.
+
+### Verification
+- **New tests** `tests/test_cancellation.py` (15): free cancel at
+  REQUESTED/ACCEPTED (+ other-party email); instant cancel refused once
+  AWAITING_PAYMENT; request creates pending + notifies; double-request
+  rejected; admin confirm records the full refund entry + cancels + emails
+  both; admin decline leaves the booking PAID; AWAITING_PAYMENT-never-confirmed
+  refund is zero; ACTIVE booking can't be cancelled (dispute instead);
+  COMPLETED offers nothing; non-party blocked; `/my-rentals` shows the right
+  control per stage; the request route + the admin confirm route end-to-end.
+- **100 tests pass** (was 85).
+
 ## Account dropdown "Profile" link + profile/account page (DONE ✅, 2026-09-07)
 
 ### 1. "Profile" link in the account dropdown

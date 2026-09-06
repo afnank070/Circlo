@@ -15,6 +15,7 @@ from flask import flash, redirect, render_template, url_for
 from flask_login import current_user
 
 from app.services import booking as booking_service
+from app.services import cancellation as cancellation_service
 from app.services import ledger as ledger_service
 from app.services import payments as payments_service
 
@@ -26,13 +27,48 @@ from . import admin_bp, admin_required
 def payments_queue():
     awaiting_payment = payments_service.bookings_awaiting_payment_confirmation()
     awaiting_payout = payments_service.bookings_awaiting_payout()
+    cancellation_requests = cancellation_service.pending_requests()
     return render_template(
         "payments_queue.html",
         awaiting_payment=awaiting_payment,
         awaiting_payout=awaiting_payout,
+        cancellation_requests=cancellation_requests,
         rental_amount_for=booking_service.rental_amount_for,
         ledger_for=ledger_service.entries_for_booking,
+        refundable_amount=cancellation_service.refundable_amount,
     )
+
+
+@admin_bp.route("/cancellations/<int:request_id>/confirm", methods=["POST"])
+@admin_required
+def confirm_cancellation(request_id: int):
+    req = cancellation_service.get_request(request_id)
+    if req is None:
+        flash("Cancellation request not found.", "error")
+        return redirect(url_for("admin.payments_queue"))
+    try:
+        cancellation_service.confirm_cancellation(req, admin=current_user)
+    except cancellation_service.CancellationError as exc:
+        flash(str(exc), "error")
+    else:
+        flash(f"Booking #{req.booking_id} cancelled and refund recorded.", "success")
+    return redirect(url_for("admin.payments_queue"))
+
+
+@admin_bp.route("/cancellations/<int:request_id>/reject", methods=["POST"])
+@admin_required
+def reject_cancellation(request_id: int):
+    req = cancellation_service.get_request(request_id)
+    if req is None:
+        flash("Cancellation request not found.", "error")
+        return redirect(url_for("admin.payments_queue"))
+    try:
+        cancellation_service.reject_cancellation(req, admin=current_user)
+    except cancellation_service.CancellationError as exc:
+        flash(str(exc), "error")
+    else:
+        flash(f"Cancellation request for booking #{req.booking_id} declined.", "info")
+    return redirect(url_for("admin.payments_queue"))
 
 
 @admin_bp.route("/payments/<int:booking_id>/confirm-payment", methods=["POST"])

@@ -309,6 +309,34 @@
   {% endif %}
 {%- endmacro %}
 
+{# --- stage-aware cancellation control (Cancel / Request cancellation / dispute hint) --- #}
+{% macro cancellation_controls(b, viewer) -%}
+  {% set d = booking_detail.get(b.id) %}
+  {% if d %}
+    {% if d.pending_cancellation %}
+      <p class="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-ink ring-1 ring-amber-100">
+        ⏳ Cancellation requested{% if d.pending_cancellation.requester %} by {{ d.pending_cancellation.requester.name }}{% endif %} — a CIRCLO admin is arranging the refund.
+      </p>
+    {% elif d.cancel_action == 'cancel' %}
+      <form method="post" action="{{ url_for('web.cancel_booking', booking_id=b.id) }}" class="mt-3">
+        <button type="submit" class="rounded-full border border-divider bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">Cancel booking</button>
+      </form>
+    {% elif d.cancel_action == 'request' %}
+      <details class="mt-3">
+        <summary class="cursor-pointer list-none text-sm font-bold text-ink hover:text-accent-700">Request cancellation</summary>
+        <form method="post" action="{{ url_for('web.request_booking_cancellation', booking_id=b.id) }}" class="mt-2 rounded-2xl bg-surface p-3 ring-1 ring-divider">
+          <p class="text-xs text-neutral-700">Payment's already in play, so an admin has to confirm the refund before this is cancelled.</p>
+          <textarea name="reason" rows="2" placeholder="Why do you need to cancel? (optional)"
+                    class="mt-2 w-full rounded-2xl border border-divider bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"></textarea>
+          <button type="submit" class="mt-2 rounded-full bg-accent-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-accent-800">Submit cancellation request</button>
+        </form>
+      </details>
+    {% elif d.cancel_action == 'dispute' %}
+      <p class="mt-3 text-sm text-neutral-600">The item's already been handed over — this booking can't be cancelled. Use <span class="font-semibold text-rose-600">Report a problem</span> below if something's wrong.</p>
+    {% endif %}
+  {% endif %}
+{%- endmacro %}
+
 {% macro inflight_row(b, viewer) -%}
 <div class="flex flex-wrap items-start gap-4 py-5">
   {{ booking_thumb(b.listing) }}
@@ -323,6 +351,7 @@
     </p>
     {{ contact_reveal(b, viewer) }}
     {{ evidence_panel(b, viewer) }}
+    {{ cancellation_controls(b, viewer) }}
     {{ dispute_and_review(b, viewer) }}
   </div>
 </div>

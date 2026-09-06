@@ -284,20 +284,31 @@ def reject(booking: Booking, *, owner: User) -> Booking:
     return booking
 
 
+# Free (instant) cancellation — no money has moved yet, either party can just
+# pull out. Past this the money side needs an admin (see services.cancellation).
+FREE_CANCEL_STATUSES = (STATUS_REQUESTED, STATUS_ACCEPTED)
+
+
 def cancel(booking: Booking, *, user: User) -> Booking:
-    """Either the renter or the owner cancels a REQUESTED/ACCEPTED booking.
+    """Either the renter or the owner instantly cancels a pre-payment booking.
+
+    Only valid while the booking is REQUESTED or ACCEPTED (no money involved).
+    Once payment is in play (AWAITING_PAYMENT / PAID) cancellation must go
+    through :func:`app.services.cancellation.request_cancellation` so an admin
+    can confirm the refund; from HANDED_OVER on it's gone entirely (dispute
+    flow instead).
 
     :raises BookingPermissionError: ``user`` is neither party on this booking.
-    :raises InvalidBookingTransition: the booking is already CANCELLED.
+    :raises InvalidBookingTransition: the booking is past free cancellation.
     """
     if user.id not in (booking.renter_id, booking.owner_id):
         raise BookingPermissionError("You're not part of this booking.")
-    # Cancellable only while no money has been confirmed as received.
-    if booking.status not in (STATUS_REQUESTED, STATUS_ACCEPTED, STATUS_AWAITING_PAYMENT):
+    if booking.status not in FREE_CANCEL_STATUSES:
         raise InvalidBookingTransition("This booking can no longer be cancelled.")
 
     booking.status = STATUS_CANCELLED
     db.session.commit()
+    notifications.booking_cancelled(booking, by_user=user)
     return booking
 
 

@@ -60,6 +60,69 @@
     </div>
   </section>
 
+  <!-- ===== Cancellation requests ===== -->
+  <section class="mt-14">
+    <div class="flex items-baseline gap-2">
+      <h2 class="font-display text-[15px] font-bold uppercase tracking-[0.08em] text-ink">Cancellation requests</h2>
+      <span class="text-[13px] font-semibold text-neutral-500">{{ cancellation_requests|length }}</span>
+    </div>
+    <p class="mt-1 text-sm text-neutral-600">
+      Money has already moved on these bookings. Send the refund back by hand, then confirm — that records a matching refund entry and cancels the booking.
+    </p>
+
+    {% if not cancellation_requests %}
+    <p class="mt-6 text-sm text-neutral-500">No cancellation requests.</p>
+    {% endif %}
+
+    <div class="mt-1 divide-y divide-divider">
+      {% for req in cancellation_requests %}
+      {% set b = req.booking %}
+      <div class="py-6 first:pt-0">
+        <p class="font-bold text-ink">
+          <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
+          <span class="text-sm font-normal text-neutral-500">· booking #{{ b.id }} · {{ b.status.replace('_', ' ') }}</span>
+        </p>
+        <p class="mt-0.5 text-sm text-neutral-600">
+          Requested by {{ req.requester.name }} · Renter: {{ b.renter.name }} ({{ b.renter.email }}) · Owner: {{ b.owner.name }} ({{ b.owner.email }})
+        </p>
+        {% if req.reason %}
+        <p class="mt-1 text-sm italic text-neutral-700">“{{ req.reason }}”</p>
+        {% endif %}
+        <table class="mt-3 w-full text-sm">
+          <tbody>
+            {% for e in ledger_for(b) %}
+            <tr class="border-t border-divider">
+              <td class="py-1.5 capitalize text-neutral-700">{{ e.type.replace('_', ' ') }}</td>
+              <td class="py-1.5 text-right font-medium text-ink">{{ money(e.amount) }}</td>
+              <td class="py-1.5 pl-4 text-right">
+                {% if e.status == 'confirmed' %}
+                <span class="rounded-full bg-accent-100 px-2 py-0.5 text-xs font-bold text-accent-800">confirmed</span>
+                {% else %}
+                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">pending</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="mt-2 text-sm font-bold text-ink">Refund to send back to renter: {{ money(refundable_amount(b)) }}</p>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <form method="post" action="{{ url_for('admin.confirm_cancellation', request_id=req.id) }}">
+            <button type="submit" class="rounded-full bg-accent-700 px-4 py-1.5 text-sm font-bold text-white hover:bg-accent-800">
+              Confirm refund sent &amp; cancel booking
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('admin.reject_cancellation', request_id=req.id) }}">
+            <button type="submit" class="rounded-full border border-rose-200 bg-white px-4 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">
+              Decline
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
   <!-- ===== Awaiting payout ===== -->
   <section class="mt-14">
     <div class="flex items-baseline gap-2">

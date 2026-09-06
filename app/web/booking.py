@@ -12,6 +12,7 @@ from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app.services import booking as booking_service
+from app.services import cancellation as cancellation_service
 from app.services import disputes as disputes_service
 from app.services import evidence as evidence_service
 from app.services import ledger as ledger_service
@@ -111,6 +112,31 @@ def cancel_booking(booking_id: int):
     return redirect(url_for("web.my_rentals"))
 
 
+@web_bp.route("/bookings/<int:booking_id>/request-cancellation", methods=["POST"])
+@login_required
+def request_booking_cancellation(booking_id: int):
+    booking = booking_service.get_booking(booking_id)
+    if booking is None:
+        abort(404)
+    try:
+        cancellation_service.request_cancellation(
+            booking, current_user, reason=request.form.get("reason", ""),
+        )
+    except cancellation_service.CancellationNotAllowed as exc:
+        if current_user.id not in (booking.renter_id, booking.owner_id):
+            abort(403)
+        flash(str(exc), "error")
+    except cancellation_service.CancellationAlreadyRequested as exc:
+        flash(str(exc), "info")
+    else:
+        flash(
+            "Cancellation requested. A CIRCLO admin will arrange the refund and "
+            "confirm the cancellation.",
+            "success",
+        )
+    return redirect(url_for("web.my_rentals"))
+
+
 @web_bp.route("/bookings/<int:booking_id>/mark-paid", methods=["POST"])
 @login_required
 def mark_booking_paid(booking_id: int):
@@ -192,6 +218,8 @@ def my_rentals():
                     and b.status in disputes_service.DISPUTABLE_STATUSES
                 ),
                 "can_reveal_contact": booking_service.can_reveal_contact(b),
+                "cancel_action": cancellation_service.available_action(b, current_user),
+                "pending_cancellation": cancellation_service.open_request_for(b),
             }
         return out
 

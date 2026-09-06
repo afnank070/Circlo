@@ -31,6 +31,9 @@ from .password_reset_token import PasswordResetToken  # noqa: F401
 from .review import Review  # noqa: F401
 from .dispute import Dispute  # noqa: F401
 
+# Cancellation flow (blueprint §5, §7).
+from .cancellation_request import CancellationRequest  # noqa: F401
+
 __all__ = [
     "User",
     "IdentityDocument",
@@ -44,4 +47,5 @@ __all__ = [
     "PasswordResetToken",
     "Review",
     "Dispute",
+    "CancellationRequest",
 ]
