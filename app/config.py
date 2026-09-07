@@ -64,6 +64,10 @@ class Config:
     BREVO_API_URL = _env("BREVO_API_URL", "https://api.brevo.com/v3/smtp/email")
     MAIL_FROM_ADDRESS = _env("MAIL_FROM_ADDRESS")
     MAIL_FROM_NAME = _env("MAIL_FROM_NAME", "CIRCLO")
+    # Human inbox the /contact form delivers to. Deliberately NOT the same as
+    # MAIL_FROM_ADDRESS (help@circlo.pk) — that address is only the *sender* of
+    # automated system mail (password resets, notifications).
+    CONTACT_EMAIL = _env("CONTACT_EMAIL", "contact@circlo.pk")
     # Base URL for links inside emails (password reset, etc.). No trailing slash.
     PUBLIC_BASE_URL = _env("PUBLIC_BASE_URL", "http://localhost:5000")
 

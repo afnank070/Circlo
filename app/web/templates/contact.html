@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Contact us — CIRCLO{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-[560px] px-4 py-14 sm:py-20">
+  <div class="rounded-3xl border border-divider bg-surface p-[26px] shadow-circlo sm:p-[30px]">
+
+    {% if sent %}
+    <div class="mb-3.5 text-[12px] tracking-[0.14em] uppercase text-accent-700">Message sent</div>
+    <h1 class="m-0 font-display text-[30px] font-bold uppercase leading-[0.95] tracking-[-0.01em] text-ink sm:text-[38px]">Thanks — we'll be in touch</h1>
+    <p class="mt-3 text-[15px] leading-[1.6] text-neutral-700">
+      Your message is on its way to the CIRCLO team. We usually reply within a working day — keep an eye on your inbox.
+    </p>
+    <div class="mt-6 flex flex-wrap gap-2.5">
+      <a href="{{ url_for('web.index') }}"
+         class="inline-flex h-[48px] items-center rounded-full bg-accent px-6 font-display text-[15px] font-bold uppercase tracking-[0.06em] text-white hover:bg-accent-600">
+        Back to browse
+      </a>
+      <a href="{{ url_for('web.contact') }}"
+         class="inline-flex h-[48px] items-center rounded-full border border-divider bg-white px-6 font-display text-[15px] font-bold uppercase tracking-[0.06em] text-ink hover:bg-neutral-100">
+        Send another
+      </a>
+    </div>
+
+    {% else %}
+    <div class="mb-3.5 text-[12px] tracking-[0.14em] uppercase text-accent-700">Get in touch</div>
+    <h1 class="m-0 font-display text-[30px] font-bold uppercase leading-[0.95] tracking-[-0.01em] text-ink sm:text-[38px]">Contact us</h1>
+    <p class="mt-3 text-[15px] leading-[1.6] text-neutral-700">
+      A question, a bug, or a problem with a booking or verification — tell us here and a real person will get back to you.
+    </p>
+
+    <form method="post" action="{{ url_for('web.contact') }}" class="mt-6 flex flex-col gap-4">
+      {# Honeypot — hidden from people, catches bots that fill every field. #}
+      <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">
+        <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off" value=""></label>
+      </div>
+
+      <div>
+        <label for="name" class="mb-1.5 block text-sm font-bold text-ink">Name</label>
+        <input id="name" name="name" type="text" required autocomplete="name"
+               value="{{ form.get('name') if form.get('name') is not none else prefill_name }}"
+               class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+               placeholder="Your name">
+      </div>
+
+      <div>
+        <label for="email" class="mb-1.5 block text-sm font-bold text-ink">Email</label>
+        <input id="email" name="email" type="email" required autocomplete="email"
+               value="{{ form.get('email') if form.get('email') is not none else prefill_email }}"
+               class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+               placeholder="you@example.com">
+      </div>
+
+      <div>
+        <label for="category" class="mb-1.5 block text-sm font-bold text-ink">What's it about?</label>
+        {% set current_cat = form.get('category') or 'general' %}
+        <select id="category" name="category"
+                class="w-full rounded-full border border-divider bg-white px-4 py-[11px] text-[15px] text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
+          {% for value, label in categories %}
+          <option value="{{ value }}" {{ 'selected' if current_cat == value }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="message" class="mb-1.5 block text-sm font-bold text-ink">Message</label>
+        <textarea id="message" name="message" rows="5" required minlength="10" maxlength="5000"
+                  class="w-full rounded-[18px] border border-divider bg-white px-4 py-3 text-[15px] text-ink placeholder:text-neutral-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"
+                  placeholder="Tell us what's going on…">{{ form.get('message', '') }}</textarea>
+      </div>
+
+      <button type="submit"
+              class="mt-1.5 h-[52px] w-full rounded-full bg-accent font-display text-[16px] font-bold uppercase tracking-[0.08em] text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-100 sm:text-[19px]">
+        Send message
+      </button>
+    </form>
+
+    <div class="mt-[18px] border-t border-divider pt-4 text-[12.5px] leading-[1.5] text-neutral-700">
+      This form goes to <span class="font-semibold text-ink">{{ contact_email }}</span>. We only use your email to reply.
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -4,6 +4,54 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Contact Us form + support-email split (DONE ✅, 2026-09-07)
+
+### `/contact` page + form
+- **`app/services/contact.py`** — `submit_contact_message(name, email,
+  category, message, honeypot="")`: validates (name required, valid-ish email,
+  message 10–5000 chars), coerces an unknown category to `general`, builds an
+  HTML body and emails it via the existing `email_service.send_email` to
+  **`CONTACT_EMAIL`** (`contact@circlo.pk` by default). `CATEGORIES` list
+  (`general` / `bug` / `booking` / `verification` / `other`) drives the form
+  dropdown and the email subject (`[Contact · <label>] <name>`).
+- **Honeypot spam guard** — a hidden `website` field, off-screen
+  (`position:absolute;left:-9999px`), `tabindex="-1"`, `autocomplete="off"`.
+  If it's filled, `submit_contact_message` logs it and returns `True` without
+  sending — the bot sees a normal success page. No reCAPTCHA.
+- **Route** `GET/POST /contact` (`app/web/community.py`) — GET pre-fills name
+  + email from `current_user` when logged in; POST validates via the service,
+  flashes an error and re-renders on `ContactError`, else flashes success and
+  redirects to `/contact?sent=1`, which renders a distinct "MESSAGE SENT /
+  Thanks — we'll be in touch" confirmation card (not just the empty form).
+- **`contact.html`** — V3 `bg-surface` `rounded-3xl` `shadow-circlo` card,
+  "GET IN TOUCH" kicker, Barlow heading, pill inputs/select, `h-[52px]` accent
+  submit, footnote naming the real inbox (`{{ contact_email }}`, from config).
+- **Config**: `CONTACT_EMAIL` (env `CONTACT_EMAIL`, default `contact@circlo.pk`)
+  added to `Config`, `.env.example`, and `render.yaml` (`sync: false`).
+
+### Support-email split (help@ vs contact@)
+`help@circlo.pk` stays **only** as `MAIL_FROM_ADDRESS` — the *sender* of
+automated system mail (password resets, notifications). Every place a user is
+told to *reach out to CIRCLO* now points at `contact@circlo.pk` or the new
+form:
+- **Footer** (`base.html`): the `mailto:help@circlo.pk` "Help" link → a real
+  **"Contact us"** link to `/contact`, alongside Privacy / Terms.
+- **`legal/privacy.html`** + **`legal/terms.html`**: "email help@circlo.pk" →
+  "Contact us" (link to `/contact`) + `mailto:contact@circlo.pk`.
+- **`errors/500.html`**: fallback email → `contact@circlo.pk`.
+
+### Verification
+- **`tests/test_contact.py`** (8): page renders with all fields + honeypot;
+  a valid submit triggers exactly one `send_email` addressed to
+  `contact@circlo.pk` (and ≠ `MAIL_FROM_ADDRESS`) carrying name/email/category/
+  message; honeypot submission sends nothing but still shows success; short
+  message / missing name rejected with no send; unknown category → "General
+  question"; logged-in details pre-filled; footer links to `/contact` with no
+  `mailto:help@circlo.pk`. `send_email` is mocked. **137 tests pass** (was 129).
+- Verified live: submitting the form logs a `send_email … -> contact@circlo.pk`
+  attempt (skipped only for want of a Brevo key in dev) and shows the
+  confirmation card.
+
 ## Mobile responsiveness pass (DONE ✅, 2026-09-07)
 
 Purely additive **mobile-only** (`<640px`) rules — every change pins the

@@ -9,10 +9,50 @@ from flask_login import current_user, login_required
 
 from app.services import auth as auth_service
 from app.services import booking as booking_service
+from app.services import contact as contact_service
 from app.services import disputes as disputes_service
 from app.services import reviews as reviews_service
 
 from . import web_bp
+
+
+@web_bp.route("/contact", methods=["GET", "POST"])
+def contact():
+    prefill_name = current_user.name if current_user.is_authenticated else ""
+    prefill_email = current_user.email if current_user.is_authenticated else ""
+
+    if request.method == "POST":
+        try:
+            contact_service.submit_contact_message(
+                name=request.form.get("name") or prefill_name,
+                email=request.form.get("email") or prefill_email,
+                category=request.form.get("category", contact_service.DEFAULT_CATEGORY),
+                message=request.form.get("message", ""),
+                honeypot=request.form.get("website", ""),
+            )
+        except contact_service.ContactError as exc:
+            flash(str(exc), "error")
+            return render_template(
+                "contact.html",
+                form=request.form,
+                categories=contact_service.CATEGORIES,
+                prefill_name=prefill_name,
+                prefill_email=prefill_email,
+                contact_email=contact_service.contact_inbox(),
+                sent=False,
+            )
+        flash("Thanks — your message is on its way. We'll get back to you soon.", "success")
+        return redirect(url_for("web.contact", sent=1))
+
+    return render_template(
+        "contact.html",
+        form={},
+        categories=contact_service.CATEGORIES,
+        prefill_name=prefill_name,
+        prefill_email=prefill_email,
+        contact_email=contact_service.contact_inbox(),
+        sent=bool(request.args.get("sent")),
+    )
 
 
 @web_bp.route("/users/<int:user_id>")

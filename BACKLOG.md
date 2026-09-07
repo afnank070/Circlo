@@ -26,8 +26,6 @@ Update it every time something is deferred — don't rely on chat history alone.
 - [ ] Auto-expire stale pending rental requests (e.g. after 48h with no owner response).
 
 ## Support & Content
-- [ ] Visible "Contact us" form on-site — currently only an email address (contact@circlo.pk),
-      no actual form/channel embedded in the product.
 - [ ] Replace/clean seed/demo data before real users see the site (currently shows test
       listings like "Bosch drill", "Canon camera" etc. with fake reviews).
 
