@@ -33,9 +33,10 @@ def index():
     query = request.args.get("q") or None
     area = request.args.get("area") or None
     city = request.args.get("city") or None
+    sort = listings_service.normalized_sort(request.args.get("sort"))
 
     results = listings_service.browse_listings(
-        category_slug=category, query=query, area=area, city=city,
+        category_slug=category, query=query, area=area, city=city, sort=sort,
     )
     categories = listings_service.all_categories()
 
@@ -53,6 +54,9 @@ def index():
         active_category=category,
         active_area=area or "",
         active_city=city or "",
+        active_sort=sort,
+        sort_options=listings_service.SORT_LABELS,
+        default_sort=listings_service.DEFAULT_SORT,
         query=query or "",
         stats=stats,
     )

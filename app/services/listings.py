@@ -15,7 +15,7 @@ from sqlalchemy import or_
 from werkzeug.datastructures import FileStorage
 
 from app.extensions import db
-from app.models import Booking, Category, Listing, ListingImage
+from app.models import Booking, Category, Listing, ListingImage, User
 from app.services import areas as areas_service
 from app.services import storage
 
@@ -45,6 +45,50 @@ BROWSABLE_STATUS = "active"
 # (draft/active/paused/removed) rather than adding a new column value.
 ARCHIVED_STATUS = "paused"
 
+# --- Browse sort order -----------------------------------------------------
+# Every option sorts on data we actually store — no "distance" (never computed).
+SORT_NEWEST = "newest"
+SORT_PRICE_LOW = "price_low"
+SORT_PRICE_HIGH = "price_high"
+SORT_RATING = "rating"
+DEFAULT_SORT = SORT_NEWEST
+
+# Ordered — drives the dropdown; first entry is the default.
+SORT_LABELS: dict[str, str] = {
+    SORT_NEWEST: "Newest first",
+    SORT_PRICE_LOW: "Price: low to high",
+    SORT_PRICE_HIGH: "Price: high to low",
+    SORT_RATING: "Highest rated",
+}
+
+
+def normalized_sort(value: str | None) -> str:
+    """Coerce a raw ``?sort=`` value to a known option, falling back to default."""
+    return value if value in SORT_LABELS else DEFAULT_SORT
+
+
+def _apply_sort(q, sort: str):
+    """Attach the ORDER BY for ``sort`` (already normalized) to a listings query."""
+    if sort == SORT_PRICE_LOW:
+        return q.order_by(Listing.price_per_day.asc(), Listing.created_at.desc())
+    if sort == SORT_PRICE_HIGH:
+        return q.order_by(Listing.price_per_day.desc(), Listing.created_at.desc())
+    if sort == SORT_RATING:
+        # Highest owner rating first; unrated owners last; newest breaks ties.
+        # ``rating.is_(None).asc()`` (False before True) keeps this portable
+        # across SQLite/Postgres without relying on NULLS LAST.
+        return (
+            q.join(Listing.owner)
+            .order_by(
+                User.rating.is_(None).asc(),
+                User.rating.desc(),
+                Listing.created_at.desc(),
+            )
+        )
+    # SORT_NEWEST (default)
+    return q.order_by(Listing.created_at.desc(), Listing.id.desc())
+
+
 # Guardrails for owner uploads.
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 _EXT_FOR_TYPE = {
@@ -68,7 +112,7 @@ def total_listings_count() -> int:
 
 def browse_listings(*, category_slug: str | None = None,
                     query: str | None = None, area: str | None = None,
-                    city: str | None = None) -> list[Listing]:
+                    city: str | None = None, sort: str | None = None) -> list[Listing]:
     """Active listings, optionally filtered by category, text query, area, city.
 
     ``area`` is matched exactly against the standardized area name (the browse
@@ -76,6 +120,9 @@ def browse_listings(*, category_slug: str | None = None,
     stored area is one of those names), so "F-7" reliably returns F-7 listings
     and nothing else. ``city`` narrows to Islamabad / Rawalpindi. The free-text
     ``query`` still also matches title / description / area loosely.
+
+    ``sort`` is one of :data:`SORT_LABELS` (``newest`` default, ``price_low``,
+    ``price_high``, ``rating``); anything else falls back to the default.
     """
     q = Listing.query.filter(Listing.status == BROWSABLE_STATUS)
 
@@ -98,7 +145,7 @@ def browse_listings(*, category_slug: str | None = None,
             )
         )
 
-    return q.order_by(Listing.created_at.desc()).all()
+    return _apply_sort(q, normalized_sort(sort)).all()
 
 
 def get_listing(listing_id: int) -> Listing | None:

@@ -4,6 +4,37 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Real browse sort (replaces decorative "Sort by: distance") (DONE ✅, 2026-09-07)
+
+The browse page's "Sort by: distance" was a static label — distance is never
+computed, so it sorted nothing. Replaced with a working sort on data we store.
+
+- **`listings_service`**: `SORT_LABELS` (ordered: `newest` default →
+  `price_low` → `price_high` → `rating`), `normalized_sort(value)` (coerces an
+  unknown/`None`/`"distance"` value to `newest`), and `_apply_sort(q, sort)`
+  which attaches the ORDER BY. `browse_listings(..., sort=?)` new kwarg.
+  - `newest`: `created_at DESC, id DESC`
+  - `price_low` / `price_high`: `price_per_day ASC|DESC`, `created_at DESC` tiebreak
+  - `rating`: joins `Listing.owner`, orders `User.rating.is_(None) ASC`
+    (rated owners before unrated), `User.rating DESC`, `created_at DESC` —
+    portable NULLs-last without relying on `NULLS LAST` syntax.
+- **`web.index`**: reads `?sort=`, normalizes it, passes `sort` to the service
+  and `active_sort` / `sort_options` / `default_sort` to the template. The
+  "Also nearby" call in `web.listing_detail` is unaffected (default sort).
+- **`index.html`**: the static label + chevron is now a real GET `<form>` with
+  a pill `<select name="sort" onchange="this.form.submit()">` (+ `<noscript>`
+  Go button), hidden inputs carrying category/q/area/city so the sort combines
+  with the existing filters. The choice round-trips in the URL
+  (`?sort=price_low`), the category pills + the search form preserve it, and
+  it's omitted from the URL when it's the default. "distance" is gone entirely
+  — not a disabled option. Also trimmed the misleading "available near you"
+  from the result count (no geolocation exists).
+- **Tests** `tests/test_browse_sort.py` (8): each option returns listings in
+  the asserted order; unknown `?sort=` falls back to newest; sort composes
+  with the area filter; the route reflects the choice in the grid order + the
+  `<option ... selected>` and the page contains no "distance". **125 tests
+  pass** (was 117).
+
 ## Final V3 pass — error pages, auth-recovery, legal, cleanup (DONE ✅, 2026-09-07)
 
 Visual-only. The whole app is now on the v3 "Organic Forest" system — see

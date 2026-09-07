@@ -20,6 +20,7 @@
   <!-- Pill search bar -->
   <form method="get" action="{{ url_for('web.index') }}" class="mt-6 max-w-[1040px]">
     {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+    {% if active_sort and active_sort != default_sort %}<input type="hidden" name="sort" value="{{ active_sort }}">{% endif %}
     <div class="flex flex-col gap-2 rounded-3xl border border-divider bg-surface p-3 shadow-circlo sm:flex-row sm:items-center sm:rounded-full sm:pl-[30px]">
       <div class="flex flex-1 items-center gap-2">
         <svg class="h-6 w-6 shrink-0 text-accent-700" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24">
@@ -52,14 +53,15 @@
 
   <!-- Category pills -->
   <div class="flex flex-wrap gap-2.5 border-b border-divider pb-[26px]">
-    <a href="{{ url_for('web.index', q=query or None, area=active_area or None) }}"
+    {% set sort_qs = active_sort if active_sort != default_sort else None %}
+    <a href="{{ url_for('web.index', q=query or None, area=active_area or None, sort=sort_qs) }}"
        class="rounded-full border px-[18px] py-2 font-display text-[15px] font-semibold uppercase tracking-[0.05em] transition
               {% if not active_category %}border-accent-700 bg-accent-700 text-white
               {% else %}border-divider bg-transparent text-neutral-800 hover:border-accent-400 hover:text-accent-700{% endif %}">
       All
     </a>
     {% for category in categories %}
-    <a href="{{ url_for('web.index', category=category.slug, q=query or None, area=active_area or None) }}"
+    <a href="{{ url_for('web.index', category=category.slug, q=query or None, area=active_area or None, sort=sort_qs) }}"
        class="rounded-full border px-[18px] py-2 font-display text-[15px] font-semibold uppercase tracking-[0.05em] transition
               {% if active_category == category.slug %}border-accent-700 bg-accent-700 text-white
               {% else %}border-divider bg-transparent text-neutral-800 hover:border-accent-400 hover:text-accent-700{% endif %}">
@@ -69,12 +71,22 @@
   </div>
 
   <!-- Result count / sort -->
-  <div class="flex items-baseline justify-between py-[22px]">
-    <div class="text-[14px] text-neutral-700"><strong class="font-bold text-ink">{{ listings|length }} items</strong> available near you</div>
-    <div class="hidden items-center gap-2 text-[13px] text-neutral-700 sm:flex">
-      <span>Sorted by: distance</span>
-      <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-    </div>
+  <div class="flex flex-wrap items-center justify-between gap-3 py-[22px]">
+    <div class="text-[14px] text-neutral-700"><strong class="font-bold text-ink">{{ listings|length }} item{{ 's' if listings|length != 1 }}</strong></div>
+    <form method="get" action="{{ url_for('web.index') }}" class="flex items-center gap-2 text-[13px] text-neutral-700">
+      {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+      {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+      {% if active_area %}<input type="hidden" name="area" value="{{ active_area }}">{% endif %}
+      {% if active_city %}<input type="hidden" name="city" value="{{ active_city }}">{% endif %}
+      <label for="sort" class="whitespace-nowrap">Sort by</label>
+      <select id="sort" name="sort" onchange="this.form.submit()"
+              class="rounded-full border border-divider bg-white px-4 py-2 text-[13px] font-semibold text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
+        {% for value, label in sort_options.items() %}
+        <option value="{{ value }}" {{ 'selected' if active_sort == value }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit" class="rounded-full border border-divider bg-white px-3 py-2 font-semibold text-ink">Go</button></noscript>
+    </form>
   </div>
 
   <!-- Card grid -->
