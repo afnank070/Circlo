@@ -20,9 +20,10 @@ Update it every time something is deferred — don't rely on chat history alone.
 - [ ] Automated CNIC verification (replace manual admin approval) — revisit at ~500+ users.
 
 ## Search & Discovery
-- [ ] "Sort by distance" — currently a decorative label with no function (fix in progress).
 - [ ] Real distance/proximity calculation — needs user geolocation or area-based estimate.
-      Bigger feature, not urgent.
+      Bigger feature, not urgent. (The decorative "Sort by: distance" label was
+      removed 2026-09-07 and replaced with a real newest/price/rating sort — see
+      PROGRESS.md.)
 - [ ] Search typo-tolerance / fuzzy matching — never verified if current search is forgiving
       enough (e.g. "camping tent" vs "tent").
 - [ ] Auto-expire stale pending rental requests (e.g. after 48h with no owner response).
