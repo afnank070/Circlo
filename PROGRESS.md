@@ -4,6 +4,64 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## My Rentals rebuild + dashboard visual language rollout (DONE ✅, 2026-09-07)
+
+Visual rebuild only — no routes/services/state-machine logic changed (one
+additive helper). Full notes in `DESIGN_SYSTEM.md` §14.
+
+### My Rentals (`rentals/my_rentals.html`) — rebuilt from a 2nd Claude Design export
+- Header + **summary chips**: pending-request count (amber), rentals-in-progress
+  count (forest), and **earned in the last 30 days** — real:
+  `ledger_service.owner_earnings_since()` sums the owner's *confirmed* `payout`
+  ledger entries in the window (new helper). The mockup's "views" stat is
+  dropped — no view tracking exists.
+- **Tinted role bands** (accent for owner + key-icon tile, accent2 for renter +
+  bag-icon tile) with a one-line real summary; owner band carries an
+  active-listings count + owner rating + a "Manage listings" pill.
+- Each subsection (Pending / In progress / Past) = title + **count badge**
+  (amber when it's a queue with items, grey at 0) + hairline rule + right-aligned
+  policy hint; **dashed empty states** with icon + guidance + optional CTA.
+- Bookings are **bordered card rows** on a 5-col grid (thumb / item + `#id ·
+  category` / dates / counterpart avatar+name+role / amount + status pill).
+  Status pills fold the 9 booking statuses into 4 tones (amber/teal/sage/grey).
+- Every interactive panel (accept/reject, pay instructions, evidence upload,
+  contact reveal, cancellation controls, **review form** posting to the real
+  `web.leave_review`, **"Report a problem"** revealing the real
+  `web.report_problem` dispute form) now lives in a `bg-neutral-100` card
+  footer. Completed rows show the review form, collapsing to a "You rated N.N"
+  summary once submitted.
+- `web.my_rentals` now also computes per-row `amount`/`amount_label` (viewer-
+  aware) and includes `owner_requests`/`renter_pending` in `booking_detail`.
+  Verified in-browser across every booking state (requested → completed +
+  cancelled, both roles) with a seeded sqlite preview.
+
+### Shared partial `_partials/panels.html`
+`band`, `count_badge`, `subhead`, `empty_state`, `row_card` macros — imported
+`with context` by the pages below so they share one language (not a copy of the
+My Rentals layout).
+
+### Applied to
+- **My Listings** (`listings/my_listings.html`) — "Your listings" band
+  (active/archived summary), **Active** / **Archived** subsections with count
+  badges, listings as bordered rows (thumb / category+title+area / price /
+  status + Edit/Archive/Delete), dashed empty state.
+- **Admin** — `verify_queue.html` (shield band, "Awaiting review" queue, CNIC/
+  selfie kept as contained thumbnails, approve/reject in the footer),
+  `payments_queue.html` (card band, three subsections: awaiting payment /
+  cancellation requests / awaiting payout, ledger tables inside the cards,
+  actions in footers), `disputes_queue.html` (amber alert band, Open queue with
+  the resolve form as a footer, Resolved list), `trust_fund.html` (vault band,
+  the 3 balance tiles kept as distinct readouts, starting-balance form kept
+  contained, disbursements as bordered rows).
+
+### Verification
+- **117 tests pass** — one assertion updated (`test_cancellation.py`: an ACTIVE
+  booking now surfaces "Report a problem" instead of the old "can't be
+  cancelled" sentence).
+- Walked My Rentals, My Listings and all four admin panels in-browser against a
+  seeded dataset covering every state; screenshots confirmed the bands, badges,
+  card rows and empty states render correctly.
+
 ## Standardized area vocabulary + working location filter (DONE ✅, 2026-09-07)
 
 `listings.area` was free text typed by owners, so the browse filter couldn't

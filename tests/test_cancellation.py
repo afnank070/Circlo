@@ -295,11 +295,13 @@ def test_my_rentals_shows_correct_control_per_stage(client, app):
     assert b"Request cancellation" in page
     assert b"Cancel booking" not in page
 
-    # ACTIVE -> neither; pointed at Report a problem
+    # ACTIVE -> no cancel control at all; the dispute flow ("Report a problem")
+    # is the only way out once the item is handed over.
     _set_status(app, ids["booking"], STATUS_ACTIVE)
     page = client.get("/my-rentals").data
     assert b"Request cancellation" not in page
-    assert b"can&#39;t be cancelled" in page or b"can't be cancelled" in page
+    assert b"Cancel booking" not in page
+    assert b"Report a problem" in page
 
 
 def test_request_cancellation_route_creates_request(client, app, sent_emails):

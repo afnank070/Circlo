@@ -11,6 +11,8 @@ from __future__ import annotations
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime
 
+from sqlalchemy import func
+
 from app.extensions import db
 from app.models import Booking, LedgerEntry, User
 from app.models.ledger_entry import (
@@ -122,3 +124,26 @@ def confirm_all_for_booking(booking: Booking, *, admin: User) -> list[LedgerEntr
 
 def has_pending_entries(booking: Booking) -> bool:
     return any(e.status == STATUS_PENDING for e in entries_for_booking(booking))
+
+
+def owner_earnings_since(owner_id: int, since: datetime) -> Decimal:
+    """Total confirmed owner payouts for ``owner_id`` since ``since``.
+
+    Real money the owner has actually received (a ``payout`` ledger entry an
+    admin has marked ``confirmed``), used for the My Rentals "earned recently"
+    figure. Not an estimate — bookings whose payout is still pending don't
+    count.
+    """
+    total = (
+        db.session.query(func.coalesce(func.sum(LedgerEntry.amount), 0))
+        .join(Booking, Booking.id == LedgerEntry.booking_id)
+        .filter(
+            Booking.owner_id == owner_id,
+            LedgerEntry.type == TYPE_PAYOUT,
+            LedgerEntry.status == STATUS_CONFIRMED,
+            LedgerEntry.confirmed_at.isnot(None),
+            LedgerEntry.confirmed_at >= since,
+        )
+        .scalar()
+    )
+    return _money(total or 0)

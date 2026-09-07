@@ -30,3 +30,6 @@ Thumbs.db
 
 # --- Local data volumes (if bind-mounted) ---
 /data/
+
+# local preview scratch db
+_preview.db

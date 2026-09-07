@@ -2,72 +2,106 @@
 
 {% block title %}My Rentals — CIRCLO{% endblock %}
 
-{% macro status_badge(status, viewer='renter') -%}
-  {% set styles = {
-    'requested': 'bg-amber-100 text-amber-800',
-    'accepted': 'bg-sky-100 text-sky-800',
-    'awaiting_payment': 'bg-amber-100 text-amber-800',
-    'paid': 'bg-indigo-100 text-indigo-800',
-    'handed_over': 'bg-accent-100 text-accent-800',
-    'active': 'bg-accent-100 text-accent-800',
-    'returned': 'bg-purple-100 text-purple-800',
-    'completed': 'bg-emerald-100 text-emerald-800',
-    'cancelled': 'bg-neutral-200 text-neutral-600',
-  } %}
-  {% set labels = {
-    'requested': 'Pending — awaiting owner',
-    'accepted': 'Accepted — payment needed',
-    'awaiting_payment': 'Awaiting Payment',
-    'paid': 'Paid — Upload Evidence',
-    'handed_over': 'Handed over',
-    'active': 'Active',
-    'returned': 'Returned — Awaiting Confirmation',
-    'completed': 'Completed',
-    'cancelled': 'Cancelled',
-  } %}
-  <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide {{ styles.get(status, styles['cancelled']) }}">{{ labels.get(status, status) }}</span>
-{%- endmacro %}
+{% block extra_head %}
+<style>
+  .row-card { transition: border-color .16s, box-shadow .16s; }
+  .row-card:hover { border-color: #9ecfc4; box-shadow: 0 2px 10px rgba(10,74,64,.07); }
+</style>
+{% endblock %}
 
+{# ============================ small helpers ============================ #}
 {% macro money(v) -%}Rs {{ '{:,.0f}'.format(v|float) }}{%- endmacro %}
 
-{% macro booking_thumb(listing) -%}
-  <a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}"
-     class="block h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-surface sm:h-[72px] sm:w-[72px]">
-    {% if listing.cover_image %}
-    <img src="{{ image_url(listing.cover_image.object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-cover">
-    {% else %}
-    <span class="grid h-full w-full place-items-center text-neutral-400">
-      <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 8.25l18-.001M4.5 6.75h15A1.5 1.5 0 0121 8.25v9a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.25v-9a1.5 1.5 0 011.5-1.5z"/></svg>
-    </span>
-    {% endif %}
-  </a>
+{% macro cal_svg() -%}
+<svg class="h-[15px] w-[15px] shrink-0 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
 {%- endmacro %}
 
-{% macro verified_badge() -%}
-  <span class="inline-flex items-center gap-1 rounded-full bg-accent-100 px-2 py-0.5 text-xs font-bold text-accent-700">
-    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z" clip-rule="evenodd"/></svg>
-    Verified
+{# status pill — every booking status folds into one of four tones
+   (amber = waiting on someone, teal = rental live, sage = done, grey = off) #}
+{% macro status_pill(status, viewer) -%}
+  {% set map = {
+    'requested':        ('Pending' if viewer == 'owner' else 'Awaiting owner', 'amber'),
+    'accepted':         ('Accepted', 'amber'),
+    'awaiting_payment': ('Confirming payment', 'amber'),
+    'paid':             ('Paid — photos next', 'teal'),
+    'handed_over':      ('Handed over', 'teal'),
+    'active':           ('Active', 'teal'),
+    'returned':         ('Returned', 'teal'),
+    'completed':        ('Completed', 'sage'),
+    'cancelled':        ('Cancelled', 'grey'),
+  } %}
+  {% set label, tone = map.get(status, (status, 'grey')) %}
+  {% set tones = {
+    'amber': 'bg-amber-100 text-amber-800 border-amber-200',
+    'teal':  'bg-accent-100 text-accent-800 border-accent-300',
+    'sage':  'bg-accent2-100 text-accent2-800 border-accent2-300',
+    'grey':  'bg-neutral-200 text-neutral-700 border-neutral-300',
+  } %}
+  <span class="inline-flex items-center justify-center rounded-full border px-3.5 py-1.5 font-display text-[13px] font-bold uppercase tracking-[0.08em] {{ tones[tone] }} sm:min-w-[104px]">{{ label }}</span>
+{%- endmacro %}
+
+{# count badge — amber when it's a queue that needs action, else accent; grey at zero #}
+{% macro count_badge(n, warn=False) -%}
+  {% if n and warn %}{% set cls = 'bg-amber-100 text-amber-800' %}
+  {% elif n %}{% set cls = 'bg-accent-100 text-accent-800' %}
+  {% else %}{% set cls = 'bg-neutral-200 text-neutral-600' %}{% endif %}
+  <span class="inline-grid h-6 min-w-[26px] place-items-center rounded-full px-2 font-display text-[15px] font-bold {{ cls }}">{{ n }}</span>
+{%- endmacro %}
+
+{% macro thumb(listing) -%}
+<a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}"
+   class="block h-[60px] w-[76px] shrink-0 overflow-hidden rounded-xl bg-surface">
+  {% if listing.cover_image %}
+  <img src="{{ image_url(listing.cover_image.object_key) }}" alt="{{ listing.title }}" class="h-full w-full object-cover">
+  {% else %}
+  <span class="grid h-full w-full place-items-center text-neutral-400">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 8.25l18-.001M4.5 6.75h15A1.5 1.5 0 0121 8.25v9a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.25v-9a1.5 1.5 0 011.5-1.5z"/></svg>
   </span>
+  {% endif %}
+</a>
 {%- endmacro %}
 
-{# --- section label used above each group of rows (Pending / In progress / Past) --- #}
-{% macro section_label(title, count=none) -%}
-  <div class="flex items-baseline gap-2">
-    <h3 class="font-display text-[15px] font-bold uppercase tracking-[0.08em] text-ink">{{ title }}</h3>
-    {% if count is not none %}
-    <span class="text-[13px] font-semibold text-neutral-500">{{ count }}</span>
-    {% endif %}
+{% macro avatar(user, tone) -%}
+  {% set cls = 'bg-accent-200 text-accent-800' if tone == 'accent' else 'bg-accent2-200 text-accent2-800' %}
+  <span class="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full font-display text-[11px] font-bold {{ cls }}">{{ user.initials }}</span>
+{%- endmacro %}
+
+{% macro empty_state(title, text, cta_url=None, cta_label=None) -%}
+<div class="flex items-center gap-3.5 rounded-2xl border-[1.5px] border-dashed border-divider bg-neutral-100 px-6 py-[22px]">
+  <span class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-divider bg-white">
+    <svg class="h-[18px] w-[18px] text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  </span>
+  <div class="flex-1">
+    <div class="font-display text-[19px] font-bold uppercase leading-[1.1] text-ink">{{ title }}</div>
+    <div class="mt-0.5 text-[13.5px] text-neutral-700">{{ text }}</div>
   </div>
+  {% if cta_url %}<a href="{{ cta_url }}" class="shrink-0 whitespace-nowrap text-[13px] font-bold">{{ cta_label }}</a>{% endif %}
+</div>
 {%- endmacro %}
 
-{% macro empty_row(text) -%}
-  <p class="py-6 text-sm text-neutral-500">{{ text }}</p>
+{# quiet "Report a problem" — reveals the real dispute form (services/disputes) #}
+{% macro report_problem(b) -%}
+  {% set d = booking_detail.get(b.id) %}
+  {% if d and d.open_dispute %}
+    <span class="text-[12.5px] font-semibold text-rose-600">⚠ Problem reported — CIRCLO is reviewing it</span>
+  {% elif d and d.can_dispute %}
+    <details class="inline-block text-left">
+      <summary class="cursor-pointer list-none text-[12.5px] text-neutral-600 hover:text-accent-700 hover:underline">Report a problem</summary>
+      <form method="post" action="{{ url_for('web.report_problem', booking_id=b.id) }}" class="mt-2 w-[280px] rounded-2xl bg-white p-3 ring-1 ring-divider">
+        <textarea name="reason" rows="2" required minlength="10" placeholder="What went wrong?"
+                  class="w-full rounded-2xl border border-divider bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"></textarea>
+        <button type="submit" class="mt-2 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">Submit report</button>
+      </form>
+    </details>
+  {% endif %}
 {%- endmacro %}
 
-{# --- CIRCLO payment-collection details + exact amount due (renter) --- #}
+{# ================= functional panels (unchanged behaviour) ============= #}
+
+{# CIRCLO payment-collection details + exact amount due (renter) #}
 {% macro pay_instructions(b, reported=false) -%}
   {% set total = (b.rental_amount|float) + (b.deposit_amount|float) %}
-  <div class="mt-3 rounded-2xl bg-amber-50 p-3 text-sm text-ink ring-1 ring-amber-100">
+  <div class="rounded-2xl bg-amber-50 p-3 text-sm text-ink ring-1 ring-amber-100">
     <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-amber-200/70 pb-2">
       <span class="font-bold">Amount due</span>
       <span class="font-display text-[20px] font-bold text-ink">{{ money(total) }}</span>
@@ -75,36 +109,25 @@
     <p class="mt-1 text-xs text-neutral-700">
       {{ money(b.rental_amount) }} rental&nbsp;+&nbsp;{{ money(b.deposit_amount) }} refundable deposit
     </p>
-
     <p class="mt-3 font-bold text-ink">Send payment to CIRCLO</p>
     {% if payment_configured %}
     <dl class="mt-1 space-y-1">
       {% if payment_details.payment_easypaisa_number %}
       <div class="flex flex-wrap gap-x-2">
         <dt class="text-neutral-600">EasyPaisa</dt>
-        <dd class="font-bold text-ink">
-          {{ payment_details.payment_easypaisa_number }}{% if payment_details.payment_easypaisa_name %} · {{ payment_details.payment_easypaisa_name }}{% endif %}
-        </dd>
+        <dd class="font-bold text-ink">{{ payment_details.payment_easypaisa_number }}{% if payment_details.payment_easypaisa_name %} · {{ payment_details.payment_easypaisa_name }}{% endif %}</dd>
       </div>
       {% endif %}
       {% if payment_details.payment_bank_account or payment_details.payment_bank_iban %}
       <div class="flex flex-wrap gap-x-2">
         <dt class="text-neutral-600">Bank</dt>
-        <dd class="font-bold text-ink">
-          {{ payment_details.payment_bank_name }}{% if payment_details.payment_bank_title %} — {{ payment_details.payment_bank_title }}{% endif %}
-        </dd>
+        <dd class="font-bold text-ink">{{ payment_details.payment_bank_name }}{% if payment_details.payment_bank_title %} — {{ payment_details.payment_bank_title }}{% endif %}</dd>
       </div>
       {% if payment_details.payment_bank_account %}
-      <div class="flex flex-wrap gap-x-2">
-        <dt class="text-neutral-600">Account #</dt>
-        <dd class="font-bold text-ink">{{ payment_details.payment_bank_account }}</dd>
-      </div>
+      <div class="flex flex-wrap gap-x-2"><dt class="text-neutral-600">Account #</dt><dd class="font-bold text-ink">{{ payment_details.payment_bank_account }}</dd></div>
       {% endif %}
       {% if payment_details.payment_bank_iban %}
-      <div class="flex flex-wrap gap-x-2">
-        <dt class="text-neutral-600">IBAN</dt>
-        <dd class="font-bold text-ink">{{ payment_details.payment_bank_iban }}</dd>
-      </div>
+      <div class="flex flex-wrap gap-x-2"><dt class="text-neutral-600">IBAN</dt><dd class="font-bold text-ink">{{ payment_details.payment_bank_iban }}</dd></div>
       {% endif %}
       {% endif %}
     </dl>
@@ -114,15 +137,10 @@
     <p class="mt-2 text-xs text-neutral-700">Once you've transferred the exact amount, confirm below. An admin verifies receipt before the rental proceeds.</p>
     {% endif %}
     {% else %}
-    <p class="mt-1 text-xs text-neutral-700">
-      Payment details aren't set up yet — please contact CIRCLO support for where to send {{ money(total) }}.
-    </p>
+    <p class="mt-1 text-xs text-neutral-700">Payment details aren't set up yet — please contact CIRCLO support for where to send {{ money(total) }}.</p>
     {% endif %}
-
     {% if reported %}
-    <p class="mt-3 rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-ink">
-      ✓ You've marked this as paid — CIRCLO is confirming the transfer.
-    </p>
+    <p class="mt-3 rounded-full bg-white/70 px-3 py-1.5 text-xs font-semibold text-ink">✓ You've marked this as paid — CIRCLO is confirming the transfer.</p>
     {% else %}
     <form method="post" action="{{ url_for('web.mark_booking_paid', booking_id=b.id) }}" class="mt-3">
       <button type="submit" class="rounded-full bg-accent-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-accent-800">I've sent the payment</button>
@@ -131,33 +149,27 @@
   </div>
 {%- endmacro %}
 
-{# --- evidence + ledger panel shown on an in-flight booking row --- #}
+{# evidence + confirm-return panel for an in-flight booking #}
 {% macro evidence_panel(b, viewer) -%}
   {% set d = booking_detail.get(b.id) %}
   {% if d %}
     {% if b.status == 'accepted' and viewer == 'renter' %}
       {{ pay_instructions(b) }}
     {% elif b.status == 'accepted' and viewer == 'owner' %}
-      <p class="mt-2 text-sm text-neutral-600">Waiting for the renter to pay.</p>
+      <p class="text-sm text-neutral-600">Waiting for the renter to pay.</p>
     {% elif b.status == 'awaiting_payment' and viewer == 'renter' %}
       {{ pay_instructions(b, reported=true) }}
     {% elif b.status == 'awaiting_payment' %}
-      <p class="mt-2 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-ink ring-1 ring-amber-100">Renter has reported payment — CIRCLO is confirming the transfer.</p>
+      <p class="rounded-2xl bg-amber-50 px-3 py-2 text-sm text-ink ring-1 ring-amber-100">Renter has reported payment — CIRCLO is confirming the transfer.</p>
     {% elif b.status in ('paid', 'active') %}
       {% set phase = 'before' if b.status == 'paid' else 'after' %}
       {% set mine = d.before_me if phase == 'before' else d.after_me %}
       {% set both = d.before_both if phase == 'before' else d.after_both %}
-      <div class="mt-3 rounded-2xl bg-accent-100 p-3 ring-1 ring-accent-200">
-        <p class="text-sm font-bold text-ink">
-          {{ 'Upload handover (before) photos' if phase == 'before' else 'Upload return (after) photos' }}
-        </p>
-        <p class="mt-0.5 text-xs text-neutral-700">
-          Both the renter and the owner upload. You: {{ 'done ✓' if mine else 'not yet' }} ·
-          Both parties: {{ 'done ✓' if both else 'pending' }}
-        </p>
+      <div class="rounded-2xl bg-accent-100 p-3 ring-1 ring-accent-200">
+        <p class="text-sm font-bold text-ink">{{ 'Upload handover (before) photos' if phase == 'before' else 'Upload return (after) photos' }}</p>
+        <p class="mt-0.5 text-xs text-neutral-700">Both the renter and the owner upload. You: {{ 'done ✓' if mine else 'not yet' }} · Both parties: {{ 'done ✓' if both else 'pending' }}</p>
         {% if not mine %}
-        <form method="post" action="{{ url_for('web.upload_booking_evidence', booking_id=b.id) }}"
-              enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2">
+        <form method="post" action="{{ url_for('web.upload_booking_evidence', booking_id=b.id) }}" enctype="multipart/form-data" class="mt-2 flex flex-wrap items-center gap-2">
           <input type="hidden" name="phase" value="{{ phase }}">
           <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required
                  class="text-sm text-ink file:mr-2 file:rounded-full file:border-0 file:bg-accent-700 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-white hover:file:bg-accent-800">
@@ -168,8 +180,7 @@
         <div class="mt-2 flex flex-wrap gap-2">
           {% for m in d.media %}
           <span class="relative">
-            <img src="{{ private_image_url(m.object_key) }}" alt="{{ m.phase }} photo"
-                 class="h-14 w-14 rounded-xl border border-divider object-cover">
+            <img src="{{ private_image_url(m.object_key) }}" alt="{{ m.phase }} photo" class="h-14 w-14 rounded-xl border border-divider object-cover">
             <span class="absolute bottom-0 left-0 rounded-tr-xl bg-ink/70 px-1 text-[9px] font-bold uppercase text-white">{{ m.phase }}</span>
           </span>
           {% endfor %}
@@ -177,130 +188,35 @@
         {% endif %}
       </div>
     {% elif b.status == 'returned' and viewer == 'owner' %}
-      <div class="mt-3 rounded-2xl bg-purple-50 p-3 ring-1 ring-purple-100">
+      <div class="rounded-2xl bg-accent2-100 p-3 ring-1 ring-accent2-200">
         <p class="text-sm font-bold text-ink">Item returned — check it over</p>
         <form method="post" action="{{ url_for('web.confirm_booking_return', booking_id=b.id) }}" class="mt-2">
           <button type="submit" class="rounded-full bg-accent-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-accent-800">Confirm item returned in good condition</button>
         </form>
       </div>
     {% elif b.status == 'returned' and viewer == 'renter' %}
-      <p class="mt-2 text-sm text-neutral-600">Waiting for the owner to confirm the return and release your deposit.</p>
+      <p class="text-sm text-neutral-600">Waiting for the owner to confirm the return and release your deposit.</p>
     {% endif %}
   {% endif %}
 {%- endmacro %}
 
-{# --- "Report a problem" (dispute) + leave-a-review, shown per booking --- #}
-{% macro dispute_and_review(b, viewer) -%}
-  {% set d = booking_detail.get(b.id) %}
-  {% if d %}
-    {% if d.open_dispute %}
-      <p class="mt-3 rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-100">
-        ⚠ Problem reported — CIRCLO is reviewing it.
-      </p>
-    {% elif d.can_dispute %}
-      <details class="mt-3">
-        <summary class="cursor-pointer list-none text-sm font-bold text-rose-600 hover:text-rose-700">Report a problem</summary>
-        <form method="post" action="{{ url_for('web.report_problem', booking_id=b.id) }}" class="mt-2 rounded-2xl bg-surface p-3 ring-1 ring-divider">
-          <textarea name="reason" rows="2" required minlength="10" placeholder="What went wrong?"
-                    class="w-full rounded-2xl border border-divider bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"></textarea>
-          <button type="submit" class="mt-2 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">Submit report</button>
-        </form>
-      </details>
-    {% endif %}
-
-    {% if d.my_review %}
-      <p class="mt-3 text-sm text-neutral-600">You rated this {{ d.my_review.rating }}/5 ★</p>
-    {% elif d.can_review %}
-      <div class="mt-3 rounded-2xl bg-accent-100 p-3 ring-1 ring-accent-200">
-        <p class="text-sm font-bold text-ink">
-          Review {{ b.renter.name if viewer == 'owner' else b.owner.name }}
-        </p>
-        <form method="post" action="{{ url_for('web.leave_review', booking_id=b.id) }}" class="mt-2 space-y-2">
-          <label class="block text-xs font-bold text-neutral-700">Rating
-            <select name="rating" required class="mt-1 rounded-full border border-divider bg-white px-2 py-1 text-sm">
-              <option value="">–</option>
-              {% for n in [5, 4, 3, 2, 1] %}<option value="{{ n }}">{{ n }} ★</option>{% endfor %}
-            </select>
-          </label>
-          <textarea name="comment" rows="2" placeholder="How did it go? (optional)"
-                    class="w-full rounded-2xl border border-divider bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"></textarea>
-          <button type="submit" class="rounded-full bg-accent-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-accent-800">Submit review</button>
-        </form>
-      </div>
-    {% endif %}
-  {% endif %}
-{%- endmacro %}
-
-{# ============ ROWS (plain, divided — no per-item card box) ============ #}
-
-{% macro pending_owner_row(b) -%}
-<div class="flex flex-wrap items-start gap-4 py-5">
-  {{ booking_thumb(b.listing) }}
-  <div class="min-w-0 flex-1">
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <p class="font-bold text-ink"><a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a></p>
-      {{ status_badge(b.status, 'owner') }}
-    </div>
-    <p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-neutral-600">
-      Requested by <a href="{{ url_for('web.user_profile', user_id=b.renter_id) }}" class="font-semibold text-ink hover:underline">{{ b.renter.name }}</a>
-      {% if b.renter.is_verified %}{{ verified_badge() }}{% endif %}
-    </p>
-    <p class="mt-1 text-sm font-semibold text-ink">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
-    {% if b.message_from_renter %}
-    <p class="mt-2 text-sm italic text-neutral-700">“{{ b.message_from_renter }}”</p>
-    {% endif %}
-    <div class="mt-3 flex items-center gap-2">
-      <form method="post" action="{{ url_for('web.accept_booking', booking_id=b.id) }}">
-        <button type="submit" class="rounded-full bg-accent-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-accent-800">Accept</button>
-      </form>
-      <form method="post" action="{{ url_for('web.reject_booking', booking_id=b.id) }}">
-        <button type="submit" class="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">Reject</button>
-      </form>
-    </div>
-  </div>
-</div>
-{%- endmacro %}
-
-{% macro pending_renter_row(b) -%}
-<div class="flex flex-wrap items-start gap-4 py-5">
-  {{ booking_thumb(b.listing) }}
-  <div class="min-w-0 flex-1">
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <p class="font-bold text-ink"><a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a></p>
-      {{ status_badge(b.status, 'renter') }}
-    </div>
-    <p class="mt-0.5 text-sm text-neutral-600">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</p>
-    <div class="mt-3">
-      <form method="post" action="{{ url_for('web.cancel_booking', booking_id=b.id) }}">
-        <button type="submit" class="rounded-full border border-divider bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">Cancel request</button>
-      </form>
-    </div>
-  </div>
-</div>
-{%- endmacro %}
-
-{# --- contact + pickup reveal, shown once a booking is accepted or later --- #}
+{# contact + pickup reveal, shown once a booking is accepted or later #}
 {% macro contact_reveal(b, viewer) -%}
   {% set d = booking_detail.get(b.id) %}
   {% if d and d.can_reveal_contact %}
     {% set other = b.renter if viewer == 'owner' else b.owner %}
-    <div class="mt-3 rounded-2xl bg-surface p-3 ring-1 ring-divider">
+    <div class="rounded-2xl bg-surface p-3 ring-1 ring-divider">
       <p class="text-xs font-bold uppercase tracking-wide text-neutral-500">Contact &amp; pickup</p>
       <p class="mt-1.5 text-sm text-ink">
         {{ other.name }}
-        {% if other.phone %}
-        · <a href="tel:{{ other.phone }}" class="font-semibold text-accent-700 hover:underline">{{ other.phone }}</a>
-        {% else %}
-        · <span class="text-neutral-500">no phone on file</span>
-        {% endif %}
+        {% if other.phone %}· <a href="tel:{{ other.phone }}" class="font-semibold text-accent-700 hover:underline">{{ other.phone }}</a>
+        {% else %}· <span class="text-neutral-500">no phone on file</span>{% endif %}
       </p>
       {% if b.listing.pickup_location or b.listing.map_link %}
       <p class="mt-1 text-sm text-ink">
         {% if b.listing.pickup_location %}{{ b.listing.pickup_location }}{% endif %}
-        {% if b.listing.map_link %}
-        {% if b.listing.pickup_location %}·{% endif %}
-        <a href="{{ b.listing.map_link }}" target="_blank" rel="noopener" class="font-semibold text-accent-700 hover:underline">View on map</a>
-        {% endif %}
+        {% if b.listing.map_link %}{% if b.listing.pickup_location %}·{% endif %}
+        <a href="{{ b.listing.map_link }}" target="_blank" rel="noopener" class="font-semibold text-accent-700 hover:underline">View on map</a>{% endif %}
       </p>
       {% else %}
       <p class="mt-1 text-sm text-neutral-500">Owner hasn't added a pickup location yet — coordinate directly.</p>
@@ -309,187 +225,289 @@
   {% endif %}
 {%- endmacro %}
 
-{# --- stage-aware cancellation control (Cancel / Request cancellation / dispute hint) --- #}
+{# stage-aware cancellation control (Cancel / Request cancellation / dispute hint) #}
 {% macro cancellation_controls(b, viewer) -%}
   {% set d = booking_detail.get(b.id) %}
   {% if d %}
     {% if d.pending_cancellation %}
-      <p class="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-ink ring-1 ring-amber-100">
+      <p class="rounded-2xl bg-amber-50 px-3 py-2 text-sm text-ink ring-1 ring-amber-100">
         ⏳ Cancellation requested{% if d.pending_cancellation.requester %} by {{ d.pending_cancellation.requester.name }}{% endif %} — a CIRCLO admin is arranging the refund.
       </p>
     {% elif d.cancel_action == 'cancel' %}
-      <form method="post" action="{{ url_for('web.cancel_booking', booking_id=b.id) }}" class="mt-3">
+      <form method="post" action="{{ url_for('web.cancel_booking', booking_id=b.id) }}">
         <button type="submit" class="rounded-full border border-divider bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">Cancel booking</button>
       </form>
     {% elif d.cancel_action == 'request' %}
-      <details class="mt-3">
+      <details>
         <summary class="cursor-pointer list-none text-sm font-bold text-ink hover:text-accent-700">Request cancellation</summary>
-        <form method="post" action="{{ url_for('web.request_booking_cancellation', booking_id=b.id) }}" class="mt-2 rounded-2xl bg-surface p-3 ring-1 ring-divider">
+        <form method="post" action="{{ url_for('web.request_booking_cancellation', booking_id=b.id) }}" class="mt-2 rounded-2xl bg-white p-3 ring-1 ring-divider">
           <p class="text-xs text-neutral-700">Payment's already in play, so an admin has to confirm the refund before this is cancelled.</p>
           <textarea name="reason" rows="2" placeholder="Why do you need to cancel? (optional)"
                     class="mt-2 w-full rounded-2xl border border-divider bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"></textarea>
           <button type="submit" class="mt-2 rounded-full bg-accent-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-accent-800">Submit cancellation request</button>
         </form>
       </details>
-    {% elif d.cancel_action == 'dispute' %}
-      <p class="mt-3 text-sm text-neutral-600">The item's already been handed over — this booking can't be cancelled. Use <span class="font-semibold text-rose-600">Report a problem</span> below if something's wrong.</p>
     {% endif %}
   {% endif %}
 {%- endmacro %}
 
-{% macro inflight_row(b, viewer) -%}
-<div class="flex flex-wrap items-start gap-4 py-5">
-  {{ booking_thumb(b.listing) }}
-  <div class="min-w-0 flex-1">
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <p class="font-bold text-ink"><a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a></p>
-      {{ status_badge(b.status, viewer) }}
-    </div>
-    <p class="mt-0.5 text-sm text-neutral-600">
-      {{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}
-      {% if viewer == 'owner' %}· Rented by <a href="{{ url_for('web.user_profile', user_id=b.renter_id) }}" class="font-semibold text-ink hover:underline">{{ b.renter.name }}</a>{% else %}· from <a href="{{ url_for('web.user_profile', user_id=b.owner_id) }}" class="font-semibold text-ink hover:underline">{{ b.owner.name }}</a>{% endif %}
-    </p>
+{# owner accept / reject on a still-pending request #}
+{% macro request_decision(b) -%}
+<div class="flex items-center gap-2">
+  <form method="post" action="{{ url_for('web.accept_booking', booking_id=b.id) }}">
+    <button type="submit" class="rounded-full bg-accent-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-accent-800">Accept</button>
+  </form>
+  <form method="post" action="{{ url_for('web.reject_booking', booking_id=b.id) }}">
+    <button type="submit" class="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">Reject</button>
+  </form>
+</div>
+{%- endmacro %}
+
+{# tinted footer on a COMPLETED booking — review form, or the "reviewed" summary #}
+{% macro review_footer(b, viewer) -%}
+  {% set d = booking_detail.get(b.id) %}
+  <div class="border-t border-divider bg-neutral-100 px-5 py-3.5">
+    {% if d.my_review %}
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-accent2-100 px-3 py-1.5">
+          <svg class="h-[13px] w-[13px]" viewBox="0 0 24 24" fill="#274f3f"><path d="m12 3 2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8Z"/></svg>
+          <span class="text-[12.5px] font-semibold text-accent2-800">You rated {{ '%.1f'|format(d.my_review.rating|float) }}</span>
+        </span>
+        {% if d.my_review.comment %}<span class="text-[12.5px] text-neutral-600">“{{ d.my_review.comment }}”</span>{% endif %}
+        <div class="flex-1"></div>
+        {{ report_problem(b) }}
+      </div>
+    {% elif d.can_review %}
+      <form method="post" action="{{ url_for('web.leave_review', booking_id=b.id) }}"
+            class="grid items-end gap-3 sm:grid-cols-[170px_minmax(0,1fr)_auto]">
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-600">Rating</label>
+          <select name="rating" required class="mt-1 w-full rounded-full border border-divider bg-white px-3.5 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
+            <option value="">Choose a rating</option>
+            <option value="5">★★★★★ Excellent</option>
+            <option value="4">★★★★ Good</option>
+            <option value="3">★★★ Okay</option>
+            <option value="2">★★ Poor</option>
+            <option value="1">★ Bad</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-600">Comment <span class="font-semibold normal-case tracking-normal text-neutral-500">(optional)</span></label>
+          <textarea name="comment" rows="1" placeholder="{{ 'Was the item as described?' if viewer == 'renter' else 'How did the handover and return go?' }}"
+                    class="mt-1 min-h-[40px] w-full rounded-[18px] border border-divider bg-white px-4 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"></textarea>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+          <button type="submit" class="whitespace-nowrap rounded-full bg-accent px-5 py-2.5 font-display text-[15px] font-bold uppercase tracking-[0.07em] text-white hover:bg-accent-600">Submit review</button>
+          {{ report_problem(b) }}
+        </div>
+      </form>
+    {% else %}
+      <div class="flex flex-wrap items-center gap-3 text-[12.5px] text-neutral-600">
+        <span>Rental complete.</span>
+        <div class="flex-1"></div>
+        {{ report_problem(b) }}
+      </div>
+    {% endif %}
+  </div>
+{%- endmacro %}
+
+{# tinted footer on an IN-FLIGHT booking — whatever action panel applies #}
+{% macro action_footer(b, viewer) -%}
+  {% set d = booking_detail.get(b.id) %}
+  <div class="flex flex-col gap-2.5 border-t border-divider bg-neutral-100 px-5 py-3.5">
+    {% if b.status == 'requested' and viewer == 'owner' %}{{ request_decision(b) }}{% endif %}
+    {% if b.status == 'requested' and viewer == 'renter' %}
+      <p class="text-sm text-neutral-600">Waiting for the owner to accept your request.</p>
+    {% endif %}
     {{ contact_reveal(b, viewer) }}
     {{ evidence_panel(b, viewer) }}
     {{ cancellation_controls(b, viewer) }}
-    {{ dispute_and_review(b, viewer) }}
+    {% if d and (d.can_dispute or d.open_dispute) %}<div>{{ report_problem(b) }}</div>{% endif %}
   </div>
-</div>
 {%- endmacro %}
 
-{% macro history_row(b, viewer) -%}
-<div class="flex flex-wrap items-start gap-4 py-5">
-  {{ booking_thumb(b.listing) }}
-  <div class="min-w-0 flex-1">
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <p class="font-semibold text-ink">{{ b.listing.title }}</p>
-      {{ status_badge(b.status, viewer) }}
+{# ============================ the card row ============================ #}
+{% macro booking_row(b, viewer) -%}
+  {% set d = booking_detail.get(b.id) %}
+  {% set other = b.renter if viewer == 'owner' else b.owner %}
+  {% set other_id = b.renter_id if viewer == 'owner' else b.owner_id %}
+  <div class="row-card overflow-hidden rounded-2xl border border-divider bg-white">
+    <div class="flex flex-col gap-3 p-3.5 sm:grid sm:grid-cols-[76px_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-5">
+      {{ thumb(b.listing) }}
+
+      <div class="min-w-0">
+        <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="font-display text-[21px] font-bold uppercase leading-[1.1] text-ink hover:text-accent-700">{{ b.listing.title }}</a>
+        <div class="mt-0.5 text-[12px] text-neutral-600">#{{ b.id }} · {{ b.listing.category.name }}</div>
+      </div>
+
+      <div class="flex min-w-0 items-center gap-2">
+        {{ cal_svg() }}
+        <div class="min-w-0">
+          <div class="truncate text-sm text-neutral-800">{{ b.rental_date_start.strftime('%d %b') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</div>
+          <div class="text-[12px] text-neutral-600">{% if b.status == 'cancelled' %}Cancelled{% else %}{{ b.rental_days }} day{{ 's' if b.rental_days != 1 }}{% endif %}</div>
+        </div>
+      </div>
+
+      <div class="flex min-w-0 items-center gap-2.5">
+        {{ avatar(other, 'accent' if viewer == 'renter' else 'accent2') }}
+        <div class="min-w-0">
+          <a href="{{ url_for('web.user_profile', user_id=other_id) }}" class="block truncate text-sm text-neutral-800 hover:text-accent-700">{{ other.name }}</a>
+          <div class="text-[12px] text-neutral-600">{{ 'Renter' if viewer == 'owner' else 'Owner' }}</div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-4 sm:justify-end">
+        <div class="text-right">
+          <div class="font-display text-[19px] font-bold leading-none text-ink">{{ money(d.amount) if d else '—' }}</div>
+          <div class="text-[11px] uppercase tracking-[0.07em] text-neutral-600">{{ d.amount_label if d else '' }}</div>
+        </div>
+        {{ status_pill(b.status, viewer) }}
+      </div>
     </div>
-    <p class="mt-0.5 text-sm text-neutral-600">
-      {{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}
-      {% if viewer == 'owner' %}· <a href="{{ url_for('web.user_profile', user_id=b.renter_id) }}" class="hover:underline">{{ b.renter.name }}</a>{% else %}· <a href="{{ url_for('web.user_profile', user_id=b.owner_id) }}" class="hover:underline">{{ b.owner.name }}</a>{% endif %}
-    </p>
-    {{ dispute_and_review(b, viewer) }}
+
+    {% if b.status == 'completed' %}
+      {{ review_footer(b, viewer) }}
+    {% elif b.status != 'cancelled' %}
+      {{ action_footer(b, viewer) }}
+    {% elif d and d.pending_cancellation %}
+      <div class="border-t border-divider bg-neutral-100 px-5 py-3">
+        <p class="text-[12.5px] text-neutral-600">Cancelled after an admin-reviewed refund.</p>
+      </div>
+    {% endif %}
   </div>
+{%- endmacro %}
+
+{# ============================ subsection ============================== #}
+{% macro subsection(title, rows, viewer, hint, warn=False, empty_title='', empty_text='', cta_url=None, cta_label=None) -%}
+<div>
+  <div class="flex items-center gap-3 pb-3.5">
+    <h3 class="m-0 font-display text-[21px] font-bold uppercase tracking-[0.02em] text-ink">{{ title }}</h3>
+    {{ count_badge(rows|length, warn) }}
+    <div class="h-px flex-1 bg-divider"></div>
+    <span class="hidden text-[12px] text-neutral-600 sm:block">{{ hint }}</span>
+  </div>
+  {% if not rows %}
+    {{ empty_state(empty_title, empty_text, cta_url, cta_label) }}
+  {% else %}
+    <div class="flex flex-col gap-2.5">
+      {% for b in rows %}{{ booking_row(b, viewer) }}{% endfor %}
+    </div>
+  {% endif %}
 </div>
 {%- endmacro %}
 
+{# ============================ role band ============================== #}
+{% macro role_band(kind) -%}
+  {% if kind == 'owner' %}
+  <div class="mb-2.5 flex flex-wrap items-center gap-4 rounded-3xl bg-accent-100 px-[22px] py-[18px]">
+    <span class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[14px] bg-accent-700">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4"/><path d="m16 7 3 3"/><path d="m19 4 2 2"/></svg>
+    </span>
+    <div class="min-w-[200px] flex-1">
+      <h2 class="m-0 font-display text-[30px] font-bold uppercase leading-none text-accent-800">As an owner</h2>
+      <div class="mt-1 text-[13.5px] text-accent-800/80">
+        {{ owner_requests|length }} request{{ 's' if owner_requests|length != 1 }} need your reply · {{ owner_active|length }} item{{ 's' if owner_active|length != 1 }} out on rent
+      </div>
+    </div>
+    <div class="flex items-center gap-[22px]">
+      <div class="text-right">
+        <div class="font-display text-[22px] font-bold leading-none text-accent-800">{{ active_listings_count }}</div>
+        <div class="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-accent-800/70">Active listings</div>
+      </div>
+      <div class="text-right">
+        <div class="font-display text-[22px] font-bold leading-none text-accent-800">{{ '%.1f'|format(owner_rating|float) if owner_rating is not none else 'New' }}</div>
+        <div class="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-accent-800/70">Owner rating</div>
+      </div>
+      <a href="{{ url_for('web.my_listings') }}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-[18px] py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.05em] text-accent-800 hover:bg-neutral-100">
+        Manage listings
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+      </a>
+    </div>
+  </div>
+  {% else %}
+  <div class="mb-2.5 flex flex-wrap items-center gap-4 rounded-3xl bg-accent2-100 px-[22px] py-[18px]">
+    <span class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[14px] bg-accent2-600">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l1 12H4Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>
+    </span>
+    <div class="min-w-[200px] flex-1">
+      <h2 class="m-0 font-display text-[30px] font-bold uppercase leading-none text-accent2-800">As a renter</h2>
+      <div class="mt-1 text-[13.5px] text-accent2-800/80">
+        {{ renter_active|length }} item{{ 's' if renter_active|length != 1 }} with you now ·
+        {% if renter_pending|length %}{{ renter_pending|length }} request{{ 's' if renter_pending|length != 1 }} awaiting an owner{% else %}no requests awaiting an owner{% endif %}
+      </div>
+    </div>
+    <a href="{{ url_for('web.index') }}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-[18px] py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.05em] text-accent2-800 hover:bg-neutral-100">
+      Browse items
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+    </a>
+  </div>
+  {% endif %}
+{%- endmacro %}
+
+{# ============================ page ============================== #}
 {% block content %}
-<div class="mx-auto max-w-[880px] px-4 py-12 sm:px-14 sm:py-16">
-  <h1 class="m-0 font-display text-[36px] font-bold uppercase leading-none tracking-[-0.01em] text-ink sm:text-[44px]">My Rentals</h1>
-  <p class="mt-3 text-[15px] text-neutral-700">Manage rental requests for your items, and track what you've booked.</p>
+<div class="mx-auto max-w-[1280px] px-4 pb-24 sm:px-14">
 
-  <!-- ============ AS AN OWNER ============ -->
-  <section class="mt-14 border-t-2 border-accent-700 pt-8">
-    <div class="flex items-center gap-2.5">
-      <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-100 text-accent-700">
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21"/></svg>
-      </span>
-      <h2 class="font-display text-[26px] font-bold uppercase text-ink">As an owner</h2>
+  <div class="flex flex-wrap items-end justify-between gap-10 py-11">
+    <div>
+      <h1 class="m-0 mb-2.5 font-display text-[44px] font-bold uppercase leading-[0.94] text-ink sm:text-[64px]">My rentals</h1>
+      <p class="m-0 max-w-[52ch] text-[15px] text-neutral-700 sm:text-[16px]">Everything you are lending out and everything you have borrowed, in one place.</p>
     </div>
-
-    <!-- Pending requests -->
-    <div class="mt-9">
-      {{ section_label('Pending requests', owner_requests|length) }}
-      <div class="mt-1 divide-y divide-divider">
-        {% if owner_requests %}
-          {% for b in owner_requests %}{{ pending_owner_row(b) }}{% endfor %}
-        {% else %}
-          {{ empty_row('No pending requests.') }}
-        {% endif %}
+    <div class="flex flex-wrap gap-2.5">
+      <div class="flex min-w-[132px] flex-col gap-0.5 rounded-2xl border border-amber-200 bg-amber-50 px-[18px] py-3.5 text-amber-900">
+        <span class="font-display text-[30px] font-bold leading-none">{{ owner_requests|length }}</span>
+        <span class="max-w-[15ch] text-[12px] leading-[1.35] opacity-90">request{{ 's' if owner_requests|length != 1 }} need your reply</span>
+      </div>
+      <div class="flex min-w-[132px] flex-col gap-0.5 rounded-2xl bg-accent-700 px-[18px] py-3.5 text-white">
+        <span class="font-display text-[30px] font-bold leading-none">{{ owner_active|length + renter_active|length }}</span>
+        <span class="max-w-[15ch] text-[12px] leading-[1.35] opacity-90">rentals in progress</span>
+      </div>
+      <div class="flex min-w-[132px] flex-col gap-0.5 rounded-2xl border border-divider bg-surface px-[18px] py-3.5 text-accent2-800">
+        <span class="font-display text-[30px] font-bold leading-none">{{ money(earnings_30d) }}</span>
+        <span class="max-w-[15ch] text-[12px] leading-[1.35] opacity-90">earned in the last 30 days</span>
       </div>
     </div>
+  </div>
 
-    <!-- Rentals in progress -->
-    <div class="mt-10">
-      {{ section_label('Rentals in progress', owner_active|length) }}
-      <div class="mt-1 divide-y divide-divider">
-        {% if owner_active %}
-          {% for b in owner_active %}{{ inflight_row(b, 'owner') }}{% endfor %}
-        {% else %}
-          {{ empty_row('Nothing rented out right now.') }}
-        {% endif %}
-      </div>
-    </div>
+  <div class="flex flex-col gap-14 pt-3">
 
-    <!-- Past rentals -->
-    <div class="mt-10">
-      {{ section_label('Past rentals', owner_history|length) }}
-      <div class="mt-1 divide-y divide-divider">
-        {% if owner_history %}
-          {% for b in owner_history %}{{ history_row(b, 'owner') }}{% endfor %}
-        {% else %}
-          {{ empty_row('No past rentals yet.') }}
-        {% endif %}
+    <section>
+      {{ role_band('owner') }}
+      <div class="flex flex-col gap-[26px] pt-[18px]">
+        {{ subsection('Pending requests', owner_requests, 'owner',
+            'Accept or decline so renters aren\'t left waiting', warn=True,
+            empty_title='No pending requests',
+            empty_text='New requests for your listings will land here first.') }}
+        {{ subsection('Rentals in progress', owner_active, 'owner',
+            'Due back on the agreed date',
+            empty_title='Nothing out on rent',
+            empty_text='Items currently with a renter will show here.') }}
+        {{ subsection('Past rentals', owner_history, 'owner',
+            'Reviews stay open for 14 days after return',
+            empty_title='No past rentals yet',
+            empty_text='Completed and cancelled rentals are archived here.') }}
       </div>
-    </div>
+    </section>
 
-    <!-- My listings -->
-    <div class="mt-10">
-      <div class="flex items-baseline justify-between">
-        {{ section_label('My listings') }}
-        <a href="{{ url_for('web.my_listings') }}" class="text-sm font-bold text-accent-700 hover:text-accent-800">Manage listings →</a>
+    <section>
+      {{ role_band('renter') }}
+      <div class="flex flex-col gap-[26px] pt-[18px]">
+        {{ subsection('Pending', renter_pending, 'renter',
+            'Awaiting owner', warn=True,
+            empty_title='No requests awaiting a reply',
+            empty_text='When you request an item, it sits here until the owner confirms.',
+            cta_url=url_for('web.index'), cta_label='Browse items near you') }}
+        {{ subsection('In progress', renter_active, 'renter',
+            'Return on time to keep your full deposit',
+            empty_title='Nothing borrowed right now',
+            empty_text='Items you have out will appear here with their return dates.') }}
+        {{ subsection('Past rentals', renter_history, 'renter',
+            'Reviews stay open for 14 days after return',
+            empty_title='No past rentals yet',
+            empty_text='Your borrowing history will build up here.') }}
       </div>
-      {% if owner_listings %}
-      <div class="mt-1 divide-y divide-divider">
-        {% for listing in owner_listings %}
-        <a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}"
-           class="flex items-center justify-between py-2.5 text-sm font-semibold text-ink hover:text-accent-700">
-          {{ listing.title }}
-          <svg class="h-4 w-4 shrink-0 text-neutral-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-        </a>
-        {% endfor %}
-      </div>
-      {% else %}
-      {{ empty_row("You haven't listed anything yet.") }}
-      {% endif %}
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ AS A RENTER ============ -->
-  <section class="mt-16 border-t-2 border-accent2-700 pt-8">
-    <div class="flex items-center gap-2.5">
-      <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent2-100 text-accent2-700">
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/></svg>
-      </span>
-      <h2 class="font-display text-[26px] font-bold uppercase text-ink">As a renter</h2>
-    </div>
-
-    <!-- Pending -->
-    <div class="mt-9">
-      {{ section_label('Pending — awaiting owner', renter_pending|length) }}
-      <div class="mt-1 divide-y divide-divider">
-        {% if renter_pending %}
-          {% for b in renter_pending %}{{ pending_renter_row(b) }}{% endfor %}
-        {% else %}
-          {{ empty_row('No pending requests.') }}
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- In progress -->
-    <div class="mt-10">
-      {{ section_label('In progress', renter_active|length) }}
-      <div class="mt-1 divide-y divide-divider">
-        {% if renter_active %}
-          {% for b in renter_active %}{{ inflight_row(b, 'renter') }}{% endfor %}
-        {% else %}
-          {{ empty_row('Nothing active right now.') }}
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- History -->
-    <div class="mt-10">
-      {{ section_label('Past rentals', renter_history|length) }}
-      <div class="mt-1 divide-y divide-divider">
-        {% if renter_history %}
-          {% for b in renter_history %}{{ history_row(b, 'renter') }}{% endfor %}
-        {% else %}
-          {{ empty_row('No past rentals yet.') }}
-        {% endif %}
-      </div>
-    </div>
-  </section>
+  </div>
 </div>
 {% endblock %}

@@ -1,172 +1,132 @@
 {% extends "base.html" %}
+{% from "_partials/panels.html" import band, subhead, empty_state with context %}
 
 {% block title %}Payments — Admin — CIRCLO{% endblock %}
 
 {% macro money(v) -%}Rs {{ '{:,.0f}'.format(v|float) }}{%- endmacro %}
 
-{% block content %}
-<div class="mx-auto max-w-[880px] px-4 py-12 sm:px-14 sm:py-16">
-  <div class="flex items-center gap-2.5">
-    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-100 text-accent-700">
-      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3M3.75 19.5h16.5A2.25 2.25 0 0022.5 17.25V6.75A2.25 2.25 0 0020.25 4.5H3.75A2.25 2.25 0 001.5 6.75v10.5A2.25 2.25 0 003.75 19.5z"/></svg>
-    </span>
-    <h1 class="font-display text-[32px] font-bold uppercase leading-none tracking-[-0.01em] text-ink sm:text-[36px]">Payments</h1>
-  </div>
-  <p class="mt-3 text-[15px] text-neutral-700">
-    Semi-manual money movement — confirm real bank / JazzCash transfers here.
-  </p>
-
-  <!-- ===== Awaiting payment confirmation ===== -->
-  <section class="mt-12">
-    <div class="flex items-baseline gap-2">
-      <h2 class="font-display text-[15px] font-bold uppercase tracking-[0.08em] text-ink">Awaiting payment confirmation</h2>
-      <span class="text-[13px] font-semibold text-neutral-500">{{ awaiting_payment|length }}</span>
-    </div>
-
-    {% if not awaiting_payment %}
-    <p class="mt-6 text-sm text-neutral-500">Nothing awaiting confirmation.</p>
-    {% endif %}
-
-    <div class="mt-1 divide-y divide-divider">
-      {% for b in awaiting_payment %}
-      <div class="flex flex-wrap items-start justify-between gap-4 py-6 first:pt-0">
-        <div>
-          <p class="font-bold text-ink">
-            <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
-            <span class="text-sm font-normal text-neutral-500">· booking #{{ b.id }}</span>
-          </p>
-          <p class="mt-0.5 text-sm text-neutral-600">
-            Renter: {{ b.renter.name }} ({{ b.renter.email }}) · Owner: {{ b.owner.name }}
-          </p>
-          <p class="mt-1 text-sm text-ink">
-            {{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}
-            ({{ b.rental_days }} day{{ 's' if b.rental_days != 1 }})
-          </p>
-          <form method="post" action="{{ url_for('admin.confirm_payment', booking_id=b.id) }}" class="mt-3">
-            <button type="submit" class="rounded-full bg-accent-700 px-4 py-1.5 text-sm font-bold text-white hover:bg-accent-800">
-              Confirm payment received
-            </button>
-          </form>
-        </div>
-        <div class="shrink-0 text-right text-sm">
-          <p class="text-neutral-600">Rental <span class="font-semibold text-ink">{{ money(rental_amount_for(b)) }}</span></p>
-          <p class="text-neutral-600">Deposit <span class="font-semibold text-ink">{{ money(b.deposit_amount) }}</span></p>
-          <p class="mt-1 border-t border-divider pt-1 font-bold text-ink">
-            Expected {{ money(rental_amount_for(b)|float + b.deposit_amount|float) }}
-          </p>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </section>
-
-  <!-- ===== Cancellation requests ===== -->
-  <section class="mt-14">
-    <div class="flex items-baseline gap-2">
-      <h2 class="font-display text-[15px] font-bold uppercase tracking-[0.08em] text-ink">Cancellation requests</h2>
-      <span class="text-[13px] font-semibold text-neutral-500">{{ cancellation_requests|length }}</span>
-    </div>
-    <p class="mt-1 text-sm text-neutral-600">
-      Money has already moved on these bookings. Send the refund back by hand, then confirm — that records a matching refund entry and cancels the booking.
-    </p>
-
-    {% if not cancellation_requests %}
-    <p class="mt-6 text-sm text-neutral-500">No cancellation requests.</p>
-    {% endif %}
-
-    <div class="mt-1 divide-y divide-divider">
-      {% for req in cancellation_requests %}
-      {% set b = req.booking %}
-      <div class="py-6 first:pt-0">
-        <p class="font-bold text-ink">
-          <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
-          <span class="text-sm font-normal text-neutral-500">· booking #{{ b.id }} · {{ b.status.replace('_', ' ') }}</span>
-        </p>
-        <p class="mt-0.5 text-sm text-neutral-600">
-          Requested by {{ req.requester.name }} · Renter: {{ b.renter.name }} ({{ b.renter.email }}) · Owner: {{ b.owner.name }} ({{ b.owner.email }})
-        </p>
-        {% if req.reason %}
-        <p class="mt-1 text-sm italic text-neutral-700">“{{ req.reason }}”</p>
+{% macro ledger_table(b) -%}
+<table class="mt-3 w-full text-sm">
+  <tbody>
+    {% for e in ledger_for(b) %}
+    <tr class="border-t border-divider">
+      <td class="py-1.5 capitalize text-neutral-700">{{ e.type.replace('_', ' ') }}</td>
+      <td class="py-1.5 text-right font-medium text-ink">{{ money(e.amount) }}</td>
+      <td class="py-1.5 pl-4 text-right">
+        {% if e.status == 'confirmed' %}
+        <span class="rounded-full bg-accent-100 px-2 py-0.5 text-xs font-bold text-accent-800">confirmed</span>
+        {% else %}
+        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">pending</span>
         {% endif %}
-        <table class="mt-3 w-full text-sm">
-          <tbody>
-            {% for e in ledger_for(b) %}
-            <tr class="border-t border-divider">
-              <td class="py-1.5 capitalize text-neutral-700">{{ e.type.replace('_', ' ') }}</td>
-              <td class="py-1.5 text-right font-medium text-ink">{{ money(e.amount) }}</td>
-              <td class="py-1.5 pl-4 text-right">
-                {% if e.status == 'confirmed' %}
-                <span class="rounded-full bg-accent-100 px-2 py-0.5 text-xs font-bold text-accent-800">confirmed</span>
-                {% else %}
-                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">pending</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <p class="mt-2 text-sm font-bold text-ink">Refund to send back to renter: {{ money(refundable_amount(b)) }}</p>
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-          <form method="post" action="{{ url_for('admin.confirm_cancellation', request_id=req.id) }}">
-            <button type="submit" class="rounded-full bg-accent-700 px-4 py-1.5 text-sm font-bold text-white hover:bg-accent-800">
-              Confirm refund sent &amp; cancel booking
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('admin.reject_cancellation', request_id=req.id) }}">
-            <button type="submit" class="rounded-full border border-rose-200 bg-white px-4 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">
-              Decline
-            </button>
-          </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{%- endmacro %}
+
+{% macro row_head(b) -%}
+<p class="m-0 font-display text-[19px] font-bold uppercase leading-[1.1] text-ink">
+  <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:text-accent-700">{{ b.listing.title }}</a>
+  <span class="text-[13px] font-semibold normal-case text-neutral-500">· booking #{{ b.id }} · {{ b.status.replace('_', ' ') }}</span>
+</p>
+{%- endmacro %}
+
+{% block content %}
+<div class="mx-auto max-w-[1080px] px-4 pb-24 sm:px-14">
+  <h1 class="m-0 py-11 font-display text-[44px] font-bold uppercase leading-[0.94] text-ink sm:text-[56px]">Payments</h1>
+
+  {{ band('Semi-manual money desk',
+      'Confirm real bank / JazzCash transfers by hand — every rupee is tracked in the ledger',
+      tone='accent', icon='card') }}
+
+  <div class="flex flex-col gap-[26px] pt-[18px]">
+
+    <div>
+      {{ subhead('Awaiting payment confirmation', awaiting_payment|length, 'Renter says they have paid', warn=True) }}
+      {% if not awaiting_payment %}
+        {{ empty_state('Nothing awaiting confirmation', 'When a renter marks a booking paid, it lands here for you to verify.') }}
+      {% else %}
+      <div class="flex flex-col gap-2.5">
+        {% for b in awaiting_payment %}
+        <div class="overflow-hidden rounded-2xl border border-divider bg-white">
+          <div class="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
+            <div>
+              {{ row_head(b) }}
+              <p class="m-0 mt-0.5 text-sm text-neutral-600">Renter {{ b.renter.name }} ({{ b.renter.email }}) · Owner {{ b.owner.name }}</p>
+              <p class="m-0 mt-1 text-sm text-ink">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }} ({{ b.rental_days }} day{{ 's' if b.rental_days != 1 }})</p>
+            </div>
+            <div class="shrink-0 text-right text-sm">
+              <p class="m-0 text-neutral-600">Rental <span class="font-semibold text-ink">{{ money(rental_amount_for(b)) }}</span></p>
+              <p class="m-0 text-neutral-600">Deposit <span class="font-semibold text-ink">{{ money(b.deposit_amount) }}</span></p>
+              <p class="m-0 mt-1 border-t border-divider pt-1 font-bold text-ink">Expected {{ money(rental_amount_for(b)|float + b.deposit_amount|float) }}</p>
+            </div>
+          </div>
+          <div class="border-t border-divider bg-neutral-100 px-5 py-3.5">
+            <form method="post" action="{{ url_for('admin.confirm_payment', booking_id=b.id) }}">
+              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Confirm payment received</button>
+            </form>
+          </div>
         </div>
+        {% endfor %}
       </div>
-      {% endfor %}
-    </div>
-  </section>
-
-  <!-- ===== Awaiting payout ===== -->
-  <section class="mt-14">
-    <div class="flex items-baseline gap-2">
-      <h2 class="font-display text-[15px] font-bold uppercase tracking-[0.08em] text-ink">Awaiting payout &amp; refund</h2>
-      <span class="text-[13px] font-semibold text-neutral-500">{{ awaiting_payout|length }}</span>
+      {% endif %}
     </div>
 
-    {% if not awaiting_payout %}
-    <p class="mt-6 text-sm text-neutral-500">No payouts pending.</p>
-    {% endif %}
-
-    <div class="mt-1 divide-y divide-divider">
-      {% for b in awaiting_payout %}
-      <div class="py-6 first:pt-0">
-        <p class="font-bold text-ink">
-          <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:underline">{{ b.listing.title }}</a>
-          <span class="text-sm font-normal text-neutral-500">· booking #{{ b.id }}</span>
-        </p>
-        <p class="mt-0.5 text-sm text-neutral-600">Owner: {{ b.owner.name }} ({{ b.owner.email }}) · Renter: {{ b.renter.name }}</p>
-        <table class="mt-3 w-full text-sm">
-          <tbody>
-            {% for e in ledger_for(b) %}
-            <tr class="border-t border-divider">
-              <td class="py-1.5 capitalize text-neutral-700">{{ e.type.replace('_', ' ') }}</td>
-              <td class="py-1.5 text-right font-medium text-ink">{{ money(e.amount) }}</td>
-              <td class="py-1.5 pl-4 text-right">
-                {% if e.status == 'confirmed' %}
-                <span class="rounded-full bg-accent-100 px-2 py-0.5 text-xs font-bold text-accent-800">confirmed</span>
-                {% else %}
-                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">pending</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <form method="post" action="{{ url_for('admin.confirm_payout', booking_id=b.id) }}" class="mt-3">
-          <button type="submit" class="rounded-full bg-accent-700 px-4 py-1.5 text-sm font-bold text-white hover:bg-accent-800">
-            Confirm payout &amp; refund sent
-          </button>
-        </form>
+    <div>
+      {{ subhead('Cancellation requests', cancellation_requests|length, 'Money moved — refund then cancel', warn=True) }}
+      {% if not cancellation_requests %}
+        {{ empty_state('No cancellation requests', 'Requests to cancel a paid booking will queue here for a manual refund.') }}
+      {% else %}
+      <div class="flex flex-col gap-2.5">
+        {% for req in cancellation_requests %}
+        {% set b = req.booking %}
+        <div class="overflow-hidden rounded-2xl border border-divider bg-white">
+          <div class="px-5 py-4">
+            {{ row_head(b) }}
+            <p class="m-0 mt-0.5 text-sm text-neutral-600">Requested by {{ req.requester.name }} · Renter {{ b.renter.name }} ({{ b.renter.email }}) · Owner {{ b.owner.name }}</p>
+            {% if req.reason %}<p class="m-0 mt-1 text-sm italic text-neutral-700">“{{ req.reason }}”</p>{% endif %}
+            {{ ledger_table(b) }}
+            <p class="m-0 mt-2 text-sm font-bold text-ink">Refund to send back to renter: {{ money(refundable_amount(b)) }}</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 border-t border-divider bg-neutral-100 px-5 py-3.5">
+            <form method="post" action="{{ url_for('admin.confirm_cancellation', request_id=req.id) }}">
+              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Confirm refund sent &amp; cancel booking</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.reject_cancellation', request_id=req.id) }}">
+              <button type="submit" class="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50">Decline</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
+      {% endif %}
     </div>
-  </section>
+
+    <div>
+      {{ subhead('Awaiting payout & refund', awaiting_payout|length, 'Completed rentals, money still owed') }}
+      {% if not awaiting_payout %}
+        {{ empty_state('No payouts pending', 'Once a rental completes, the owner payout and renter deposit refund show here.') }}
+      {% else %}
+      <div class="flex flex-col gap-2.5">
+        {% for b in awaiting_payout %}
+        <div class="overflow-hidden rounded-2xl border border-divider bg-white">
+          <div class="px-5 py-4">
+            {{ row_head(b) }}
+            <p class="m-0 mt-0.5 text-sm text-neutral-600">Owner {{ b.owner.name }} ({{ b.owner.email }}) · Renter {{ b.renter.name }}</p>
+            {{ ledger_table(b) }}
+          </div>
+          <div class="border-t border-divider bg-neutral-100 px-5 py-3.5">
+            <form method="post" action="{{ url_for('admin.confirm_payout', booking_id=b.id) }}">
+              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Confirm payout &amp; refund sent</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
 </div>
 {% endblock %}

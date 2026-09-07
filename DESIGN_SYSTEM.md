@@ -457,6 +457,43 @@ in §12), then the shared footer:
    behavior (e.g. the cancellation-policy answer matches exactly what
    `booking_service.cancel()` allows), not generic marketing copy.
 
+## 14. Dashboard pattern — tinted bands + count badges + card rows (2026-09-07)
+
+My Rentals was rebuilt from a second Claude Design source export and its
+structural language was then extended to My Listings and the four admin panels.
+Shared macros live in `app/web/templates/_partials/panels.html` (`band`,
+`count_badge`, `subhead`, `empty_state`, `row_card`) — imported `with context`.
+
+- **Role / section band**: a tinted `rounded-3xl` strip (`bg-accent-100`
+  forest, `bg-accent2-100` deep-green, or `bg-amber-50` for "needs attention"),
+  a `46px` rounded icon tile in the solid tint, an uppercase `text-[30px]`
+  Barlow-Condensed heading, and a one-line real-data summary. Optional
+  right-aligned stats + a white pill action (`{% call band(...) %}...{% endcall %}`).
+- **Subsection head** (`subhead`): uppercase `text-[21px]` title, a **count
+  badge**, a `flex-1` hairline rule, then a right-aligned policy hint
+  (`sm:` and up). Count badge = amber when it's an action queue with items,
+  `accent-100` when non-empty, `neutral-200` at zero.
+- **Card rows**: `rounded-2xl border border-divider bg-white`, a
+  `76px / 1.6fr / 1fr / 1fr / auto` grid on `sm+` (thumb / title+ref /
+  dates / counterpart / amount+status-pill), collapsing to a stacked
+  `flex-col` on mobile. Any interactive panel (accept/reject, pay, evidence
+  upload, cancellation, review form, admin resolve/confirm forms) lives in a
+  `border-t bg-neutral-100` **footer** on the same card — the row stays
+  informational, the footer holds the controls.
+- **Status pills**: four tones only — amber (waiting on someone), teal
+  (`accent-100`, rental live), sage (`accent2-100`, done), grey
+  (`neutral-200`, off). CIRCLO's nine booking statuses fold into these.
+- **Empty states**: `border-[1.5px] border-dashed` panel, `bg-neutral-100`, a
+  circled check icon, an uppercase title + one line of guidance, optional CTA
+  link.
+- **Real data only** (§0.3 rule): the mockup's "views · 30d" stat is **dropped**
+  (no view tracking); "earned in the last 30 days" is **real** —
+  `ledger_service.owner_earnings_since()` sums the owner's *confirmed* `payout`
+  ledger entries in the window. Owner rating / active-listing count are real;
+  the "CIR-XXXX" ref becomes `#<booking id> · <category>`. Backend routes and
+  services are unchanged except the additive `owner_earnings_since` helper and
+  the view-model fields `web.my_rentals` computes for its template.
+
 The footer (`base.html`) is a single minimal row: a real `©
 {{ current_year }} CIRCLO` copyright line (year injected by the
 `inject_current_year` context processor in `app/__init__.py`, never

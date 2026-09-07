@@ -194,15 +194,46 @@ def confirm_booking_return(booking_id: int):
 @web_bp.route("/my-rentals")
 @login_required
 def my_rentals():
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+
+    from app.models.booking import (
+        STATUS_ACTIVE, STATUS_CANCELLED, STATUS_COMPLETED, STATUS_HANDED_OVER,
+        STATUS_PAID, STATUS_RETURNED,
+    )
+
+    owner_requests = booking_service.requests_for_owner(current_user)
     owner_active = booking_service.active_for_owner(current_user)
-    renter_active = booking_service.active_for_renter(current_user)
     owner_history = booking_service.completed_for_owner(current_user)
+    renter_pending = booking_service.pending_for_renter(current_user)
+    renter_active = booking_service.active_for_renter(current_user)
     renter_history = booking_service.history_for_renter(current_user)
+    owner_listings = listings_service.listings_for_owner(current_user)
+
+    commission_rate = ledger_service.COMMISSION_RATE
+
+    def _amount(b):
+        """(amount, label) for this booking's money cell, from the viewer's side."""
+        is_owner = b.owner_id == current_user.id
+        if b.status == STATUS_CANCELLED:
+            return Decimal("0"), ("No charge" if is_owner else "Refunded")
+        rental = booking_service.rental_amount_for(b)
+        if is_owner:
+            payout = (rental * (Decimal("1") - commission_rate)).quantize(Decimal("1"))
+            label = "Paid out" if b.status == STATUS_COMPLETED else "Payout"
+            return payout, label
+        total = rental + Decimal(b.deposit_amount)
+        paid = b.status in (
+            STATUS_PAID, STATUS_HANDED_OVER, STATUS_ACTIVE, STATUS_RETURNED,
+            STATUS_COMPLETED,
+        )
+        return total, ("Paid" if paid else "To pay")
 
     def _detail(bookings):
         out = {}
         for b in bookings:
             open_dispute = next((d for d in b.disputes if d.status == "open"), None)
+            amount, amount_label = _amount(b)
             out[b.id] = {
                 "before_me": evidence_service.has_uploaded(b, current_user.id, "before"),
                 "after_me": evidence_service.has_uploaded(b, current_user.id, "after"),
@@ -220,21 +251,34 @@ def my_rentals():
                 "can_reveal_contact": booking_service.can_reveal_contact(b),
                 "cancel_action": cancellation_service.available_action(b, current_user),
                 "pending_cancellation": cancellation_service.open_request_for(b),
+                "amount": amount,
+                "amount_label": amount_label,
+                "is_owner": b.owner_id == current_user.id,
             }
         return out
 
-    all_shown = owner_active + renter_active + owner_history + renter_history
+    all_shown = (
+        owner_requests + owner_active + owner_history
+        + renter_pending + renter_active + renter_history
+    )
 
     return render_template(
         "rentals/my_rentals.html",
-        owner_requests=booking_service.requests_for_owner(current_user),
+        owner_requests=owner_requests,
         owner_active=owner_active,
         owner_history=owner_history,
-        owner_listings=listings_service.listings_for_owner(current_user),
-        renter_pending=booking_service.pending_for_renter(current_user),
+        owner_listings=owner_listings,
+        renter_pending=renter_pending,
         renter_active=renter_active,
         renter_history=renter_history,
         booking_detail=_detail(all_shown),
         payment_details=settings_service.payment_details(),
         payment_configured=settings_service.has_payment_details(),
+        active_listings_count=sum(
+            1 for l in owner_listings if l.status == listings_service.BROWSABLE_STATUS
+        ),
+        owner_rating=current_user.rating,
+        earnings_30d=ledger_service.owner_earnings_since(
+            current_user.id, datetime.utcnow() - timedelta(days=30)
+        ),
     )

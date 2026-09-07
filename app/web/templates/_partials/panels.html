@@ -1,0 +1,66 @@
+{# Shared v3 "Organic Forest" building blocks — tinted section bands, count
+   badges, and dashed empty states. Used by My Rentals' siblings (My Listings)
+   and the admin panels so they share one visual language. #}
+
+{# tinted role/section band with an icon tile + one-line summary.
+   tone: 'accent' (forest) | 'accent2' (deep green) | 'amber' (needs attention) #}
+{% macro band(title, subtitle, tone='accent', icon='box') -%}
+  {% set skin = {
+    'accent':  ('bg-accent-100',  'bg-accent-700',  'text-accent-800'),
+    'accent2': ('bg-accent2-100', 'bg-accent2-600', 'text-accent2-800'),
+    'amber':   ('bg-amber-50',    'bg-amber-500',   'text-amber-900'),
+  }[tone] %}
+  {% set paths = {
+    'box':     '<path d="M3 8 12 3l9 5v8l-9 5-9-5Z"/><path d="M3 8l9 5 9-5M12 13v9"/>',
+    'shield':  '<path d="M12 3 5 6v6c0 4 3 6.5 7 9 4-2.5 7-5 7-9V6Z"/><path d="m9 12 2 2 4-4"/>',
+    'card':    '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18"/>',
+    'alert':   '<path d="M12 9v4M12 17h.01M10.3 4 3 17a2 2 0 0 0 1.7 3h14.6a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0Z"/>',
+    'vault':   '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M12 5v2M12 17v2"/>',
+    'tag':     '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4l2 2-3 3"/>',
+  } %}
+  <div class="mb-2.5 flex flex-wrap items-center gap-4 rounded-3xl {{ skin[0] }} px-[22px] py-[18px]">
+    <span class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[14px] {{ skin[1] }}">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">{{ paths.get(icon, paths['box'])|safe }}</svg>
+    </span>
+    <div class="min-w-[200px] flex-1">
+      <h2 class="m-0 font-display text-[30px] font-bold uppercase leading-none {{ skin[2] }}">{{ title }}</h2>
+      {% if subtitle %}<div class="mt-1 text-[13.5px] {{ skin[2] }} opacity-80">{{ subtitle }}</div>{% endif %}
+    </div>
+    {{ caller() if caller is defined }}
+  </div>
+{%- endmacro %}
+
+{% macro count_badge(n, warn=False) -%}
+  {% if n and warn %}{% set cls = 'bg-amber-100 text-amber-800' %}
+  {% elif n %}{% set cls = 'bg-accent-100 text-accent-800' %}
+  {% else %}{% set cls = 'bg-neutral-200 text-neutral-600' %}{% endif %}
+  <span class="inline-grid h-6 min-w-[26px] place-items-center rounded-full px-2 font-display text-[15px] font-bold {{ cls }}">{{ n }}</span>
+{%- endmacro %}
+
+{# subsection header: title + count badge + rule + right-aligned hint #}
+{% macro subhead(title, count, hint='', warn=False) -%}
+<div class="flex items-center gap-3 pb-3.5">
+  <h3 class="m-0 font-display text-[21px] font-bold uppercase tracking-[0.02em] text-ink">{{ title }}</h3>
+  {{ count_badge(count, warn) }}
+  <div class="h-px flex-1 bg-divider"></div>
+  {% if hint %}<span class="hidden text-[12px] text-neutral-600 sm:block">{{ hint }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro empty_state(title, text, cta_url=None, cta_label=None) -%}
+<div class="flex items-center gap-3.5 rounded-2xl border-[1.5px] border-dashed border-divider bg-neutral-100 px-6 py-[22px]">
+  <span class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-divider bg-white">
+    <svg class="h-[18px] w-[18px] text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  </span>
+  <div class="flex-1">
+    <div class="font-display text-[19px] font-bold uppercase leading-[1.1] text-ink">{{ title }}</div>
+    <div class="mt-0.5 text-[13.5px] text-neutral-700">{{ text }}</div>
+  </div>
+  {% if cta_url %}<a href="{{ cta_url }}" class="shrink-0 whitespace-nowrap text-[13px] font-bold">{{ cta_label }}</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{# bordered card row shell — caller supplies the inner grid/content #}
+{% macro row_card() -%}
+<div class="overflow-hidden rounded-2xl border border-divider bg-white">{{ caller() }}</div>
+{%- endmacro %}
