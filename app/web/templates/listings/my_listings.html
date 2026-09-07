@@ -22,7 +22,7 @@
 
       <div class="min-w-0">
         <div class="text-[11px] font-bold uppercase tracking-[0.08em] text-accent-700">{{ listing.category.name }}</div>
-        <a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}" class="font-display text-[21px] font-bold uppercase leading-[1.1] text-ink hover:text-accent-700">{{ listing.title }}</a>
+        <a href="{{ url_for('web.listing_detail', listing_id=listing.id) }}" class="font-display text-[17px] font-bold uppercase leading-[1.1] text-ink hover:text-accent-700 sm:text-[21px]">{{ listing.title }}</a>
         <div class="mt-0.5 text-[12px] text-neutral-600">{{ listing.area }}, {{ listing.city }}</div>
       </div>
 
@@ -36,26 +36,26 @@
           {{ 'Archived' if archived else 'Active' }}
         </span>
         <a href="{{ url_for('web.edit_listing', listing_id=listing.id) }}"
-           class="rounded-full border border-divider bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">Edit</a>
+           class="rounded-full border border-divider bg-white px-3.5 py-2.5 text-sm font-bold sm:px-3 sm:py-1.5 text-ink hover:bg-neutral-100">Edit</a>
         {% if archived %}
         <form method="post" action="{{ url_for('web.reactivate_listing', listing_id=listing.id) }}">
-          <button type="submit" class="rounded-full border border-accent-200 bg-accent-100 px-3 py-1.5 text-sm font-bold text-accent-700 hover:bg-accent-200">Reactivate</button>
+          <button type="submit" class="rounded-full border border-accent-200 bg-accent-100 px-3.5 py-2.5 text-sm font-bold sm:px-3 sm:py-1.5 text-accent-700 hover:bg-accent-200">Reactivate</button>
         </form>
         {% else %}
         <form method="post" action="{{ url_for('web.archive_listing', listing_id=listing.id) }}">
-          <button type="submit" class="rounded-full border border-divider bg-white px-3 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">Archive</button>
+          <button type="submit" class="rounded-full border border-divider bg-white px-3.5 py-2.5 text-sm font-bold sm:px-3 sm:py-1.5 text-ink hover:bg-neutral-100">Archive</button>
         </form>
         {% endif %}
         {% if not has_bookings %}
         <form method="post" action="{{ url_for('web.delete_listing', listing_id=listing.id) }}"
               onsubmit="return confirm('Delete “{{ listing.title|replace('\'', '') }}”? This cannot be undone.');">
-          <button type="submit" class="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">Delete</button>
+          <button type="submit" class="rounded-full border border-rose-200 bg-white px-3.5 py-2.5 text-sm font-bold sm:px-3 sm:py-1.5 text-rose-600 hover:bg-rose-50">Delete</button>
         </form>
         {% endif %}
       </div>
     </div>
     {% if has_bookings and not archived %}
-    <div class="border-t border-divider bg-neutral-100 px-5 py-2.5">
+    <div class="border-t border-divider bg-neutral-100 px-3.5 py-2.5 sm:px-5">
       <p class="text-[12.5px] text-neutral-600">Has rental history — archive instead of delete to keep it.</p>
     </div>
     {% endif %}
@@ -65,9 +65,9 @@
 {% block content %}
 <div class="mx-auto max-w-[1280px] px-4 pb-24 sm:px-14">
 
-  <div class="flex flex-wrap items-end justify-between gap-6 py-11">
+  <div class="flex flex-wrap items-end justify-between gap-6 py-8 sm:py-11">
     <div>
-      <h1 class="m-0 mb-2.5 font-display text-[44px] font-bold uppercase leading-[0.94] text-ink sm:text-[64px]">My listings</h1>
+      <h1 class="m-0 mb-2.5 font-display text-[40px] font-bold uppercase leading-[0.94] text-ink sm:text-[64px]">My listings</h1>
       <p class="m-0 text-[15px] text-neutral-700 sm:text-[16px]">Items you're offering for rent on CIRCLO.</p>
     </div>
     <a href="{{ url_for('web.create_listing') }}"

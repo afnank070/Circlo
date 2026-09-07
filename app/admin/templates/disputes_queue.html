@@ -7,8 +7,8 @@
 
 {% block content %}
 <div class="mx-auto max-w-[1080px] px-4 pb-24 sm:px-14">
-  <div class="flex flex-wrap items-baseline justify-between gap-4 py-11">
-    <h1 class="m-0 font-display text-[44px] font-bold uppercase leading-[0.94] text-ink sm:text-[56px]">Disputes</h1>
+  <div class="flex flex-wrap items-baseline justify-between gap-4 py-8 sm:py-11">
+    <h1 class="m-0 font-display text-[30px] font-bold uppercase leading-[0.98] text-ink sm:text-[56px] sm:leading-[0.94]">Disputes</h1>
     <a href="{{ url_for('admin.trust_fund_page') }}" class="text-sm font-bold text-accent-700 hover:text-accent-800">Trust fund →</a>
   </div>
 
@@ -25,8 +25,8 @@
       <div class="flex flex-col gap-2.5">
         {% for d in open_disputes %}
         <div class="overflow-hidden rounded-2xl border border-divider bg-white">
-          <div class="px-5 py-4">
-            <p class="m-0 font-display text-[19px] font-bold uppercase leading-[1.1] text-ink">
+          <div class="px-4 py-4 sm:px-5">
+            <p class="m-0 font-display text-[17px] font-bold uppercase leading-[1.1] text-ink sm:text-[19px]">
               <a href="{{ url_for('web.listing_detail', listing_id=d.booking.listing_id) }}" class="hover:text-accent-700">{{ d.booking.listing.title }}</a>
               <span class="text-[13px] font-semibold normal-case text-neutral-500">· booking #{{ d.booking_id }} · dispute #{{ d.id }}</span>
             </p>
@@ -38,7 +38,7 @@
             <p class="m-0 mt-2 text-sm italic text-ink">“{{ d.reason }}”</p>
           </div>
           <form method="post" action="{{ url_for('admin.resolve_dispute', dispute_id=d.id) }}"
-                class="space-y-3 border-t border-divider bg-neutral-100 px-5 py-4">
+                class="space-y-3 border-t border-divider bg-neutral-100 px-4 py-4 sm:px-5">
             <div>
               <label class="block text-sm font-bold text-ink">Resolution notes</label>
               <textarea name="resolution" rows="2" required
@@ -59,7 +59,7 @@
                        class="mt-1 w-40 rounded-full border border-divider bg-white px-3 py-2 text-sm">
               </div>
             </div>
-            <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Resolve dispute</button>
+            <button type="submit" class="rounded-full bg-accent-700 px-4 py-2.5 text-sm font-bold text-white sm:py-2 hover:bg-accent-800">Resolve dispute</button>
           </form>
         </div>
         {% endfor %}
@@ -72,7 +72,7 @@
       {{ subhead('Resolved', resolved_disputes|length) }}
       <div class="flex flex-col gap-2.5">
         {% for d in resolved_disputes %}
-        <div class="rounded-2xl border border-divider bg-white px-5 py-3.5 text-sm">
+        <div class="rounded-2xl border border-divider bg-white px-4 py-3.5 sm:px-5 text-sm">
           <p class="m-0 font-display text-[17px] font-bold uppercase text-ink">{{ d.booking.listing.title }} <span class="text-[12px] font-semibold normal-case text-neutral-500">· dispute #{{ d.id }}</span></p>
           <p class="m-0 mt-1 text-neutral-700">{{ d.resolution }}</p>
           <p class="m-0 mt-1 text-xs text-neutral-500">

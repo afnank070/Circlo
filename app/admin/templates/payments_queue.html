@@ -26,7 +26,7 @@
 {%- endmacro %}
 
 {% macro row_head(b) -%}
-<p class="m-0 font-display text-[19px] font-bold uppercase leading-[1.1] text-ink">
+<p class="m-0 font-display text-[17px] font-bold uppercase leading-[1.1] text-ink sm:text-[19px]">
   <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="hover:text-accent-700">{{ b.listing.title }}</a>
   <span class="text-[13px] font-semibold normal-case text-neutral-500">· booking #{{ b.id }} · {{ b.status.replace('_', ' ') }}</span>
 </p>
@@ -34,7 +34,7 @@
 
 {% block content %}
 <div class="mx-auto max-w-[1080px] px-4 pb-24 sm:px-14">
-  <h1 class="m-0 py-11 font-display text-[44px] font-bold uppercase leading-[0.94] text-ink sm:text-[56px]">Payments</h1>
+  <h1 class="m-0 py-8 font-display text-[30px] font-bold uppercase leading-[0.98] text-ink sm:py-11 sm:text-[56px] sm:leading-[0.94]">Payments</h1>
 
   {{ band('Semi-manual money desk',
       'Confirm real bank / JazzCash transfers by hand — every rupee is tracked in the ledger',
@@ -50,7 +50,7 @@
       <div class="flex flex-col gap-2.5">
         {% for b in awaiting_payment %}
         <div class="overflow-hidden rounded-2xl border border-divider bg-white">
-          <div class="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
+          <div class="flex flex-wrap items-start justify-between gap-4 px-4 py-4 sm:px-5">
             <div>
               {{ row_head(b) }}
               <p class="m-0 mt-0.5 text-sm text-neutral-600">Renter {{ b.renter.name }} ({{ b.renter.email }}) · Owner {{ b.owner.name }}</p>
@@ -62,9 +62,9 @@
               <p class="m-0 mt-1 border-t border-divider pt-1 font-bold text-ink">Expected {{ money(rental_amount_for(b)|float + b.deposit_amount|float) }}</p>
             </div>
           </div>
-          <div class="border-t border-divider bg-neutral-100 px-5 py-3.5">
+          <div class="border-t border-divider bg-neutral-100 px-4 py-3.5 sm:px-5">
             <form method="post" action="{{ url_for('admin.confirm_payment', booking_id=b.id) }}">
-              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Confirm payment received</button>
+              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2.5 text-sm font-bold text-white sm:py-2 hover:bg-accent-800">Confirm payment received</button>
             </form>
           </div>
         </div>
@@ -82,19 +82,19 @@
         {% for req in cancellation_requests %}
         {% set b = req.booking %}
         <div class="overflow-hidden rounded-2xl border border-divider bg-white">
-          <div class="px-5 py-4">
+          <div class="px-4 py-4 sm:px-5">
             {{ row_head(b) }}
             <p class="m-0 mt-0.5 text-sm text-neutral-600">Requested by {{ req.requester.name }} · Renter {{ b.renter.name }} ({{ b.renter.email }}) · Owner {{ b.owner.name }}</p>
             {% if req.reason %}<p class="m-0 mt-1 text-sm italic text-neutral-700">“{{ req.reason }}”</p>{% endif %}
             {{ ledger_table(b) }}
             <p class="m-0 mt-2 text-sm font-bold text-ink">Refund to send back to renter: {{ money(refundable_amount(b)) }}</p>
           </div>
-          <div class="flex flex-wrap items-center gap-2 border-t border-divider bg-neutral-100 px-5 py-3.5">
+          <div class="flex flex-wrap items-center gap-2 border-t border-divider bg-neutral-100 px-4 py-3.5 sm:px-5">
             <form method="post" action="{{ url_for('admin.confirm_cancellation', request_id=req.id) }}">
-              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Confirm refund sent &amp; cancel booking</button>
+              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2.5 text-sm font-bold text-white sm:py-2 hover:bg-accent-800">Confirm refund sent &amp; cancel booking</button>
             </form>
             <form method="post" action="{{ url_for('admin.reject_cancellation', request_id=req.id) }}">
-              <button type="submit" class="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50">Decline</button>
+              <button type="submit" class="rounded-full border border-rose-200 bg-white px-4 py-2.5 text-sm font-bold text-rose-600 sm:py-2 hover:bg-rose-50">Decline</button>
             </form>
           </div>
         </div>
@@ -111,14 +111,14 @@
       <div class="flex flex-col gap-2.5">
         {% for b in awaiting_payout %}
         <div class="overflow-hidden rounded-2xl border border-divider bg-white">
-          <div class="px-5 py-4">
+          <div class="px-4 py-4 sm:px-5">
             {{ row_head(b) }}
             <p class="m-0 mt-0.5 text-sm text-neutral-600">Owner {{ b.owner.name }} ({{ b.owner.email }}) · Renter {{ b.renter.name }}</p>
             {{ ledger_table(b) }}
           </div>
-          <div class="border-t border-divider bg-neutral-100 px-5 py-3.5">
+          <div class="border-t border-divider bg-neutral-100 px-4 py-3.5 sm:px-5">
             <form method="post" action="{{ url_for('admin.confirm_payout', booking_id=b.id) }}">
-              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Confirm payout &amp; refund sent</button>
+              <button type="submit" class="rounded-full bg-accent-700 px-4 py-2.5 text-sm font-bold text-white sm:py-2 hover:bg-accent-800">Confirm payout &amp; refund sent</button>
             </form>
           </div>
         </div>

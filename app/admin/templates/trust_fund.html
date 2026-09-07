@@ -7,8 +7,8 @@
 
 {% block content %}
 <div class="mx-auto max-w-[1080px] px-4 pb-24 sm:px-14">
-  <div class="flex flex-wrap items-baseline justify-between gap-4 py-11">
-    <h1 class="m-0 font-display text-[44px] font-bold uppercase leading-[0.94] text-ink sm:text-[56px]">Trust &amp; Safety Fund</h1>
+  <div class="flex flex-wrap items-baseline justify-between gap-4 py-8 sm:py-11">
+    <h1 class="m-0 font-display text-[30px] font-bold uppercase leading-[0.98] text-ink sm:text-[56px] sm:leading-[0.94]">Trust &amp; Safety Fund</h1>
     <a href="{{ url_for('admin.disputes_queue') }}" class="text-sm font-bold text-accent-700 hover:text-accent-800">Disputes →</a>
   </div>
 
@@ -37,7 +37,7 @@
     <div class="mt-3 flex flex-wrap gap-2">
       <input id="starting_balance" name="starting_balance" type="number" min="0" step="1000" value="{{ starting_balance }}"
              class="w-56 rounded-full border border-divider bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
-      <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Save</button>
+      <button type="submit" class="rounded-full bg-accent-700 px-4 py-2.5 text-sm font-bold text-white sm:py-2 hover:bg-accent-800">Save</button>
     </div>
   </form>
 
@@ -48,7 +48,7 @@
     {% else %}
     <div class="flex flex-col gap-2.5">
       {% for d in disbursements %}
-      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-divider bg-white px-5 py-3.5">
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-divider bg-white px-4 py-3.5 sm:px-5">
         <div>
           <p class="m-0 font-display text-[17px] font-bold uppercase text-ink">{{ d.booking.listing.title }}
             <span class="text-[12px] font-semibold normal-case text-neutral-500">· dispute #{{ d.id }}</span></p>

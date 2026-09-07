@@ -4,6 +4,59 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Mobile responsiveness pass (DONE ✅, 2026-09-07)
+
+Purely additive **mobile-only** (`<640px`) rules — every change pins the
+existing desktop value with an `sm:` prefix and only alters the unprefixed
+(mobile) base, so tablet/desktop render byte-identically (verified in-browser
+at 1280px: browse grid still 4-col, 32/44px gaps, 23px card titles, etc.).
+Template/CSS only — no backend touched. Tested at **360 / 390 / 412px**: no
+horizontal overflow on any page, in-card action buttons ≥ 40–43px.
+
+**1. Browse grid (`index.html`)** — the core fix: `grid-cols-1` → **`grid-cols-2`**
+on mobile (`sm:grid-cols-2 xl:grid-cols-4` unchanged), with proportionally
+smaller mobile values: card gap `gap-x-3 gap-y-7` (`sm:gap-x-8 sm:gap-y-11`),
+title `text-[15px]` (`sm:text-[23px]`), price `text-[16px]`, meta `text-[11px]`,
+image `rounded-xl`, verified badge shrunk + repositioned. Hero H1 `text-[42px]`
+(`sm:72/88`), search button `h-[52px] text-[16px]`, category pills
+`px-3.5 py-2.5 text-[13px]` (bigger tap target), sort `<select>` `py-2.5`.
+
+**2. My Rentals (`my_rentals.html`)** — the 5-col desktop booking grid already
+collapses to `flex flex-col` (vertical stack) below `sm:` from the earlier
+rebuild; this pass tightened it: summary chips go `flex-1` in a single mobile
+row, `role_band` gets a compact icon tile + 21px heading + the mini-stats
+hidden on mobile with the CTA pill dropped to its own full-width row
+(`w-full sm:contents` / `sm:w-auto`), booking-row title `text-[17px]`, tinted
+footers `px-3.5 py-3`. New scoped `@media (max-width:639.98px)` rule:
+`.row-card form button, .row-card details>summary { min-height: 42px }`.
+
+**3. My Listings (`my_listings.html`)** — rows already stack; title
+`text-[17px]`, Edit/Archive/Delete buttons `py-2.5` (≈42px) on mobile.
+
+**4. Listing detail (`listing_detail.html`)** — the fixed `2fr/1fr` 3-image
+grid with inline `190px` rows was **not responsive** (side images became
+slivers): now `grid-cols-1` stacked at `aspect-[4/3]` on mobile, the
+`2fr/1fr` + `sm:[grid-template-rows:190px_190px]` only applies `sm:`+. Title
+`text-[30px]`, owner strip wraps (`flex-wrap`, 48px avatar), sidebar
+`p-4 text-[34px]` price, "Also nearby" `gap-3 text-[14px]`, section headings
+`text-[18px]`, owner-control buttons `py-2.5`.
+
+**5. Shared `_partials/panels.html`** — `band` (compact tile/heading/padding,
+caller pill drops to its own row via `w-full sm:contents`), `subhead`
+(`text-[17px]`), `empty_state` (`flex-wrap`, 16px title) — fixes every admin
+page + My Listings at once.
+
+**6. Admin panels** — H1s `text-[30px]` (`sm:56`), card/footer padding
+`px-4 sm:px-5`, buttons `py-2.5 sm:py-2`, verify-queue CNIC/selfie thumbs
+`h-28 w-40`/`w-28` on mobile, and the **reject-reason `<details>` dropdown
+now flows inline on mobile** (`sm:absolute`) instead of being clipped by the
+card's `overflow-hidden`.
+
+**7. Auth pages** — the always-3-col stats strip gets `gap-3` + `text-[22px]`
+numbers on mobile so it doesn't overflow the narrow marketing column.
+
+**129 tests pass** — no test changes (visual-only).
+
 ## Owner payout-timing disclaimer (DONE ✅, 2026-09-07)
 
 Copy/template only — no backend logic changed. Owners must never expect

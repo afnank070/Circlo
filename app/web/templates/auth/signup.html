@@ -20,15 +20,15 @@
         </div>
       </div>
 
-      <div class="grid max-w-[640px] grid-cols-3 gap-6">
+      <div class="grid max-w-[640px] grid-cols-3 gap-3 sm:gap-6">
         {% for stat in [
           {'value': '6,400+', 'label': 'items listed across the twin cities'},
           {'value': 'Rs 2.1M', 'label': 'deposits held and returned safely'},
           {'value': '4.9', 'label': 'average handover rating'},
         ] %}
         <div class="flex flex-col gap-1">
-          <span class="font-display text-[32px] font-bold leading-none text-accent-700 sm:text-[38px]">{{ stat.value }}</span>
-          <span class="text-[13px] leading-[1.4] text-neutral-700">{{ stat.label }}</span>
+          <span class="font-display text-[22px] font-bold leading-none text-accent-700 sm:text-[38px]">{{ stat.value }}</span>
+          <span class="text-[11px] leading-[1.35] text-neutral-700 sm:text-[13px]">{{ stat.label }}</span>
         </div>
         {% endfor %}
       </div>

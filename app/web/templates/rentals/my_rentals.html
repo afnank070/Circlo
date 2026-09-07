@@ -6,6 +6,11 @@
 <style>
   .row-card { transition: border-color .16s, box-shadow .16s; }
   .row-card:hover { border-color: #9ecfc4; box-shadow: 0 2px 10px rgba(10,74,64,.07); }
+  /* Mobile-only: keep every in-card action button an easy tap target. */
+  @media (max-width: 639.98px) {
+    .row-card form button,
+    .row-card details > summary { min-height: 42px; }
+  }
 </style>
 {% endblock %}
 
@@ -67,13 +72,13 @@
 {%- endmacro %}
 
 {% macro empty_state(title, text, cta_url=None, cta_label=None) -%}
-<div class="flex items-center gap-3.5 rounded-2xl border-[1.5px] border-dashed border-divider bg-neutral-100 px-6 py-[22px]">
+<div class="flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-2xl border-[1.5px] border-dashed border-divider bg-neutral-100 px-4 py-4 sm:flex-nowrap sm:px-6 sm:py-[22px]">
   <span class="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-divider bg-white">
     <svg class="h-[18px] w-[18px] text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
   </span>
-  <div class="flex-1">
-    <div class="font-display text-[19px] font-bold uppercase leading-[1.1] text-ink">{{ title }}</div>
-    <div class="mt-0.5 text-[13.5px] text-neutral-700">{{ text }}</div>
+  <div class="min-w-0 flex-1">
+    <div class="font-display text-[16px] font-bold uppercase leading-[1.1] text-ink sm:text-[19px]">{{ title }}</div>
+    <div class="mt-0.5 text-[12.5px] text-neutral-700 sm:text-[13.5px]">{{ text }}</div>
   </div>
   {% if cta_url %}<a href="{{ cta_url }}" class="shrink-0 whitespace-nowrap text-[13px] font-bold">{{ cta_label }}</a>{% endif %}
 </div>
@@ -87,7 +92,7 @@
   {% elif d and d.can_dispute %}
     <details class="inline-block text-left">
       <summary class="cursor-pointer list-none text-[12.5px] text-neutral-600 hover:text-accent-700 hover:underline">Report a problem</summary>
-      <form method="post" action="{{ url_for('web.report_problem', booking_id=b.id) }}" class="mt-2 w-[280px] rounded-2xl bg-white p-3 ring-1 ring-divider">
+      <form method="post" action="{{ url_for('web.report_problem', booking_id=b.id) }}" class="mt-2 w-full max-w-[280px] rounded-2xl bg-white p-3 ring-1 ring-divider">
         <textarea name="reason" rows="2" required minlength="10" placeholder="What went wrong?"
                   class="w-full rounded-2xl border border-divider bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100"></textarea>
         <button type="submit" class="mt-2 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">Submit report</button>
@@ -266,7 +271,7 @@
 {# tinted footer on a COMPLETED booking — review form, or the "reviewed" summary #}
 {% macro review_footer(b, viewer) -%}
   {% set d = booking_detail.get(b.id) %}
-  <div class="border-t border-divider bg-neutral-100 px-5 py-3.5">
+  <div class="border-t border-divider bg-neutral-100 px-3.5 py-3 sm:px-5 sm:py-3.5">
     {% if d.my_review %}
       <div class="flex flex-wrap items-center gap-3">
         <span class="inline-flex items-center gap-1.5 rounded-full bg-accent2-100 px-3 py-1.5">
@@ -314,7 +319,7 @@
 {# tinted footer on an IN-FLIGHT booking — whatever action panel applies #}
 {% macro action_footer(b, viewer) -%}
   {% set d = booking_detail.get(b.id) %}
-  <div class="flex flex-col gap-2.5 border-t border-divider bg-neutral-100 px-5 py-3.5">
+  <div class="flex flex-col gap-2.5 border-t border-divider bg-neutral-100 px-3.5 py-3 sm:px-5 sm:py-3.5">
     {% if b.status == 'requested' and viewer == 'owner' %}{{ request_decision(b) }}{% endif %}
     {% if b.status == 'requested' and viewer == 'renter' %}
       <p class="text-sm text-neutral-600">Waiting for the owner to accept your request.</p>
@@ -336,7 +341,7 @@
       {{ thumb(b.listing) }}
 
       <div class="min-w-0">
-        <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="font-display text-[21px] font-bold uppercase leading-[1.1] text-ink hover:text-accent-700">{{ b.listing.title }}</a>
+        <a href="{{ url_for('web.listing_detail', listing_id=b.listing_id) }}" class="font-display text-[17px] font-bold uppercase leading-[1.1] text-ink hover:text-accent-700 sm:text-[21px]">{{ b.listing.title }}</a>
         <div class="mt-0.5 text-[12px] text-neutral-600">#{{ b.id }} · {{ b.listing.category.name }}</div>
       </div>
 
@@ -379,7 +384,7 @@
     {% elif b.status != 'cancelled' %}
       {{ action_footer(b, viewer) }}
     {% elif d and d.pending_cancellation %}
-      <div class="border-t border-divider bg-neutral-100 px-5 py-3">
+      <div class="border-t border-divider bg-neutral-100 px-3.5 py-3 sm:px-5">
         <p class="text-[12.5px] text-neutral-600">Cancelled after an admin-reviewed refund.</p>
       </div>
     {% endif %}
@@ -390,7 +395,7 @@
 {% macro subsection(title, rows, viewer, hint, warn=False, empty_title='', empty_text='', cta_url=None, cta_label=None) -%}
 <div>
   <div class="flex items-center gap-3 pb-3.5">
-    <h3 class="m-0 font-display text-[21px] font-bold uppercase tracking-[0.02em] text-ink">{{ title }}</h3>
+    <h3 class="m-0 font-display text-[17px] font-bold uppercase tracking-[0.02em] text-ink sm:text-[21px]">{{ title }}</h3>
     {{ count_badge(rows|length, warn) }}
     <div class="h-px flex-1 bg-divider"></div>
     <span class="hidden text-[12px] text-neutral-600 sm:block">{{ hint }}</span>
@@ -408,44 +413,44 @@
 {# ============================ role band ============================== #}
 {% macro role_band(kind) -%}
   {% if kind == 'owner' %}
-  <div class="mb-2.5 flex flex-wrap items-center gap-4 rounded-3xl bg-accent-100 px-[22px] py-[18px]">
-    <span class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[14px] bg-accent-700">
-      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4"/><path d="m16 7 3 3"/><path d="m19 4 2 2"/></svg>
+  <div class="mb-2.5 flex flex-wrap items-center gap-3 rounded-2xl bg-accent-100 px-4 py-4 sm:gap-4 sm:rounded-3xl sm:px-[22px] sm:py-[18px]">
+    <span class="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-accent-700 sm:h-[46px] sm:w-[46px] sm:rounded-[14px]">
+      <svg class="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4"/><path d="m16 7 3 3"/><path d="m19 4 2 2"/></svg>
     </span>
-    <div class="min-w-[200px] flex-1">
-      <h2 class="m-0 font-display text-[30px] font-bold uppercase leading-none text-accent-800">As an owner</h2>
-      <div class="mt-1 text-[13.5px] text-accent-800/80">
+    <div class="min-w-0 flex-1 sm:min-w-[200px]">
+      <h2 class="m-0 font-display text-[21px] font-bold uppercase leading-none text-accent-800 sm:text-[30px]">As an owner</h2>
+      <div class="mt-1 text-[12.5px] text-accent-800/80 sm:text-[13.5px]">
         {{ owner_requests|length }} request{{ 's' if owner_requests|length != 1 }} need your reply · {{ owner_active|length }} item{{ 's' if owner_active|length != 1 }} out on rent
       </div>
     </div>
-    <div class="flex items-center gap-[22px]">
-      <div class="text-right">
+    <div class="flex w-full flex-wrap items-center gap-x-5 gap-y-2 sm:w-auto sm:gap-[22px]">
+      <div class="hidden text-right sm:block">
         <div class="font-display text-[22px] font-bold leading-none text-accent-800">{{ active_listings_count }}</div>
         <div class="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-accent-800/70">Active listings</div>
       </div>
-      <div class="text-right">
+      <div class="hidden text-right sm:block">
         <div class="font-display text-[22px] font-bold leading-none text-accent-800">{{ '%.1f'|format(owner_rating|float) if owner_rating is not none else 'New' }}</div>
         <div class="mt-0.5 text-[11px] uppercase tracking-[0.08em] text-accent-800/70">Owner rating</div>
       </div>
-      <a href="{{ url_for('web.my_listings') }}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-[18px] py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.05em] text-accent-800 hover:bg-neutral-100">
+      <a href="{{ url_for('web.my_listings') }}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-4 py-2.5 font-display text-[13px] font-semibold uppercase tracking-[0.05em] text-accent-800 hover:bg-neutral-100 sm:px-[18px] sm:text-[15px]">
         Manage listings
         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
       </a>
     </div>
   </div>
   {% else %}
-  <div class="mb-2.5 flex flex-wrap items-center gap-4 rounded-3xl bg-accent2-100 px-[22px] py-[18px]">
-    <span class="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-[14px] bg-accent2-600">
-      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l1 12H4Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>
+  <div class="mb-2.5 flex flex-wrap items-center gap-3 rounded-2xl bg-accent2-100 px-4 py-4 sm:gap-4 sm:rounded-3xl sm:px-[22px] sm:py-[18px]">
+    <span class="grid h-11 w-11 shrink-0 place-items-center rounded-[12px] bg-accent2-600 sm:h-[46px] sm:w-[46px] sm:rounded-[14px]">
+      <svg class="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l1 12H4Z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg>
     </span>
-    <div class="min-w-[200px] flex-1">
-      <h2 class="m-0 font-display text-[30px] font-bold uppercase leading-none text-accent2-800">As a renter</h2>
-      <div class="mt-1 text-[13.5px] text-accent2-800/80">
+    <div class="min-w-0 flex-1 sm:min-w-[200px]">
+      <h2 class="m-0 font-display text-[21px] font-bold uppercase leading-none text-accent2-800 sm:text-[30px]">As a renter</h2>
+      <div class="mt-1 text-[12.5px] text-accent2-800/80 sm:text-[13.5px]">
         {{ renter_active|length }} item{{ 's' if renter_active|length != 1 }} with you now ·
         {% if renter_pending|length %}{{ renter_pending|length }} request{{ 's' if renter_pending|length != 1 }} awaiting an owner{% else %}no requests awaiting an owner{% endif %}
       </div>
     </div>
-    <a href="{{ url_for('web.index') }}" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-[18px] py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.05em] text-accent2-800 hover:bg-neutral-100">
+    <a href="{{ url_for('web.index') }}" class="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-white px-4 py-2.5 font-display text-[13px] font-semibold uppercase tracking-[0.05em] text-accent2-800 hover:bg-neutral-100 sm:w-auto sm:justify-start sm:px-[18px] sm:text-[15px]">
       Browse items
       <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
     </a>
@@ -457,23 +462,23 @@
 {% block content %}
 <div class="mx-auto max-w-[1280px] px-4 pb-24 sm:px-14">
 
-  <div class="flex flex-wrap items-end justify-between gap-10 py-11">
+  <div class="flex flex-wrap items-end justify-between gap-6 py-8 sm:gap-10 sm:py-11">
     <div>
-      <h1 class="m-0 mb-2.5 font-display text-[44px] font-bold uppercase leading-[0.94] text-ink sm:text-[64px]">My rentals</h1>
+      <h1 class="m-0 mb-2.5 font-display text-[40px] font-bold uppercase leading-[0.94] text-ink sm:text-[64px]">My rentals</h1>
       <p class="m-0 max-w-[52ch] text-[15px] text-neutral-700 sm:text-[16px]">Everything you are lending out and everything you have borrowed, in one place.</p>
     </div>
-    <div class="flex flex-wrap gap-2.5">
-      <div class="flex min-w-[132px] flex-col gap-0.5 rounded-2xl border border-amber-200 bg-amber-50 px-[18px] py-3.5 text-amber-900">
-        <span class="font-display text-[30px] font-bold leading-none">{{ owner_requests|length }}</span>
-        <span class="max-w-[15ch] text-[12px] leading-[1.35] opacity-90">request{{ 's' if owner_requests|length != 1 }} need your reply</span>
+    <div class="flex w-full flex-wrap gap-2 sm:w-auto sm:gap-2.5">
+      <div class="flex min-w-[100px] flex-1 flex-col gap-0.5 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-amber-900 sm:min-w-[132px] sm:flex-none sm:px-[18px] sm:py-3.5">
+        <span class="font-display text-[24px] font-bold leading-none sm:text-[30px]">{{ owner_requests|length }}</span>
+        <span class="max-w-[15ch] text-[11px] leading-[1.3] opacity-90 sm:text-[12px]">request{{ 's' if owner_requests|length != 1 }} need your reply</span>
       </div>
-      <div class="flex min-w-[132px] flex-col gap-0.5 rounded-2xl bg-accent-700 px-[18px] py-3.5 text-white">
-        <span class="font-display text-[30px] font-bold leading-none">{{ owner_active|length + renter_active|length }}</span>
-        <span class="max-w-[15ch] text-[12px] leading-[1.35] opacity-90">rentals in progress</span>
+      <div class="flex min-w-[100px] flex-1 flex-col gap-0.5 rounded-2xl bg-accent-700 px-3.5 py-3 text-white sm:min-w-[132px] sm:flex-none sm:px-[18px] sm:py-3.5">
+        <span class="font-display text-[24px] font-bold leading-none sm:text-[30px]">{{ owner_active|length + renter_active|length }}</span>
+        <span class="max-w-[15ch] text-[11px] leading-[1.3] opacity-90 sm:text-[12px]">rentals in progress</span>
       </div>
-      <div class="flex min-w-[132px] flex-col gap-0.5 rounded-2xl border border-divider bg-surface px-[18px] py-3.5 text-accent2-800">
-        <span class="font-display text-[30px] font-bold leading-none">{{ money(earnings_30d) }}</span>
-        <span class="max-w-[15ch] text-[12px] leading-[1.35] opacity-90">earned in the last 30 days</span>
+      <div class="flex min-w-[100px] flex-1 flex-col gap-0.5 rounded-2xl border border-divider bg-surface px-3.5 py-3 text-accent2-800 sm:min-w-[132px] sm:flex-none sm:px-[18px] sm:py-3.5">
+        <span class="font-display text-[24px] font-bold leading-none sm:text-[30px]">{{ money(earnings_30d) }}</span>
+        <span class="max-w-[15ch] text-[11px] leading-[1.3] opacity-90 sm:text-[12px]">earned in the last 30 days</span>
       </div>
     </div>
   </div>
