@@ -4,6 +4,36 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Owner payout-timing disclaimer (DONE ✅, 2026-09-07)
+
+Copy/template only — no backend logic changed. Owners must never expect
+payment on acceptance (blueprint §7: payout happens after completion +
+confirmed return). Two touch-points:
+
+1. **Accept flash** (`web.accept_booking`, `app/web/booking.py`) — extended
+   from "Rental request accepted." to add: "You'll receive your payout once
+   the rental is completed and the item is returned in good condition — not
+   immediately on acceptance." (string swap only; the existing
+   `test_booking.py` substring assertion still holds.)
+2. **Persistent card note** (`rentals/my_rentals.html`, `booking_row` macro) —
+   a subtle grey info-icon line directly under the booking row, shown on the
+   **owner's** view while the booking is `accepted` / `awaiting_payment` /
+   `paid` / `handed_over` / `active` / `returned` (i.e. every in-flight stage
+   before the owner is paid out): "Your payout is released after the rental
+   completes and the item is returned in good condition — not before." Absent
+   on `requested` (nothing agreed yet), `completed`/`cancelled`, and the
+   renter's view. (The task named accepted/awaiting_payment/paid/active
+   explicitly; `handed_over` + `returned` are included too since payout is
+   still pending there and the reassurance is just as relevant.)
+
+Wording is calm/expectation-setting, not a warning. Styled with existing V3
+tokens (`text-neutral-500`, small info circle) — no new components.
+
+**Tests**: `tests/test_payout_disclaimer.py` (4) — accept flash carries the
+payout wording; the card note shows for the owner across every in-flight
+status; it's absent when REQUESTED, when COMPLETED, and in the renter's view.
+**129 tests pass** (was 125).
+
 ## Real browse sort (replaces decorative "Sort by: distance") (DONE ✅, 2026-09-07)
 
 The browse page's "Sort by: distance" was a static label — distance is never

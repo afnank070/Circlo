@@ -9,9 +9,6 @@ Update it every time something is deferred — don't rely on chat history alone.
 - [ ] Admin settings page: currently only contains payment-related config — expand as needed
 
 ## Trust & Payments
-- [ ] **In-app disclaimer: owner payout timing.** Owners must clearly understand payout
-      happens AFTER rental completion, not immediately on acceptance. Add clear copy
-      wherever an owner accepts a request and/or on the booking status card.
 - [ ] Real payment gateway integration (EasyPaisa/JazzCash/card via Safepay or similar) —
       BLOCKED on company bank account existing. No code work possible until then.
 - [ ] Business model decision: current escrow + 20% commission model vs. a simpler

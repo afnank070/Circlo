@@ -74,7 +74,12 @@ def accept_booking(booking_id: int):
     except (booking_service.InvalidBookingTransition, booking_service.BookingConflict) as exc:
         flash(str(exc), "error")
     else:
-        flash("Rental request accepted.", "success")
+        flash(
+            "Rental request accepted. You'll receive your payout once the rental "
+            "is completed and the item is returned in good condition — not "
+            "immediately on acceptance.",
+            "success",
+        )
     return redirect(url_for("web.my_rentals"))
 
 
