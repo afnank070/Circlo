@@ -61,6 +61,13 @@ class User(UserMixin, db.Model):
     # Cached owner reputation (0.0–5.0). None until Reviews land in M5.
     rating = db.Column(db.Numeric(2, 1), nullable=True)
 
+    # Object key of a profile photo in the PUBLIC storage bucket (same pattern
+    # as listing images — DB stores the key only, URL built at runtime). None =
+    # fall back to the initials circle.
+    avatar_key = db.Column(db.String(255), nullable=True)
+    # Optional short self-description shown on the public profile. Hidden when unset.
+    bio = db.Column(db.String(500), nullable=True)
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     listings = db.relationship(
@@ -97,9 +104,13 @@ class User(UserMixin, db.Model):
 
     @property
     def initials(self) -> str:
-        """Up to two uppercase initials for avatar chips."""
+        """Up to two uppercase initials for the avatar-circle fallback."""
         parts = [p for p in self.name.split() if p]
         return "".join(p[0] for p in parts[:2]).upper() or "?"
+
+    @property
+    def has_avatar(self) -> bool:
+        return bool(self.avatar_key)
 
     def __repr__(self) -> str:  # pragma: no cover - debug aid
         return f"<User {self.id} {self.email!r}>"

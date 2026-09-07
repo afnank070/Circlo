@@ -65,7 +65,28 @@ def user_profile(user_id: int):
         profile_user=user,
         reviews=reviews_service.reviews_about(user),
         ratings=reviews_service.rating_breakdown(user),
+        completed=booking_service.completed_counts(user),
     )
+
+
+@web_bp.route("/account/avatar", methods=["POST"])
+@login_required
+def update_avatar():
+    try:
+        auth_service.set_avatar(current_user, request.files.get("avatar"))
+    except auth_service.InvalidAvatar as exc:
+        flash(str(exc), "error")
+    else:
+        flash("Profile photo updated.", "success")
+    return redirect(url_for("web.user_profile", user_id=current_user.id))
+
+
+@web_bp.route("/account/avatar/remove", methods=["POST"])
+@login_required
+def remove_avatar():
+    auth_service.remove_avatar(current_user)
+    flash("Profile photo removed.", "info")
+    return redirect(url_for("web.user_profile", user_id=current_user.id))
 
 
 @web_bp.route("/account/phone", methods=["POST"])
@@ -86,6 +107,7 @@ def update_account():
     name = (request.form.get("name") or "").strip()
     email = (request.form.get("email") or "").strip()
     phone = (request.form.get("phone") or "").strip()
+    bio = (request.form.get("bio") or "").strip()
 
     errors = []
     if not name:
@@ -95,7 +117,9 @@ def update_account():
 
     if not errors:
         try:
-            auth_service.update_account(current_user, name=name, email=email, phone=phone)
+            auth_service.update_account(
+                current_user, name=name, email=email, phone=phone, bio=bio
+            )
         except auth_service.EmailAlreadyRegistered:
             errors.append("That email is already registered to another account.")
         else:

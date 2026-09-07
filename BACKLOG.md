@@ -4,9 +4,11 @@ _This file is the permanent memory for anything flagged as "later" during develo
 Update it every time something is deferred — don't rely on chat history alone._
 
 ## Account & Profile
-- [ ] Profile page: add profile picture upload
-- [ ] Profile page: consider a separate "Settings" page for users (currently minimal)
 - [ ] Admin settings page: currently only contains payment-related config — expand as needed
+- (2026-09-07) Profile picture upload + bio + member-since + completed-rental
+  counts shipped on the single `/users/<id>` page — a separate user Settings
+  page was reconsidered and deliberately NOT split out (not enough distinct
+  config to justify it yet). Revisit if account config keeps growing.
 
 ## Trust & Payments
 - [ ] Real payment gateway integration (EasyPaisa/JazzCash/card via Safepay or similar) —

@@ -9,12 +9,29 @@ plaintext password beyond passing it straight to the model (blueprint §8).
 """
 from __future__ import annotations
 
+import uuid
+
+from werkzeug.datastructures import FileStorage
+
 from app.extensions import db
 from app.models import User
+from app.services import storage
+
+# Profile-photo upload guardrails (mirrors the listing-image rules).
+AVATAR_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+_AVATAR_EXT = {
+    "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif",
+}
+MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5 MB
+BIO_MAX_LEN = 500
 
 
 class EmailAlreadyRegistered(Exception):
     """Raised by :func:`create_user` when the email is already taken."""
+
+
+class InvalidAvatar(Exception):
+    """Raised when an uploaded profile photo isn't a usable image."""
 
 
 def normalize_email(email: str) -> str:
@@ -61,7 +78,9 @@ class IncorrectPassword(Exception):
     """Raised by :func:`change_password` when the current password doesn't match."""
 
 
-def update_account(user: User, *, name: str, email: str, phone: str | None) -> User:
+def update_account(
+    user: User, *, name: str, email: str, phone: str | None, bio: str | None = None
+) -> User:
     """Update a user's own editable identity fields (profile self-edit).
 
     :raises EmailAlreadyRegistered: if ``email`` belongs to a different account.
@@ -74,7 +93,59 @@ def update_account(user: User, *, name: str, email: str, phone: str | None) -> U
     user.name = name.strip()
     user.email = email
     user.phone = (phone or "").strip() or None
+    user.bio = (bio or "").strip()[:BIO_MAX_LEN] or None
     db.session.commit()
+    return user
+
+
+def set_avatar(user: User, file: FileStorage | None) -> User:
+    """Store an uploaded profile photo in the public bucket and point the user at it.
+
+    Deletes the previous avatar object (best-effort) so old photos don't pile up.
+
+    :raises InvalidAvatar: no file, or not an accepted image type.
+    """
+    if not isinstance(file, FileStorage) or not file.filename:
+        raise InvalidAvatar("Choose an image file to upload.")
+    content_type = (file.mimetype or "").lower()
+    if content_type not in AVATAR_TYPES:
+        raise InvalidAvatar("Use a JPEG, PNG, WebP or GIF image.")
+
+    try:
+        file.stream.seek(0, 2)
+        size = file.stream.tell()
+        file.stream.seek(0)
+    except (OSError, ValueError):
+        size = 0
+    if size > MAX_AVATAR_BYTES:
+        raise InvalidAvatar("That image is too large — keep it under 5 MB.")
+
+    ext = _AVATAR_EXT[content_type]
+    key = f"avatars/{user.id}/{uuid.uuid4().hex}.{ext}"
+    storage.upload_fileobj(file.stream, key, content_type=content_type)
+
+    old_key = user.avatar_key
+    user.avatar_key = key
+    db.session.commit()
+
+    if old_key and old_key != key:
+        try:
+            storage.delete_object(old_key)
+        except Exception:  # noqa: BLE001 - cleanup is best-effort
+            pass
+    return user
+
+
+def remove_avatar(user: User) -> User:
+    """Clear the user's profile photo, falling back to the initials circle."""
+    old_key = user.avatar_key
+    user.avatar_key = None
+    db.session.commit()
+    if old_key:
+        try:
+            storage.delete_object(old_key)
+        except Exception:  # noqa: BLE001
+            pass
     return user
 
 

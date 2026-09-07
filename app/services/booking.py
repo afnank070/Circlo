@@ -187,6 +187,21 @@ def completed_count() -> int:
     return Booking.query.filter_by(status=STATUS_COMPLETED).count()
 
 
+def completed_counts(user: User) -> dict:
+    """How many rentals ``user`` has completed on each side — profile stats.
+
+    Returns ``{"as_owner": n, "as_renter": m}`` (COMPLETED bookings only).
+    """
+    return {
+        "as_owner": Booking.query.filter_by(
+            status=STATUS_COMPLETED, owner_id=user.id
+        ).count(),
+        "as_renter": Booking.query.filter_by(
+            status=STATUS_COMPLETED, renter_id=user.id
+        ).count(),
+    }
+
+
 def active_for_owner(owner: User) -> list[Booking]:
     """Owner's in-flight bookings (accepted → returned), soonest return first."""
     return (

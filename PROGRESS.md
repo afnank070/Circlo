@@ -4,6 +4,56 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Profile page enhancements — photo, bio, member-since, completed counts (DONE ✅, 2026-09-07)
+
+Stays one page (`/users/<id>`) — a separate Settings page was reconsidered and
+**not** split out (not enough distinct config yet; see BACKLOG). Everything
+already on the page (verification prompt, ratings, reviews, change-password,
+name/email/phone edit) is untouched.
+
+### Schema
+- **`users.avatar_key`** (`String(255)`, nullable) — object key of a profile
+  photo in the **public** storage bucket, same pattern as listing images (DB
+  holds the key only). **`users.bio`** (`String(500)`, nullable). Migration
+  **`f1c8b3e9a274`** (revises `e7a2c4b9f1d3`). New `User.has_avatar` property;
+  `User.initials` stays as the fallback.
+
+### Services (`app/services/auth.py`)
+- `set_avatar(user, file)` — validates type (`AVATAR_TYPES` = jpeg/png/webp/gif)
+  and size (`MAX_AVATAR_BYTES` = 5 MB), uploads to `avatars/<user_id>/<uuid>.<ext>`
+  via `storage.upload_fileobj`, sets `avatar_key`, **best-effort-deletes the old
+  object**. Raises `InvalidAvatar`.
+- `remove_avatar(user)` — clears the key + deletes the object.
+- `update_account(...)` gained a `bio=` kwarg (trimmed, capped at 500, `None`
+  when empty) — the existing "Save changes" button now saves the bio too.
+- **`booking_service.completed_counts(user)`** → `{"as_owner": n, "as_renter": m}`
+  (COMPLETED bookings only).
+
+### Routes (`app/web/community.py`)
+- `POST /account/avatar` (`web.update_avatar`) + `POST /account/avatar/remove`
+  (`web.remove_avatar`). `web.update_account` reads `bio` from the form.
+  `web.user_profile` passes `completed=booking_service.completed_counts(user)`.
+
+### Template (`users/profile.html`, V3)
+- Header avatar: real `<img>` (round, `object-cover`, `ring-1`) when
+  `has_avatar`, else the initials circle — same for the self-edit card.
+- "· Joined Sep 2026" → **"· Member since September 2026"** (`created_at`,
+  full month).
+- **Bio** rendered as a paragraph under the header **only when set** (no empty
+  section).
+- The "Account details" section gains a **Profile photo** card (upload form +
+  "Remove photo" when set) and a **Bio** textarea in the existing edit form.
+- "Reputation" → **"Reputation & activity"**: each role tile now also shows
+  "*N* rental(s) completed" from `completed_counts`.
+
+### Verification
+- **`tests/test_profile_media.py`** (10, storage stubbed): avatar upload sets a
+  keyed object + renders on the page; initials fallback when unset; non-image
+  rejected; remove clears + deletes; replacing deletes the old object; bio
+  saves, shows only when set, is length-capped; "Member since <Month Year>"
+  present; owner/renter completed counts correct (COMPLETED only). **147 tests
+  pass** (was 137).
+
 ## Contact Us form + support-email split (DONE ✅, 2026-09-07)
 
 ### `/contact` page + form
