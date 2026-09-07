@@ -10,10 +10,10 @@
   <!-- HTMX for dynamic interactions without a heavy SPA -->
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
-  <!-- Google Fonts: Sora (headings) + Manrope (body) -->
+  <!-- Google Fonts: Barlow Condensed (display) + Manrope (body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Barlow+Condensed:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -21,7 +21,6 @@
         extend: {
           fontFamily: {
             sans: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-            sora: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
             display: ['"Barlow Condensed"', 'ui-sans-serif', 'sans-serif'],
           },
           boxShadow: {
@@ -75,23 +74,6 @@
       },
     };
   </script>
-  <style>
-    /* Range slider styled to the brand (used by the browse filter sidebar) */
-    input[type="range"].circlo-range {
-      -webkit-appearance: none; appearance: none;
-      height: 4px; border-radius: 9999px; background: #e2d8c4; outline: none;
-    }
-    input[type="range"].circlo-range::-webkit-slider-thumb {
-      -webkit-appearance: none; appearance: none;
-      height: 18px; width: 18px; border-radius: 9999px;
-      background: #0e2e4d; cursor: pointer; border: 3px solid #ffffff;
-      box-shadow: 0 1px 3px rgba(10,37,64,.35);
-    }
-    input[type="range"].circlo-range::-moz-range-thumb {
-      height: 18px; width: 18px; border-radius: 9999px;
-      background: #0e2e4d; cursor: pointer; border: 3px solid #ffffff;
-    }
-  </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="h-full bg-white font-sans font-semibold text-ink antialiased">

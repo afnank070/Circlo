@@ -4,6 +4,44 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Final V3 pass — error pages, auth-recovery, legal, cleanup (DONE ✅, 2026-09-07)
+
+Visual-only. The whole app is now on the v3 "Organic Forest" system — see
+`DESIGN_SYSTEM.md` §0.1.
+
+1. **Branded error pages** — `errors/404.html`, `errors/403.html`,
+   `errors/500.html` (extend `base.html`: accent icon tile, big Barlow code,
+   friendly line, "Back to browse" pill). Wired via a new
+   `_register_error_handlers()` in `app/__init__.py` — the handlers only
+   `render_template(...)` with the status code, no app logic. 403/404 fire on
+   `abort()`; the 500 handler catches uncaught exceptions in prod (the
+   interactive debugger still shows when `DEBUG` is on).
+2. **Forgot / Reset password** (`auth/forgot_password.html`,
+   `auth/reset_password.html`) — rebuilt on the same `bg-surface`
+   `rounded-3xl` `shadow-circlo` auth card as login/signup (minus the tabs):
+   "Account recovery" kicker, Barlow heading, pill inputs, accent focus rings,
+   `h-[52px]` accent CTA, "Back to sign in" link. Routes/flash logic untouched.
+3. **Privacy / Terms** (`legal/privacy.html`, `legal/terms.html`) — v3 shell
+   (`max-w-[820px]` page, "Legal" kicker, `font-display` uppercase h1 + section
+   h2s, `text-neutral-800` prose, accent links). **Every word of the legal
+   copy is byte-for-byte unchanged** — only the wrapper markup/classes changed.
+4. **Profile stars** (`users/profile.html`) — the `stars()` macro's filled
+   star went from `text-amber-400` to `text-accent` (forest green), matching
+   listing detail / browse / My Rentals.
+5. **Admin settings header** (`admin/settings.html`) — replaced the old
+   `h-9 w-9` icon-circle + inline `h1` with the shared `panels.html` `band()`
+   (card icon, "Payment collection details" title + subtitle) so it matches
+   verify / payments / disputes / trust-fund. Form panel + field loop
+   unchanged.
+6. **`base.html` cleanup** — removed the Sora `<link>` import and the `sora`
+   `fontFamily` key (no `font-sora` usages remain), and deleted the dead
+   `.circlo-range` slider `<style>` block (leftover from the removed browse
+   filter sidebar). The v1 `navy`/`teal`/`sand` color tokens are now unused by
+   any template but left defined for a later cleanup.
+
+**117 tests pass** — no test changes needed (the 404/403 handlers return the
+same status codes the tests already assert on).
+
 ## My Rentals rebuild + dashboard visual language rollout (DONE ✅, 2026-09-07)
 
 Visual rebuild only — no routes/services/state-machine logic changed (one

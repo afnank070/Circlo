@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}No access — CIRCLO{% endblock %}
+
+{% block content %}
+<div class="mx-auto flex max-w-[560px] flex-col items-center px-4 py-20 text-center sm:py-28">
+  <span class="grid h-16 w-16 place-items-center rounded-[18px] bg-accent-100 text-accent-700">
+    <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+  </span>
+  <p class="mt-6 font-display text-[64px] font-bold uppercase leading-none text-ink sm:text-[80px]">403</p>
+  <h1 class="mt-2 font-display text-[24px] font-bold uppercase tracking-[-0.01em] text-ink">You don't have access to this</h1>
+  <p class="mt-2 max-w-[42ch] text-[15px] leading-[1.6] text-neutral-700">
+    This page is limited to certain accounts — for example an admin area, or a booking or listing that isn't yours.
+  </p>
+  <a href="{{ url_for('web.index') }}"
+     class="mt-7 inline-flex h-[52px] items-center rounded-full bg-accent px-7 font-display text-[17px] font-bold uppercase tracking-[0.08em] text-white hover:bg-accent-600">
+    Back to browse
+  </a>
+</div>
+{% endblock %}

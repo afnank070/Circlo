@@ -17,18 +17,26 @@ Tailwind JIT syntax and works on the Play CDN build.
 
 ## 0. Migration status & adaptation notes
 
-### 0.1 Migrated to v3
-Shared header/footer (`base.html`), home/browse (`index.html`), listing
-detail (`listing_detail.html`), login (`auth/login.html`), signup
-(`auth/signup.html`), my-rentals, my-listings, identity verification
-(`verify/status.html`), listing form, the new `how_it_works.html` /
-`trust_deposits.html` explainer pages, and all four admin panels
-(`verify_queue.html`, `payments_queue.html`, `disputes_queue.html`,
-`trust_fund.html`).
+### 0.1 Migrated to v3 — now the whole app (2026-09-07)
+Every user-facing page is on v3: shared header/footer (`base.html`),
+home/browse (`index.html`), listing detail, login, signup, **forgot/reset
+password** (`auth/forgot_password.html`, `auth/reset_password.html` — the
+auth-card shell without the tabs), my-rentals, my-listings, profile /
+change-password, identity verification (`verify/status.html`), listing form,
+the `how_it_works.html` / `trust_deposits.html` explainers, **the legal pages**
+(`legal/privacy.html`, `legal/terms.html` — v3 shell, legal copy unchanged),
+all five admin panels (`verify_queue`, `payments_queue`, `disputes_queue`,
+`trust_fund`, **`settings.html`** — the last one now uses the shared
+`panels.html` `band` header like its siblings), and the **branded error pages**
+(`errors/404.html`, `errors/403.html`, `errors/500.html`, wired via
+`_register_error_handlers` in `app/__init__.py`).
 
-**Not yet migrated** (still v1 navy/teal/sand): forgot/reset password,
-legal pages. The v1 tokens stay in `tailwind.config` until those are
-migrated too.
+The v1 `navy` / `teal` / `sand` color tokens remain defined in
+`tailwind.config` but are **no longer referenced by any template** — safe to
+delete in a later cleanup. The **Sora font import and the `sora` fontFamily
+key were removed** from `base.html` (nothing used `font-sora` after the legal
+pages migrated), along with the dead `.circlo-range` slider CSS left over from
+the removed browse filter sidebar.
 
 ### 0.4 Layout philosophy (2026-09-05 rework)
 My Rentals, My Listings, and the four admin panels moved away from

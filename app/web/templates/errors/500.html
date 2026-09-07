@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Something went wrong — CIRCLO{% endblock %}
+
+{% block content %}
+<div class="mx-auto flex max-w-[560px] flex-col items-center px-4 py-20 text-center sm:py-28">
+  <span class="grid h-16 w-16 place-items-center rounded-[18px] bg-accent-100 text-accent-700">
+    <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 4 3 17a2 2 0 0 0 1.7 3h14.6a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+  </span>
+  <p class="mt-6 font-display text-[64px] font-bold uppercase leading-none text-ink sm:text-[80px]">500</p>
+  <h1 class="mt-2 font-display text-[24px] font-bold uppercase tracking-[-0.01em] text-ink">Something went wrong on our end</h1>
+  <p class="mt-2 max-w-[42ch] text-[15px] leading-[1.6] text-neutral-700">
+    This one's on us, not you. Try again in a moment — if it keeps happening, email
+    <a href="mailto:help@circlo.pk" class="font-semibold text-accent-700 underline hover:text-accent-800">help@circlo.pk</a>.
+  </p>
+  <a href="{{ url_for('web.index') }}"
+     class="mt-7 inline-flex h-[52px] items-center rounded-full bg-accent px-7 font-display text-[17px] font-bold uppercase tracking-[0.08em] text-white hover:bg-accent-600">
+    Back to browse
+  </a>
+</div>
+{% endblock %}

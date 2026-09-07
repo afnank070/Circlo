@@ -30,6 +30,7 @@ def create_app(config_object=None) -> Flask:
     _register_models()
     _register_cli(app)
     _register_context_processors(app)
+    _register_error_handlers(app)
 
     return app
 
@@ -109,6 +110,29 @@ def _register_cli(app: Flask) -> None:
     from .cli import register_cli
 
     register_cli(app)
+
+
+def _register_error_handlers(app: Flask) -> None:
+    """Render the branded V3 error pages instead of Flask's bare defaults.
+
+    View-only: these handlers just render a template with the right status
+    code — no application logic. 403/404 come from ``abort(...)`` in the
+    routes; the 500 handler catches any uncaught exception in production
+    (with ``DEBUG`` on, the interactive debugger shows instead).
+    """
+    from flask import render_template
+
+    @app.errorhandler(403)
+    def _forbidden(_e):  # noqa: ANN001
+        return render_template("errors/403.html"), 403
+
+    @app.errorhandler(404)
+    def _not_found(_e):  # noqa: ANN001
+        return render_template("errors/404.html"), 404
+
+    @app.errorhandler(500)
+    def _server_error(_e):  # noqa: ANN001
+        return render_template("errors/500.html"), 500
 
 
 def _register_context_processors(app: Flask) -> None:
