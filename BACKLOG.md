@@ -80,3 +80,4 @@ Update it every time something is deferred — don't rely on chat history alone.
 _Whenever an item here gets built, move it to PROGRESS.md's "Done" history and delete it
 from this file. Whenever something new gets deferred mid-task, add it here immediately —
 don't wait._
+

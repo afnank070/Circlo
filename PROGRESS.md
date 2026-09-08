@@ -4,6 +4,20 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Header logo image + favicons (DONE ✅, 2026-09-09)
+
+- `app/static/images/circlo-logo.png` (896×243) replaces the text
+  `<span>CIRCLO</span>` wordmark in `base.html`'s header nav — `h-8 sm:h-9`,
+  `w-auto`, `alt="CIRCLO"`, intrinsic `width`/`height` set to avoid CLS. The
+  `<a>` switched `items-baseline` → `items-center`; the "Islamabad · Rawalpindi"
+  subtitle is unchanged.
+- Favicons in `<head>`: `<link rel="icon">` for favicon-32/192/512.png plus an
+  `apple-touch-icon` (192). All in `app/static/images/`, served via
+  `url_for('static', …)` (app-level static, `/static/…`).
+- Footer "© CIRCLO" text left as-is (not a wordmark). 164 tests pass.
+
+---
+
 ## Admin user management on /admin/settings (DONE ✅, 2026-09-09)
 
 Grant/revoke the admin role from the settings page.
