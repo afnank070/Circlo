@@ -4,6 +4,64 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Admin user management on /admin/settings (DONE ✅, 2026-09-09)
+
+Grant/revoke the admin role from the settings page.
+
+### Service — `app/services/admin_users.py` (all logic here)
+- `list_users(query=None)` — every user, optional name/email substring filter
+  (`ILIKE`), ordered admins-first then by name.
+- `admin_count()`.
+- `promote_to_admin(actor, user_id)` — sets `role='admin'`; raises
+  `RoleUnchanged` if already admin, `UserNotFound` if no such id.
+- `revoke_admin(actor, user_id)` — sets `role='user'`; raises
+  **`CannotChangeOwnRole`** if `actor.id == target.id` (accidental-lockout
+  guard), `RoleUnchanged` if the target isn't an admin.
+- Every successful flip logs a line via `current_app.logger.info`:
+  `ADMIN ROLE CHANGE: <actor.email> (id=N) promoted to admin <target.email>
+  (id=M) at <UTC ISO>Z` — no audit table (deferred).
+
+### Routes — `app/admin/settings.py` (all `@admin_required`)
+- `GET /admin/settings` now also passes `users` / `user_query` / `admin_count`
+  to the template (reads `?q=`).
+- `POST /admin/users/<id>/promote` → `admin.promote_user`
+- `POST /admin/users/<id>/revoke` → `admin.revoke_user`
+  Both flash the outcome and redirect back to `…/settings?q=<search>#users`.
+
+### Template — `app/admin/templates/settings.html`
+New "User management" section under the payment form: an `accent2` `shield`
+`band`, a GET search box (name/email, with Clear), then a `divide-y` list —
+each row shows name + **Admin** / **You** pill + email, and on the right:
+"Promote to admin" (plain users), "Revoke admin" (other admins, rose outline),
+or "Can't revoke yourself" text (the current admin). Both buttons use a plain
+`onsubmit="return confirm(...)"` dialog — no modal system. Styled with the
+same tokens as the rest of the page.
+
+### Tests — `tests/test_admin_users.py` (7)
+Non-admin gets 403 on the page and both role routes (and no role change);
+anon redirected to login; admin sees the list; promote then revoke works;
+**self-revoke blocked** both via the route (flash "can't revoke your own
+admin access", role unchanged) and at the service layer (`CannotChangeOwnRole`);
+service search filters by name and by email and sorts admins first.
+**164 tests pass** (was 157).
+
+### Manual test
+```
+docker-compose up -d
+docker-compose exec app flask db upgrade
+docker-compose exec app flask seed-test-accounts   # admin@circlo.test / adminpass123
+```
+Log in as `admin@circlo.test`, open `/admin/settings`, scroll to **User
+management**. Search "user", click **Promote to admin** on `user@circlo.test`,
+confirm the dialog → flash "… is now an admin", and `docker-compose logs app`
+shows the `ADMIN ROLE CHANGE:` line. Reload — that user now has an **Admin**
+pill and a **Revoke admin** button; your own row shows "Can't revoke yourself".
+Click **Revoke admin** on them → back to a plain user. Try hitting
+`POST /admin/users/<your-own-id>/revoke` (or if you were the only admin, note
+there's no button) — you stay an admin.
+
+---
+
 ## /debug/reprice-listings — used once on prod, now REMOVED (2026-09-09)
 
 Ran successfully on production (live browse page confirmed showing the varied

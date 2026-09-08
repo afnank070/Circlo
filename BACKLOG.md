@@ -6,7 +6,15 @@ Update it every time something is deferred — don't rely on chat history alone.
 ## Account & Profile
 - [ ] Profile page: add profile picture upload
 - [ ] Profile page: consider a separate "Settings" page for users (currently minimal)
-- [ ] Admin settings page: currently only contains payment-related config — expand as needed
+- [ ] Admin settings page: has payment config + user management (promote/revoke admin,
+      2026-09-09) — expand further as needed
+- [ ] Admin settings: commission rate — currently hardcoded at 20%, deferred until real
+      transaction volume / real payment gateway makes it worth making dynamically
+      configurable (need to decide retroactive vs new-bookings-only when this becomes real)
+- [ ] Admin settings: minimum rental hours — hardcoded at 1, deferred, unlikely to need
+      changing soon
+- [ ] Admin settings: platform contact info — hardcoded in templates, deferred, unlikely
+      to change soon since contact@circlo.pk is on our own domain
 
 ## Trust & Payments
 - [ ] **In-app disclaimer: owner payout timing.** Owners must clearly understand payout
@@ -47,28 +55,21 @@ Update it every time something is deferred — don't rely on chat history alone.
       phone-reveal flow (post-acceptance), or hide it until a booking is accepted.
 
 ## Booking model change — hourly rentals (real feature, not a quick patch)
-- Phase 1 DONE (2026-09-09) — the rental unit is now hours end-to-end:
-  - `Listing.price_per_hour` replaces `price_per_day`; seed data now uses hourly rates.
-  - `Booking.start_datetime` + `Booking.duration_hours` replace the date-only
-    start/end; `Booking.end_datetime` is derived. Migration `b8e2d1a4c6f0`.
-  - Request-to-rent form: start date + start time + number-of-hours (min 1),
-    with a live `price_per_hour × hours` subtotal.
-  - Overlap check is now datetime-range (half-open) at hour precision —
-    `booking_service._ranges_overlap` / `has_overlapping_acceptance`.
-  - Deposit stays a flat owner-set amount (not hourly). Ledger/commission maths
-    unchanged (they already worked off `rental_amount_for`).
-  - Smoke tests: `tests/test_hourly_rental.py` (subtotal, flat deposit, min-hours,
-    hour-level overlap incl. back-to-back allowed) + `tests/test_booking.py` overlap test.
-- Phase 2 DONE (2026-09-09) — all displays say hours (browse hero, listing
-  detail subtotal, My Rentals cards show `date · start–end` + `N hours`, admin
-  payments/disputes summaries, `booking_accepted` email, /how-it-works copy);
-  phone capture gated in `booking_service` (request needs renter phone, accept
-  needs owner phone) with a site-wide banner + profile prompt for the Google
-  OAuth NULL-phone gap; deposit helper text added to the listing form +
-  /trust-deposits (owner's protection, not a CIRCLO fee).
-- [ ] Not built: a "rent for a full day" (24h) convenience shortcut on the
-      request form. Google OAuth still has no dedicated onboarding step — the
-      banner/prompt is the mitigation, not a fix.
+- [ ] **Change minimum rental unit from days to hours.** Currently bookings are date-range
+      only (whole days). Need to support hourly rentals (e.g., rent a projector for 3 hours).
+      This is NOT a simple relabeling — must be done properly end-to-end:
+      - Booking model: date+time range instead of date-only (start/end datetime, not just date)
+      - Pricing: price/day vs price/hour — decide if listings need BOTH rates, or owners pick
+        one pricing unit per listing, and how the total is calculated correctly either way
+      - Request-to-rent form: needs time pickers, not just date pickers
+      - All booking cards/displays (My Rentals, admin panels, emails) that currently show
+        "X days" need to correctly show hours where relevant
+      - Availability/overlap-checking logic (already built for date ranges) needs to work
+        correctly with hour-level granularity, not just whole-day granularity
+      - This touches Booking model, listing form, pricing display everywhere (browse cards,
+        detail page, checkout), and probably the ledger/commission calculation too
+      - Explicitly flagged: no shortcuts, no half-implemented flow — full proper support
+        across the whole booking lifecycle, not just the request form.
 
 ## Explicitly rejected / not doing
 - In-app real-time chat — decided against for now; using phone number reveal +

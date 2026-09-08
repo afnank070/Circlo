@@ -33,5 +33,64 @@
       Save
     </button>
   </form>
+
+  {# ---- User management -------------------------------------------------- #}
+  <div id="users" class="mt-14 scroll-mt-24">
+    {{ band('User management',
+        admin_count ~ ' admin' ~ ('s' if admin_count != 1 else '') ~ ' · '
+          ~ users|length ~ ' user' ~ ('s' if users|length != 1 else '')
+          ~ (' matching “' ~ user_query ~ '”' if user_query else ''),
+        tone='accent2', icon='shield') }}
+
+    <div class="mt-[18px] rounded-2xl border border-divider bg-surface p-6 sm:max-w-[680px]">
+      <form method="get" class="flex flex-wrap items-center gap-2">
+        <input type="text" name="q" value="{{ user_query }}" placeholder="Search name or email…"
+               class="min-w-0 flex-1 rounded-full border border-divider bg-white px-4 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
+        <button type="submit" class="rounded-full bg-accent-700 px-4 py-2 text-sm font-bold text-white hover:bg-accent-800">Search</button>
+        {% if user_query %}
+        <a href="{{ url_for('admin.settings_page') }}#users" class="rounded-full border border-divider bg-white px-4 py-2 text-sm font-bold text-ink hover:bg-neutral-100">Clear</a>
+        {% endif %}
+      </form>
+
+      <ul class="mt-4 divide-y divide-divider">
+        {% for u in users %}
+        <li class="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="truncate text-sm font-bold text-ink">{{ u.name }}</span>
+              {% if u.role == 'admin' %}
+              <span class="rounded-full bg-accent2-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-accent2-800">Admin</span>
+              {% endif %}
+              {% if u.id == current_user.id %}
+              <span class="rounded-full bg-neutral-200 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-neutral-600">You</span>
+              {% endif %}
+            </div>
+            <div class="truncate text-[13px] text-neutral-600">{{ u.email }}</div>
+          </div>
+
+          {% if u.role == 'admin' %}
+            {% if u.id == current_user.id %}
+            <span class="text-[13px] italic text-neutral-500">Can't revoke yourself</span>
+            {% else %}
+            <form method="post" action="{{ url_for('admin.revoke_user', user_id=u.id) }}"
+                  onsubmit="return confirm('Revoke admin access for {{ u.name|e }} ({{ u.email|e }})?');">
+              <input type="hidden" name="q" value="{{ user_query }}">
+              <button type="submit" class="rounded-full border border-rose-200 bg-white px-3.5 py-1.5 text-sm font-bold text-rose-600 hover:bg-rose-50">Revoke admin</button>
+            </form>
+            {% endif %}
+          {% else %}
+          <form method="post" action="{{ url_for('admin.promote_user', user_id=u.id) }}"
+                onsubmit="return confirm('Make {{ u.name|e }} ({{ u.email|e }}) an admin? They will get full access to every admin panel.');">
+            <input type="hidden" name="q" value="{{ user_query }}">
+            <button type="submit" class="rounded-full border border-divider bg-white px-3.5 py-1.5 text-sm font-bold text-ink hover:bg-neutral-100">Promote to admin</button>
+          </form>
+          {% endif %}
+        </li>
+        {% else %}
+        <li class="py-6 text-center text-sm text-neutral-500">No users match that search.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
 </div>
 {% endblock %}
