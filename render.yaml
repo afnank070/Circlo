@@ -34,10 +34,6 @@ services:
         sync: false
       - key: CONTACT_EMAIL
         sync: false
-      # TEMPORARY — gates GET /debug/reprice-listings (one-shot price/deposit
-      # fix for shell-less deploys). Leave unset to keep the route 404.
-      - key: DEBUG_REPRICE_KEY
-        sync: false
       # Canonical URL for email links + the Google OAuth redirect URI.
       # Set to https://www.circlo.pk (must match Google Cloud Console).
       - key: PUBLIC_BASE_URL

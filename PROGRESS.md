@@ -4,9 +4,19 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
-## TEMPORARY: /debug/reprice-listings — fix live prices without shell (2026-09-09)
+## /debug/reprice-listings — used once on prod, now REMOVED (2026-09-09)
 
-Same pattern as the old `/debug/test-email` (commit `479402f`, since removed).
+Ran successfully on production (live browse page confirmed showing the varied
+hourly prices), then removed — `app/web/debug.py`, the blueprint import, the
+`DEBUG_REPRICE_KEY` config/`.env.example`/`render.yaml` entries, and
+`tests/test_debug_reprice.py` are all gone. **The `DEBUG_REPRICE_KEY` env var
+should also be deleted from the Render dashboard.**
+
+`seed_service.seed_pricing()` was kept — harmless, reusable: re-applies
+`seed.py`'s `LISTINGS` `price_per_hour` / `deposit_amount` to existing rows
+matched by title, never creating/deleting rows. Idempotent.
+
+Original note (same pattern as the old `/debug/test-email`, commit `479402f`):
 
 - **`GET /debug/reprice-listings?key=<DEBUG_REPRICE_KEY>`** (`app/web/debug.py`)
   — 404s unless the `DEBUG_REPRICE_KEY` env var is set and the `key` param
