@@ -36,7 +36,7 @@ def _owner(email, rating=None):
 def _listing(cat, owner, *, title, price, days_old, area="F-7"):
     l = Listing(
         owner_id=owner.id, title=title, description="d", category_id=cat.id,
-        city="Islamabad", area=area, price_per_day=Decimal(str(price)),
+        city="Islamabad", area=area, price_per_hour=Decimal(str(price)),
         deposit_amount=1000, status="active",
         created_at=BASE - timedelta(days=days_old),
     )
@@ -85,7 +85,7 @@ def test_sort_price_low_to_high(app):
     with app.app_context():
         results = listings_service.browse_listings(sort="price_low")
         assert _titles(results) == ["Cheap old drill", "Midprice fresh sander", "Pricey mid saw"]
-        prices = [float(l.price_per_day) for l in results]
+        prices = [float(l.price_per_hour) for l in results]
         assert prices == sorted(prices)
 
 
@@ -94,7 +94,7 @@ def test_sort_price_high_to_low(app):
     with app.app_context():
         results = listings_service.browse_listings(sort="price_high")
         assert _titles(results) == ["Pricey mid saw", "Midprice fresh sander", "Cheap old drill"]
-        prices = [float(l.price_per_day) for l in results]
+        prices = [float(l.price_per_hour) for l in results]
         assert prices == sorted(prices, reverse=True)
 
 

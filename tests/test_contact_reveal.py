@@ -15,7 +15,6 @@ from app.services import booking as booking_service
 
 TODAY = date.today()
 START = (TODAY + timedelta(days=3)).isoformat()
-END = (TODAY + timedelta(days=5)).isoformat()
 
 OWNER_PHONE = "03001112222"
 RENTER_PHONE = "03003334444"
@@ -48,7 +47,7 @@ def _make_listing(app, owner_email, category_id, pickup_location="F-7 Markaz", m
         listing = Listing(
             owner_id=owner.id, title="Bosch Hammer Drill", description="desc",
             category_id=category_id, city="Islamabad", area="F-8",
-            price_per_day=800, deposit_amount=5000, status="active",
+            price_per_hour=800, deposit_amount=5000, status="active",
             pickup_location=pickup_location, map_link=map_link,
         )
         db.session.add(listing)
@@ -59,7 +58,7 @@ def _make_listing(app, owner_email, category_id, pickup_location="F-7 Markaz", m
 def _request(client, listing_id):
     return client.post(
         f"/listings/{listing_id}/request",
-        data={"start_date": START, "end_date": END, "message": "Please"},
+        data={"start_date": START, "start_time": "09:00", "hours": "3", "message": "Please"},
         follow_redirects=True,
     )
 

@@ -1,5 +1,5 @@
 """M4 — admin-configurable payment details shown on the payment card."""
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app.extensions import db
 from app.models import Category, Listing
@@ -9,8 +9,8 @@ from app.services import booking as booking_service
 from app.services import settings as settings_service
 
 TODAY = date.today()
-START = TODAY + timedelta(days=3)
-END = TODAY + timedelta(days=5)  # 3 rental days
+START = datetime.combine(TODAY + timedelta(days=3), datetime.min.time()).replace(hour=9)
+DURATION = 3  # hours — 800/hr * 3 = 2400 rental
 
 
 def _verified(email, *, admin=False):
@@ -51,11 +51,11 @@ def test_admin_saves_details_and_renter_sees_amount_and_instructions(client, app
         listing = Listing(
             owner_id=owner.id, title="Bosch Hammer Drill", description="d",
             category_id=cat.id, city="Islamabad", area="F-8",
-            price_per_day=800, deposit_amount=5000, status="active",
+            price_per_hour=800, deposit_amount=5000, status="active",
         )
         db.session.add(listing)
         db.session.commit()
-        b = booking_service.request_to_rent(listing, renter, start_date=START, end_date=END)
+        b = booking_service.request_to_rent(listing, renter, start_datetime=START, duration_hours=DURATION)
         booking_service.accept(b, owner=owner)
 
     # admin configures the collection details
@@ -91,12 +91,12 @@ def test_renter_sees_fallback_message_when_details_unset(client, app):
         renter = _verified("renter@example.com")
         listing = Listing(
             owner_id=owner.id, title="Drill", description="d", category_id=cat.id,
-            city="Islamabad", area="F-8", price_per_day=800, deposit_amount=5000,
+            city="Islamabad", area="F-8", price_per_hour=800, deposit_amount=5000,
             status="active",
         )
         db.session.add(listing)
         db.session.commit()
-        b = booking_service.request_to_rent(listing, renter, start_date=START, end_date=END)
+        b = booking_service.request_to_rent(listing, renter, start_datetime=START, duration_hours=DURATION)
         booking_service.accept(b, owner=owner)
 
     client.post("/login", data={"email": "renter@example.com", "password": "supersecret"})

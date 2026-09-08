@@ -4,7 +4,7 @@ State-machine focused: exercises the service layer directly (the future
 ``/api/v1`` calls the same functions). Storage is stubbed so no MinIO is needed.
 """
 import io
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -36,8 +36,8 @@ from app.services import ledger as ledger_service
 from app.services import payments as payments_service
 
 TODAY = date.today()
-START = TODAY + timedelta(days=3)
-END = TODAY + timedelta(days=5)  # inclusive -> 3 rental days
+START = datetime.combine(TODAY + timedelta(days=3), datetime.min.time()).replace(hour=9)
+DURATION = 3  # hours — 800/hr * 3 = 2400 rental
 
 
 class _FakeUpload:
@@ -81,13 +81,13 @@ def _scenario(app):
         listing = Listing(
             owner_id=owner.id, title="Bosch Hammer Drill", description="d",
             category_id=cat.id, city="Islamabad", area="F-8",
-            price_per_day=800, deposit_amount=5000, status="active",
+            price_per_hour=800, deposit_amount=5000, status="active",
         )
         db.session.add(listing)
         db.session.commit()
 
         b = booking_service.request_to_rent(
-            listing, renter, start_date=START, end_date=END, message="hi"
+            listing, renter, start_datetime=START, duration_hours=DURATION, message="hi"
         )
         booking_service.accept(b, owner=owner)
         return {"owner": owner.id, "renter": renter.id, "admin": admin.id, "booking": b.id}
@@ -97,7 +97,7 @@ def test_request_snapshots_rental_amount(app):
     ids = _scenario(app)
     with app.app_context():
         b = db.session.get(Booking, ids["booking"])
-        assert Decimal(b.rental_amount) == Decimal("2400.00")  # 800 * 3 days
+        assert Decimal(b.rental_amount) == Decimal("2400.00")  # 800/hr * 3 hours
 
 
 def test_renter_marks_paid_then_admin_confirms(app):

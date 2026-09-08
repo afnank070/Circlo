@@ -6,7 +6,7 @@ reuse it later (blueprint §4).
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -24,11 +24,16 @@ from app.services import settings as settings_service
 from . import web_bp
 
 
-def _parse_date(value: str | None) -> date | None:
-    if not value:
+def _parse_start_datetime(date_value: str | None, time_value: str | None) -> datetime | None:
+    """Combine a ``YYYY-MM-DD`` date and an ``HH:MM`` time into a datetime.
+
+    A missing time defaults to midnight so a date-only submission still works.
+    """
+    if not date_value:
         return None
+    time_value = (time_value or "").strip() or "00:00"
     try:
-        return datetime.strptime(value, "%Y-%m-%d").date()
+        return datetime.strptime(f"{date_value} {time_value}", "%Y-%m-%d %H:%M")
     except ValueError:
         return None
 
@@ -44,14 +49,16 @@ def request_booking(listing_id: int):
         flash("Verify your identity to rent items.", "info")
         return redirect(url_for("web.verify"))
 
-    start_date = _parse_date(request.form.get("start_date"))
-    end_date = _parse_date(request.form.get("end_date"))
+    start_datetime = _parse_start_datetime(
+        request.form.get("start_date"), request.form.get("start_time")
+    )
+    hours = (request.form.get("hours") or "").strip()
     message = request.form.get("message")
 
     try:
         booking_service.request_to_rent(
             listing, current_user,
-            start_date=start_date, end_date=end_date, message=message,
+            start_datetime=start_datetime, duration_hours=hours, message=message,
         )
     except booking_service.InvalidBookingRequest as exc:
         flash(str(exc), "error")

@@ -11,7 +11,7 @@ a later change to the listing's deposit never rewrites an existing booking.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.extensions import db
 
@@ -61,13 +61,20 @@ class Booking(db.Model):
         db.String(20), nullable=False, default=STATUS_REQUESTED, index=True
     )
 
-    rental_date_start = db.Column(db.Date, nullable=False)
-    rental_date_end = db.Column(db.Date, nullable=False)
+    # The rental unit is hours. A booking is an hour-precise window: it starts at
+    # ``start_datetime`` and runs for ``duration_hours`` hours (``end_datetime``
+    # is derived). Overlap/double-booking checks compare these datetime windows,
+    # not whole calendar days.
+    start_datetime = db.Column(db.DateTime, nullable=False)
+    duration_hours = db.Column(db.Integer, nullable=False)
 
-    # Snapshot of listing.deposit_amount at request time (blueprint §5).
+    # Snapshot of listing.deposit_amount at request time (blueprint §5). A flat
+    # amount set by the owner — NOT hourly-dependent — so it never scales with
+    # the rental duration.
     deposit_amount = db.Column(db.Numeric(10, 2), nullable=False)
 
-    # Snapshot of the total rental fee (price_per_day * days) at request time, so
+    # Snapshot of the total rental fee (price_per_hour * duration_hours) at
+    # request time, so
     # a later listing price change never rewrites an existing booking and the
     # ledger/commission maths (M4) has a fixed number to work from. Nullable for
     # rows created before M4; the booking service backfills it on read.
@@ -86,9 +93,9 @@ class Booking(db.Model):
     )
 
     @property
-    def rental_days(self) -> int:
-        """Inclusive number of rental days (start and end day both count)."""
-        return (self.rental_date_end - self.rental_date_start).days + 1
+    def end_datetime(self) -> datetime:
+        """When the rental window closes (start + duration)."""
+        return self.start_datetime + timedelta(hours=self.duration_hours or 0)
 
     def __repr__(self) -> str:  # pragma: no cover - debug aid
         return f"<Booking {self.id} listing={self.listing_id} {self.status}>"

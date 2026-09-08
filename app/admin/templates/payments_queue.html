@@ -54,7 +54,7 @@
             <div>
               {{ row_head(b) }}
               <p class="m-0 mt-0.5 text-sm text-neutral-600">Renter {{ b.renter.name }} ({{ b.renter.email }}) · Owner {{ b.owner.name }}</p>
-              <p class="m-0 mt-1 text-sm text-ink">{{ b.rental_date_start.strftime('%d %b %Y') }} – {{ b.rental_date_end.strftime('%d %b %Y') }} ({{ b.rental_days }} day{{ 's' if b.rental_days != 1 }})</p>
+              <p class="m-0 mt-1 text-sm text-ink">{{ b.start_datetime.strftime('%d %b %Y, %I:%M %p') }} ({{ b.duration_hours }} hour{{ 's' if b.duration_hours != 1 }})</p>
             </div>
             <div class="shrink-0 text-right text-sm">
               <p class="m-0 text-neutral-600">Rental <span class="font-semibold text-ink">{{ money(rental_amount_for(b)) }}</span></p>

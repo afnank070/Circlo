@@ -63,7 +63,7 @@ def test_create_listing_creates_owned_active_listing(client, app):
             "category_id": str(category_id),
             "city": "Islamabad",
             "area": "F-8",
-            "price_per_day": "800",
+            "price_per_hour": "800",
             "deposit_amount": "5000",
         },
         follow_redirects=True,
@@ -76,7 +76,7 @@ def test_create_listing_creates_owned_active_listing(client, app):
         listing = Listing.query.filter_by(title="Bosch Hammer Drill").first()
         assert listing is not None
         assert listing.status == "active"
-        assert int(listing.price_per_day) == 800
+        assert int(listing.price_per_hour) == 800
         assert int(listing.deposit_amount) == 5000
         owner = auth_service.get_user_by_email("owner@example.com")
         assert listing.owner_id == owner.id
@@ -97,7 +97,7 @@ def test_create_listing_rejects_missing_title(client, app):
             "category_id": str(category_id),
             "city": "Islamabad",
             "area": "F-8",
-            "price_per_day": "800",
+            "price_per_hour": "800",
             "deposit_amount": "5000",
         },
     )
@@ -118,7 +118,7 @@ def test_non_owner_cannot_edit_listing(client, app):
             "category_id": str(category_id),
             "city": "Islamabad",
             "area": "F-8",
-            "price_per_day": "800",
+            "price_per_hour": "800",
             "deposit_amount": "5000",
         },
     )
@@ -141,7 +141,7 @@ def test_delete_listing_with_bookings_is_refused_not_500(client, app):
     """A listing with rental history can't be hard-deleted (would violate the
     bookings.listing_id NOT NULL FK) — the route must flash a friendly error,
     not 500."""
-    from datetime import date, timedelta
+    from datetime import date, datetime, timedelta
 
     from app.services import booking as booking_service
 
@@ -154,7 +154,7 @@ def test_delete_listing_with_bookings_is_refused_not_500(client, app):
             "category_id": str(category_id),
             "city": "Islamabad",
             "area": "F-8",
-            "price_per_day": "800",
+            "price_per_hour": "800",
             "deposit_amount": "5000",
         },
     )
@@ -170,8 +170,8 @@ def test_delete_listing_with_bookings_is_refused_not_500(client, app):
         listing = db.session.get(Listing, listing_id)
         booking_service.request_to_rent(
             listing, renter,
-            start_date=date.today() + timedelta(days=1),
-            end_date=date.today() + timedelta(days=3),
+            start_datetime=datetime.combine(date.today() + timedelta(days=1), datetime.min.time()),
+            duration_hours=3,
             message=None,
         )
         db.session.commit()

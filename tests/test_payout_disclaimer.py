@@ -14,7 +14,6 @@ from app.services import auth as auth_service
 
 TODAY = date.today()
 START = (TODAY + timedelta(days=3)).isoformat()
-END = (TODAY + timedelta(days=5)).isoformat()
 
 NOTE = b"Your payout is released after the rental completes"
 
@@ -43,7 +42,7 @@ def _listing(app, owner_email, cat_id):
         owner = auth_service.get_user_by_email(owner_email)
         l = Listing(owner_id=owner.id, title="Bosch Hammer Drill", description="d",
                     category_id=cat_id, city="Islamabad", area="F-8",
-                    price_per_day=800, deposit_amount=5000, status="active")
+                    price_per_hour=800, deposit_amount=5000, status="active")
         db.session.add(l)
         db.session.commit()
         return l.id
@@ -57,7 +56,7 @@ def _booking_between(client, app, cat_id):
     client.post("/logout")
     _verified(client, "renter@example.com")
     client.post(f"/listings/{listing_id}/request",
-                data={"start_date": START, "end_date": END, "message": "hi"},
+                data={"start_date": START, "start_time": "09:00", "hours": "3", "message": "hi"},
                 follow_redirects=True)
     client.post("/logout")
     client.post("/login", data={"email": "owner@example.com", "password": "supersecret"})

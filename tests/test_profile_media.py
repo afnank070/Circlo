@@ -159,7 +159,7 @@ def test_completed_rental_counts_shown(client, app, _stub_storage):
         renter = _signup_user("renter@example.com", "Ray Renter")
         listing = Listing(owner_id=owner.id, title="Drill", description="d",
                           category_id=cat.id, city="Islamabad", area="F-7",
-                          price_per_day=500, deposit_amount=1000, status="active")
+                          price_per_hour=500, deposit_amount=1000, status="active")
         db.session.add(listing); db.session.commit()
         # 2 completed as owner, 1 completed as renter, 1 not-completed (ignored)
         for st in ("completed", "completed", "cancelled"):
@@ -184,10 +184,10 @@ def _signup_user(email, name):
 
 
 def _bk(listing, renter, owner, status):
-    from datetime import date, timedelta
+    from datetime import datetime, timedelta
     return Booking(
         listing_id=listing.id, renter_id=renter.id, owner_id=owner.id, status=status,
-        rental_date_start=date.today() - timedelta(days=10),
-        rental_date_end=date.today() - timedelta(days=7),
+        start_datetime=datetime.utcnow() - timedelta(days=10),
+        duration_hours=3,
         deposit_amount=1000, rental_amount=1500,
     )

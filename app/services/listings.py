@@ -70,9 +70,9 @@ def normalized_sort(value: str | None) -> str:
 def _apply_sort(q, sort: str):
     """Attach the ORDER BY for ``sort`` (already normalized) to a listings query."""
     if sort == SORT_PRICE_LOW:
-        return q.order_by(Listing.price_per_day.asc(), Listing.created_at.desc())
+        return q.order_by(Listing.price_per_hour.asc(), Listing.created_at.desc())
     if sort == SORT_PRICE_HIGH:
-        return q.order_by(Listing.price_per_day.desc(), Listing.created_at.desc())
+        return q.order_by(Listing.price_per_hour.desc(), Listing.created_at.desc())
     if sort == SORT_RATING:
         # Highest owner rating first; unrated owners last; newest breaks ties.
         # ``rating.is_(None).asc()`` (False before True) keeps this portable
@@ -211,7 +211,7 @@ def _resolve_area(area: str) -> tuple[str, str]:
 
 
 def create_listing(*, owner, title: str, description: str, category_id: int,
-                   city: str, area: str, price_per_day, deposit_amount,
+                   city: str, area: str, price_per_hour, deposit_amount,
                    pickup_location: str | None = None, map_link: str | None = None,
                    images=None) -> Listing:
     """Create an ``active`` listing owned by ``owner`` and store any images.
@@ -229,7 +229,7 @@ def create_listing(*, owner, title: str, description: str, category_id: int,
         category_id=category_id,
         city=city,
         area=area,
-        price_per_day=price_per_day,
+        price_per_hour=price_per_hour,
         deposit_amount=deposit_amount,
         pickup_location=(pickup_location or "").strip() or None,
         map_link=(map_link or "").strip() or None,
@@ -246,7 +246,7 @@ def create_listing(*, owner, title: str, description: str, category_id: int,
 
 
 def update_listing(listing: Listing, *, title: str, description: str,
-                   category_id: int, city: str, area: str, price_per_day,
+                   category_id: int, city: str, area: str, price_per_hour,
                    deposit_amount, pickup_location: str | None = None,
                    map_link: str | None = None, new_images=None,
                    remove_image_ids=None) -> Listing:
@@ -260,7 +260,7 @@ def update_listing(listing: Listing, *, title: str, description: str,
     listing.category_id = category_id
     listing.city = city
     listing.area = area
-    listing.price_per_day = price_per_day
+    listing.price_per_hour = price_per_hour
     listing.deposit_amount = deposit_amount
     listing.pickup_location = (pickup_location or "").strip() or None
     listing.map_link = (map_link or "").strip() or None

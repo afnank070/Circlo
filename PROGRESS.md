@@ -4,6 +4,74 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Rental unit: days → hours (Phase 1 DONE ✅, 2026-09-09)
+
+Real architectural change (see BACKLOG "hourly rentals"). Phase 2 = display
+polish only (My Rentals cards / admin panels / emails formatting), deferred.
+
+### Schema — migration `b8e2d1a4c6f0` (revises `f1c8b3e9a274`)
+- **`listings.price_per_day` → `listings.price_per_hour`** (`Numeric(10,2)`).
+  Pre-launch: no data conversion — the seed script now emits hourly rates.
+- **`bookings.rental_date_start` / `rental_date_end` (Date) → `bookings.start_datetime`
+  (`DateTime`) + `bookings.duration_hours` (`Integer`)**. `Booking.end_datetime`
+  is a derived property (`start + duration`). `rental_days` property removed.
+  Migration up + down both verified on sqlite.
+
+### Services
+- **`booking_service`**: `MIN_RENTAL_HOURS = 1`. `_dates_overlap` → `_ranges_overlap`
+  (half-open `[start, end)` — 3pm–5pm does **not** block 5pm–7pm, but does block
+  2pm–4pm / 4pm–6pm). `has_overlapping_acceptance(listing_id, start_dt, end_dt, …)`
+  now compares datetime windows. `request_to_rent(listing, renter, *,
+  start_datetime, duration_hours, message=None)` — validates min hours + not in
+  the past. `rental_amount_for` = `price_per_hour * duration_hours`.
+  `accept()` conflict message → "overlapping hours". Queue ordering → `start_datetime`.
+- **`listings_service`**: `create_listing` / `update_listing` / `_apply_sort` take
+  `price_per_hour`. **`ledger_service` unchanged** — it works off
+  `rental_amount_for`, and the flat deposit is untouched (confirmed: deposit is
+  `listing.deposit_amount` snapshot, never hourly-scaled).
+- **`notifications`**: request / cancelled emails now show start datetime + hours.
+
+### Web
+- **`web.request_booking`**: reads `start_date` + `start_time` + `hours`
+  (`_parse_start_datetime` combines date+time; missing time → midnight).
+- **`listing_detail.html`**: date-range picker replaced with start-date +
+  start-time + number-of-hours (`min="1"`), and a **live subtotal**
+  (`price_per_hour × hours`) above the deposit line. Price header "per hour".
+- **`owner.py` / `listings/form.html`**: "Price / hour (PKR)" field
+  (`price_per_hour`). `cli.py` seed-test-accounts + `seed.py` demo listings use
+  hourly rates.
+- Display pages touched only enough not to 500: `index.html` / `my_listings.html`
+  ("/ hr", "per hour"), `my_rentals.html` + `payments_queue.html` (start datetime
+  + "N hours"), `how_it_works.html` copy. Deeper formatting = Phase 2.
+
+### Verification
+- **`tests/test_hourly_rental.py`** (8, new): subtotal = rate × hours; flat
+  deposit doesn't scale with hours; min 1 hour; past start rejected; hour-level
+  overlap (2–4 vs 3–5 conflict; 5–7 back-to-back OK; same-day different-hours
+  OK); request route end-to-end with date+time+hours.
+- **`tests/test_booking.py`**: overlap test rewritten for hour granularity
+  (3pm–5pm blocks 2pm–4pm, allows 5pm–7pm).
+- Every existing booking/listing test updated to the new field names / signature.
+  **155 tests pass** (was 147).
+
+### To test the full request flow manually
+```
+cp .env.example .env        # if not done
+docker-compose up -d
+docker-compose exec app flask db upgrade
+docker-compose exec app flask seed          # hourly-priced demo listings
+docker-compose exec app flask seed-test-accounts   # user@circlo.test / testpass123
+```
+Then: log in as `user@circlo.test`, open any listing, and in the sidebar pick a
+start date + start time, set **Number of hours** (watch the subtotal update as
+`price_per_hour × hours`), send the request. Log in as the listing's owner
+(seed owners share password `circlo123`), go to **My Rentals**, accept it.
+Send a second overlapping-hours request for the same listing as another user and
+confirm the owner gets "already booked for overlapping hours"; a non-overlapping
+slot the same day accepts fine.
+
+---
+
 ## Profile page enhancements — photo, bio, member-since, completed counts (DONE ✅, 2026-09-07)
 
 Stays one page (`/users/<id>`) — a separate Settings page was reconsidered and

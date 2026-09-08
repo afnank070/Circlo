@@ -185,7 +185,7 @@
               {% endif %}
             </div>
             <h3 class="m-0 font-display text-[14px] font-bold uppercase leading-[1.05] text-ink line-clamp-1 sm:text-[18px]">{{ r.title }}</h3>
-            <div class="text-[11px] text-neutral-600 sm:text-[13px]">Rs {{ "{:,}".format(r.price_per_day|int) }} / day · {{ r.area }}</div>
+            <div class="text-[11px] text-neutral-600 sm:text-[13px]">Rs {{ "{:,}".format(r.price_per_hour|int) }} / hr · {{ r.area }}</div>
           </a>
           {% endfor %}
         </div>
@@ -197,8 +197,8 @@
     <div class="lg:sticky lg:top-6">
       <div class="rounded-2xl border border-divider bg-surface p-4 shadow-circlo sm:rounded-3xl sm:p-[26px]">
         <div class="mb-5 flex items-baseline gap-2">
-          <span class="font-display text-[34px] font-bold leading-none text-accent-700 sm:text-[44px]">Rs {{ "{:,}".format(listing.price_per_day|int) }}</span>
-          <span class="text-[14px] text-neutral-700">per day</span>
+          <span class="font-display text-[34px] font-bold leading-none text-accent-700 sm:text-[44px]">Rs {{ "{:,}".format(listing.price_per_hour|int) }}</span>
+          <span class="text-[14px] text-neutral-700">per hour</span>
         </div>
 
         {% if current_user.is_authenticated and current_user.id == listing.owner_id %}
@@ -213,15 +213,22 @@
         <form method="post" action="{{ url_for('web.request_booking', listing_id=listing.id) }}" id="booking-form">
           <div class="mb-3 grid grid-cols-2 gap-2.5">
             <div>
-              <label for="start_date" class="mb-1 block text-xs font-bold uppercase tracking-wide text-neutral-700">From</label>
+              <label for="start_date" class="mb-1 block text-xs font-bold uppercase tracking-wide text-neutral-700">Start date</label>
               <input id="start_date" name="start_date" type="date" required
                      class="w-full rounded-full border border-divider bg-white px-3.5 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
             </div>
             <div>
-              <label for="end_date" class="mb-1 block text-xs font-bold uppercase tracking-wide text-neutral-700">Until</label>
-              <input id="end_date" name="end_date" type="date" required
+              <label for="start_time" class="mb-1 block text-xs font-bold uppercase tracking-wide text-neutral-700">Start time</label>
+              <input id="start_time" name="start_time" type="time" required value="09:00"
                      class="w-full rounded-full border border-divider bg-white px-3.5 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
             </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="hours" class="mb-1 block text-xs font-bold uppercase tracking-wide text-neutral-700">Number of hours</label>
+            <input id="hours" name="hours" type="number" min="1" step="1" required value="1"
+                   class="w-full rounded-full border border-divider bg-white px-3.5 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-100">
+            <p class="mt-1 text-[11px] text-neutral-500">Minimum 1 hour.</p>
           </div>
 
           <div class="mb-4">
@@ -232,9 +239,13 @@
           </div>
 
           <div class="mb-4 flex flex-col gap-2 border-y border-divider py-3.5 text-[14px] text-neutral-800">
-            <div class="flex justify-between">
-              <span>Rental estimate</span>
-              <span id="booking-estimate">Rs {{ "{:,}".format(listing.price_per_day|int) }} × 1 day</span>
+            <div class="flex justify-between text-neutral-600">
+              <span id="booking-rate">Rs {{ "{:,}".format(listing.price_per_hour|int) }} × 1 hour</span>
+              <span></span>
+            </div>
+            <div class="flex justify-between font-semibold">
+              <span>Subtotal</span>
+              <span id="booking-estimate">Rs {{ "{:,}".format(listing.price_per_hour|int) }}</span>
             </div>
             <div class="flex justify-between text-neutral-600">
               <span>Refundable deposit</span>
@@ -269,26 +280,26 @@
   (function () {
     const today = new Date().toISOString().split('T')[0];
     const start = document.getElementById('start_date');
-    const end = document.getElementById('end_date');
+    const hours = document.getElementById('hours');
     const estimate = document.getElementById('booking-estimate');
-    const pricePerDay = {{ listing.price_per_day|int }};
+    const rateLine = document.getElementById('booking-rate');
+    const pricePerHour = {{ listing.price_per_hour|int }};
     if (start) start.min = today;
-    if (end) end.min = today;
 
     function updateEstimate() {
-      if (!start || !end || !estimate) return;
-      const s = new Date(start.value);
-      const e = new Date(end.value);
-      let days = 1;
-      if (start.value && end.value && e > s) {
-        days = Math.round((e - s) / 86400000);
+      if (!hours || !estimate) return;
+      let h = parseInt(hours.value, 10);
+      if (!Number.isFinite(h) || h < 1) h = 1;
+      const total = pricePerHour * h;
+      estimate.textContent = 'Rs ' + total.toLocaleString('en-US');
+      if (rateLine) {
+        rateLine.textContent = 'Rs ' + pricePerHour.toLocaleString('en-US') +
+          ' × ' + h + ' hour' + (h === 1 ? '' : 's');
       }
-      const total = pricePerDay * days;
-      estimate.textContent = 'Rs ' + total.toLocaleString('en-US') + ' × ' + days + ' day' + (days === 1 ? '' : 's');
     }
 
-    if (start) start.addEventListener('change', () => { if (end) end.min = start.value || today; updateEstimate(); });
-    if (end) end.addEventListener('change', updateEstimate);
+    if (hours) hours.addEventListener('input', updateEstimate);
+    updateEstimate();
   })();
 </script>
 {% endif %}

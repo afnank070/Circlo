@@ -348,8 +348,8 @@
       <div class="flex min-w-0 items-center gap-2">
         {{ cal_svg() }}
         <div class="min-w-0">
-          <div class="truncate text-sm text-neutral-800">{{ b.rental_date_start.strftime('%d %b') }} – {{ b.rental_date_end.strftime('%d %b %Y') }}</div>
-          <div class="text-[12px] text-neutral-600">{% if b.status == 'cancelled' %}Cancelled{% else %}{{ b.rental_days }} day{{ 's' if b.rental_days != 1 }}{% endif %}</div>
+          <div class="truncate text-sm text-neutral-800">{{ b.start_datetime.strftime('%d %b %Y, %I:%M %p') }}</div>
+          <div class="text-[12px] text-neutral-600">{% if b.status == 'cancelled' %}Cancelled{% else %}{{ b.duration_hours }} hour{{ 's' if b.duration_hours != 1 }}{% endif %}</div>
         </div>
       </div>
 

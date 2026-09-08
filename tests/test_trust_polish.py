@@ -22,8 +22,8 @@ from app.services import reviews as reviews_service
 from app.services import trust_fund as trust_fund_service
 
 TODAY = date.today()
-START = TODAY + timedelta(days=3)
-END = TODAY + timedelta(days=5)
+START = datetime.combine(TODAY + timedelta(days=3), datetime.min.time()).replace(hour=9)
+DURATION = 3  # hours
 
 
 class _FakeUpload:
@@ -67,13 +67,13 @@ def _completed_booking(app):
         admin = _user("Amy Admin", "admin@example.com", admin=True)
         listing = Listing(
             owner_id=owner.id, title="Bosch Drill", description="d", category_id=cat.id,
-            city="Islamabad", area="F-8", price_per_day=800, deposit_amount=5000,
+            city="Islamabad", area="F-8", price_per_hour=800, deposit_amount=5000,
             status="active",
         )
         db.session.add(listing)
         db.session.commit()
 
-        b = booking_service.request_to_rent(listing, renter, start_date=START, end_date=END)
+        b = booking_service.request_to_rent(listing, renter, start_datetime=START, duration_hours=DURATION)
         booking_service.accept(b, owner=owner)
         payments_service.mark_awaiting_payment(b, renter=renter)
         payments_service.confirm_payment_received(b, admin=admin)
@@ -137,7 +137,7 @@ def test_notifications_fire_on_events(client, app, _mock_email):
         renter = _user("Renter", "renter@example.com")
         listing = Listing(owner_id=owner.id, title="Drill", description="d",
                           category_id=cat.id, city="Islamabad", area="F-8",
-                          price_per_day=800, deposit_amount=5000, status="active")
+                          price_per_hour=800, deposit_amount=5000, status="active")
         db.session.add(listing)
         db.session.commit()
         lid = listing.id
@@ -145,7 +145,7 @@ def test_notifications_fire_on_events(client, app, _mock_email):
     _mock_email.clear()
     client.post("/login", data={"email": "renter@example.com", "password": "supersecret"})
     client.post(f"/listings/{lid}/request",
-                data={"start_date": START.isoformat(), "end_date": END.isoformat()},
+                data={"start_date": START.date().isoformat(), "start_time": "09:00", "hours": "3"},
                 follow_redirects=True)
 
     # owner gets a "new rental request" email
@@ -181,11 +181,11 @@ def test_cannot_review_incomplete_booking(app):
         owner = _user("O", "o@example.com")
         renter = _user("R", "r@example.com")
         listing = Listing(owner_id=owner.id, title="X", description="d", category_id=cat.id,
-                          city="I", area="A", price_per_day=100, deposit_amount=100,
+                          city="I", area="A", price_per_hour=100, deposit_amount=100,
                           status="active")
         db.session.add(listing)
         db.session.commit()
-        b = booking_service.request_to_rent(listing, renter, start_date=START, end_date=END)
+        b = booking_service.request_to_rent(listing, renter, start_datetime=START, duration_hours=DURATION)
         assert reviews_service.can_review(b, renter) is False
         with pytest.raises(reviews_service.ReviewNotAllowed):
             reviews_service.leave_review(b, renter, rating=5)
@@ -228,11 +228,11 @@ def test_dispute_not_allowed_before_active(app):
         owner = _user("O", "o@example.com")
         renter = _user("R", "r@example.com")
         listing = Listing(owner_id=owner.id, title="X", description="d", category_id=cat.id,
-                          city="I", area="A", price_per_day=100, deposit_amount=100,
+                          city="I", area="A", price_per_hour=100, deposit_amount=100,
                           status="active")
         db.session.add(listing)
         db.session.commit()
-        b = booking_service.request_to_rent(listing, renter, start_date=START, end_date=END)
+        b = booking_service.request_to_rent(listing, renter, start_datetime=START, duration_hours=DURATION)
         with pytest.raises(disputes_service.DisputeNotAllowed):
             disputes_service.open_dispute(b, renter, reason="Too early to dispute this.")
 

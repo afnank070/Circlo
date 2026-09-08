@@ -44,7 +44,7 @@ def _parse_form(form):
         "city": (form.get("city") or "").strip(),
         "area": (form.get("area") or "").strip(),
         "category_id": form.get("category_id") or "",
-        "price_per_day": (form.get("price_per_day") or "").strip(),
+        "price_per_hour": (form.get("price_per_hour") or "").strip(),
         "deposit_amount": (form.get("deposit_amount") or "").strip(),
         "pickup_location": (form.get("pickup_location") or "").strip(),
         "map_link": (form.get("map_link") or "").strip(),
@@ -68,7 +68,7 @@ def _parse_form(form):
     except (TypeError, ValueError):
         errors.append("Please choose a category.")
 
-    for field, label in (("price_per_day", "Price"), ("deposit_amount", "Deposit")):
+    for field, label in (("price_per_hour", "Price"), ("deposit_amount", "Deposit")):
         try:
             value = Decimal(data[field])
             if value < 0:
@@ -116,7 +116,7 @@ def create_listing():
             category_id=data["category_id"],
             city=data["city"],
             area=data["area"],
-            price_per_day=data["price_per_day"],
+            price_per_hour=data["price_per_hour"],
             deposit_amount=data["deposit_amount"],
             pickup_location=data["pickup_location"],
             map_link=data["map_link"],
@@ -163,7 +163,7 @@ def edit_listing(listing_id: int):
             category_id=data["category_id"],
             city=data["city"],
             area=data["area"],
-            price_per_day=data["price_per_day"],
+            price_per_hour=data["price_per_hour"],
             deposit_amount=data["deposit_amount"],
             pickup_location=data["pickup_location"],
             map_link=data["map_link"],

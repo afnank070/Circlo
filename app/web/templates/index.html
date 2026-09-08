@@ -114,8 +114,8 @@
       <div class="flex flex-col gap-[5px]">
         <h3 class="m-0 font-display text-[15px] font-bold uppercase leading-[1.05] text-ink line-clamp-2 sm:text-[23px]">{{ listing.title }}</h3>
         <div class="flex items-baseline gap-2">
-          <span class="font-display text-[16px] font-bold text-accent-700 sm:text-[20px]">Rs {{ "{:,}".format(listing.price_per_day|int) }}</span>
-          <span class="text-[11px] text-neutral-600 sm:text-[13px]">/ day</span>
+          <span class="font-display text-[16px] font-bold text-accent-700 sm:text-[20px]">Rs {{ "{:,}".format(listing.price_per_hour|int) }}</span>
+          <span class="text-[11px] text-neutral-600 sm:text-[13px]">/ hr</span>
         </div>
         <div class="flex items-center gap-1.5 text-[11px] text-neutral-600 sm:gap-2.5 sm:text-[13px]">
           <span>{{ listing.area }}</span>

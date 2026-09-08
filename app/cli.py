@@ -94,7 +94,7 @@ def register_cli(app: Flask) -> None:
                     "category_slug": "cameras",
                     "city": "Islamabad",
                     "area": "F-8",
-                    "price_per_day": 1500,
+                    "price_per_hour": 300,
                     "deposit_amount": 20000,
                 },
                 {
@@ -103,7 +103,7 @@ def register_cli(app: Flask) -> None:
                     "category_slug": "tools",
                     "city": "Islamabad",
                     "area": "G-9",
-                    "price_per_day": 800,
+                    "price_per_hour": 150,
                     "deposit_amount": 5000,
                 },
             ]

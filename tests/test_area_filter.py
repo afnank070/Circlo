@@ -32,7 +32,7 @@ def _owner():
 def _listing(cat, owner, *, title, area, city="Islamabad", status="active"):
     l = Listing(
         owner_id=owner.id, title=title, description="d", category_id=cat.id,
-        city=city, area=area, price_per_day=500, deposit_amount=1000, status=status,
+        city=city, area=area, price_per_hour=500, deposit_amount=1000, status=status,
     )
     db.session.add(l)
     db.session.commit()
@@ -139,7 +139,7 @@ def test_create_listing_rejects_non_canonical_area(app):
         with pytest.raises(listings_service.InvalidArea):
             listings_service.create_listing(
                 owner=owner, title="X", description="d", category_id=cat.id,
-                city="Islamabad", area="F7", price_per_day=100, deposit_amount=100,
+                city="Islamabad", area="F7", price_per_hour=100, deposit_amount=100,
             )
 
 
@@ -150,7 +150,7 @@ def test_create_listing_derives_city_from_area(app):
         l = listings_service.create_listing(
             owner=owner, title="X", description="d", category_id=cat.id,
             city="Islamabad",  # deliberately wrong — should be overridden
-            area="Saddar", price_per_day=100, deposit_amount=100,
+            area="Saddar", price_per_hour=100, deposit_amount=100,
         )
         assert l.area == "Saddar"
         assert l.city == "Rawalpindi"
@@ -165,7 +165,7 @@ def test_update_listing_rejects_non_canonical_area(app):
             listings_service.update_listing(
                 l, title="X", description="d", category_id=cat.id,
                 city="Islamabad", area="F-7 Islamabad",
-                price_per_day=100, deposit_amount=100,
+                price_per_hour=100, deposit_amount=100,
             )
 
 
@@ -216,7 +216,7 @@ def test_post_listing_with_free_text_area_is_rejected(client, app):
     resp = client.post("/listings/new", data={
         "title": "Sneaky", "description": "d", "category_id": str(cat_id),
         "city": "Islamabad", "area": "F7 near the market",
-        "price_per_day": "100", "deposit_amount": "100",
+        "price_per_hour": "100", "deposit_amount": "100",
     }, follow_redirects=True)
     assert b"choose an area from the list" in resp.data.lower()
     with app.app_context():

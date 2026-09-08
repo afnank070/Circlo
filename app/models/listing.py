@@ -30,8 +30,10 @@ class Listing(db.Model):
     city = db.Column(db.String(80), nullable=False)
     area = db.Column(db.String(80), nullable=False)
 
-    # PKR, whole rupees in practice but kept as Numeric for safety.
-    price_per_day = db.Column(db.Numeric(10, 2), nullable=False)
+    # PKR per hour, whole rupees in practice but kept as Numeric for safety.
+    # The rental unit is hours (not days) — bookings carry a start datetime and
+    # a duration in hours, and the rental fee is price_per_hour * duration_hours.
+    price_per_hour = db.Column(db.Numeric(10, 2), nullable=False)
     deposit_amount = db.Column(db.Numeric(10, 2), nullable=False)
 
     # Handover details, revealed to the renter once a booking is accepted

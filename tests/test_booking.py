@@ -1,4 +1,8 @@
-"""M3 smoke tests — rental request / accept / reject / cancel state machine."""
+"""M3 smoke tests — rental request / accept / reject / cancel state machine.
+
+The rental unit is hours: a request carries a start date + start time + a
+number of hours (minimum 1).
+"""
 from datetime import date, timedelta
 
 from app.extensions import db
@@ -9,7 +13,8 @@ from app.services import auth as auth_service
 
 TODAY = date.today()
 START = (TODAY + timedelta(days=3)).isoformat()
-END = (TODAY + timedelta(days=5)).isoformat()
+START_TIME = "09:00"
+HOURS = "4"
 
 
 def _make_category(app, name="Tools", slug="tools"):
@@ -39,17 +44,19 @@ def _make_listing(app, owner_email, category_id, title="Bosch Hammer Drill"):
         listing = Listing(
             owner_id=owner.id, title=title, description="desc",
             category_id=category_id, city="Islamabad", area="F-8",
-            price_per_day=800, deposit_amount=5000, status="active",
+            price_per_hour=100, deposit_amount=5000, status="active",
         )
         db.session.add(listing)
         db.session.commit()
         return listing.id
 
 
-def _request(client, listing_id, start=START, end=END, message="Please"):
+def _request(client, listing_id, start=START, start_time=START_TIME, hours=HOURS,
+             message="Please"):
     return client.post(
         f"/listings/{listing_id}/request",
-        data={"start_date": start, "end_date": end, "message": message},
+        data={"start_date": start, "start_time": start_time, "hours": hours,
+              "message": message},
         follow_redirects=True,
     )
 
@@ -60,7 +67,7 @@ def test_request_requires_login(client, app):
     listing_id = _make_listing(app, "owner@example.com", category_id)
     client.post("/logout")
 
-    resp = client.post(f"/listings/{listing_id}/request", data={"start_date": START, "end_date": END})
+    resp = client.post(f"/listings/{listing_id}/request", data={"start_date": START, "start_time": START_TIME, "hours": HOURS})
     assert resp.status_code == 302
     assert "/login" in resp.headers["Location"]
 
@@ -187,35 +194,47 @@ def test_renter_can_cancel_pending_request(client, app):
         assert db.session.get(Booking, booking_id).status == STATUS_CANCELLED
 
 
-def test_accept_rejects_overlapping_dates(client, app):
+def test_accept_rejects_overlapping_hours_but_allows_back_to_back(client, app):
+    """2pm-4pm conflicts with an accepted 3pm-5pm; a 5pm-7pm slot does not."""
     category_id = _make_category(app)
     _signup_verified(client, "owner@example.com")
     listing_id = _make_listing(app, "owner@example.com", category_id)
     client.post("/logout")
 
+    # renter A: 3pm, 2 hours (3pm-5pm)
     _signup_verified(client, "renterA@example.com")
-    _request(client, listing_id, start=START, end=END)
+    _request(client, listing_id, start=START, start_time="15:00", hours="2")
     client.post("/logout")
 
+    # renter B: 2pm, 2 hours (2pm-4pm) — overlaps A by an hour
     _signup_verified(client, "renterB@example.com")
-    _request(client, listing_id, start=START, end=END)
+    _request(client, listing_id, start=START, start_time="14:00", hours="2")
+    client.post("/logout")
+
+    # renter C: 5pm, 2 hours (5pm-7pm) — starts exactly when A ends, no overlap
+    _signup_verified(client, "renterC@example.com")
+    _request(client, listing_id, start=START, start_time="17:00", hours="2")
     client.post("/logout")
 
     client.post("/login", data={"email": "owner@example.com", "password": "supersecret"})
     with app.app_context():
-        bookings = Booking.query.filter_by(listing_id=listing_id).order_by(Booking.id).all()
-        booking_a_id, booking_b_id = bookings[0].id, bookings[1].id
+        b = Booking.query.filter_by(listing_id=listing_id).order_by(Booking.id).all()
+        a_id, b_id, c_id = b[0].id, b[1].id, b[2].id
 
-    resp = client.post(f"/bookings/{booking_a_id}/accept", follow_redirects=True)
+    resp = client.post(f"/bookings/{a_id}/accept", follow_redirects=True)
     assert resp.status_code == 200
     with app.app_context():
-        assert db.session.get(Booking, booking_a_id).status == STATUS_ACCEPTED
+        assert db.session.get(Booking, a_id).status == STATUS_ACCEPTED
 
-    resp = client.post(f"/bookings/{booking_b_id}/accept", follow_redirects=True)
-    assert resp.status_code == 200
-    assert b"already booked for overlapping dates" in resp.data
+    resp = client.post(f"/bookings/{b_id}/accept", follow_redirects=True)
+    assert b"overlapping hours" in resp.data
     with app.app_context():
-        assert db.session.get(Booking, booking_b_id).status == STATUS_REQUESTED
+        assert db.session.get(Booking, b_id).status == STATUS_REQUESTED
+
+    resp = client.post(f"/bookings/{c_id}/accept", follow_redirects=True)
+    assert resp.status_code == 200
+    with app.app_context():
+        assert db.session.get(Booking, c_id).status == STATUS_ACCEPTED
 
 
 def test_my_rentals_requires_login(client):

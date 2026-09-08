@@ -5,7 +5,7 @@ with rental history, which can't be hard-deleted, still have a way off the
 marketplace). It stays viewable by direct link for the owner and anyone with
 a booking on it, but 404s for everyone else — same as a nonexistent listing.
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app.extensions import db
 from app.models import Category, Listing
@@ -50,7 +50,7 @@ def _create_listing(client, category_id, title="Archive Me"):
             "category_id": str(category_id),
             "city": "Islamabad",
             "area": "F-8",
-            "price_per_day": "800",
+            "price_per_hour": "800",
             "deposit_amount": "5000",
         },
     )
@@ -125,8 +125,8 @@ def test_renter_with_booking_can_view_archived_listing_stranger_cannot(client, a
         listing = db.session.get(Listing, listing_id)
         booking_service.request_to_rent(
             listing, renter,
-            start_date=date.today() + timedelta(days=1),
-            end_date=date.today() + timedelta(days=3),
+            start_datetime=datetime.combine(date.today() + timedelta(days=1), datetime.min.time()),
+            duration_hours=3,
             message=None,
         )
         db.session.commit()
@@ -172,8 +172,8 @@ def test_my_listings_hides_delete_when_booking_history_exists(client, app):
         listing = db.session.get(Listing, listing_id)
         booking_service.request_to_rent(
             listing, renter,
-            start_date=date.today() + timedelta(days=1),
-            end_date=date.today() + timedelta(days=3),
+            start_datetime=datetime.combine(date.today() + timedelta(days=1), datetime.min.time()),
+            duration_hours=3,
             message=None,
         )
         db.session.commit()

@@ -95,7 +95,8 @@ def booking_requested(booking) -> None:
         booking.owner.email, f"New rental request: {booking.listing.title}",
         f"<p>Hi {_first_name(booking.owner)},</p><p><strong>{booking.renter.name}"
         f"</strong> requested to rent <strong>{booking.listing.title}</strong> "
-        f"for {booking.rental_date_start:%d %b} – {booking.rental_date_end:%d %b %Y}.</p>"
+        f"from {booking.start_datetime:%d %b %Y, %I:%M %p} for "
+        f"{booking.duration_hours} hour{'s' if booking.duration_hours != 1 else ''}.</p>"
         f'<p><a href="{_abs_url("web.my_rentals")}">Review the request</a></p>',
     )
 
@@ -147,7 +148,8 @@ def booking_cancelled(booking, by_user=None) -> None:
         other.email, f"Booking cancelled: {booking.listing.title}",
         f"<p>Hi {_first_name(other)},</p><p><strong>{who}</strong> cancelled the "
         f"booking for <strong>{booking.listing.title}</strong> "
-        f"({booking.rental_date_start:%d %b} – {booking.rental_date_end:%d %b %Y}). "
+        f"({booking.start_datetime:%d %b %Y, %I:%M %p}, "
+        f"{booking.duration_hours}h). "
         f"No payment had been made, so there's nothing to refund.</p>"
         f'<p><a href="{_abs_url("web.index")}">Keep browsing</a></p>',
     )

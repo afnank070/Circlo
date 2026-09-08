@@ -13,7 +13,7 @@ PAID/HANDED_OVER/ACTIVE/RETURNED/COMPLETED/DISPUTED land with M4/M5.
 from __future__ import annotations
 
 from decimal import Decimal
-from datetime import date
+from datetime import datetime
 
 from sqlalchemy import or_
 
@@ -50,7 +50,11 @@ class InvalidBookingTransition(BookingError):
 
 
 class BookingConflict(BookingError):
-    """Raised when accepting would double-book an item's dates."""
+    """Raised when accepting would double-book an item's hours."""
+
+
+# The rental unit is hours. A booking must be at least this many hours long.
+MIN_RENTAL_HOURS = 1
 
 
 # Contact details (phone numbers) and the listing's pickup location/map link are
@@ -65,29 +69,39 @@ def can_reveal_contact(booking: Booking) -> bool:
     return booking.status in CONTACT_REVEAL_STATUSES
 
 
-def _dates_overlap(start_a: date, end_a: date, start_b: date, end_b: date) -> bool:
-    return start_a <= end_b and start_b <= end_a
+def _ranges_overlap(
+    start_a: datetime, end_a: datetime, start_b: datetime, end_b: datetime
+) -> bool:
+    """True if two half-open time windows [start, end) intersect.
+
+    Half-open on purpose: a booking that ends exactly when another starts
+    (2pm–4pm and 4pm–6pm) does **not** conflict, but any real hour of overlap
+    (2pm–4pm vs 3pm–5pm) does.
+    """
+    return start_a < end_b and start_b < end_a
 
 
 def rental_amount_for(booking: Booking) -> Decimal:
     """The booking's total rental fee.
 
     Uses the snapshot taken at request time; falls back to
-    ``listing.price_per_day * days`` for pre-M4 rows that never got one.
+    ``listing.price_per_hour * duration_hours`` for rows that never got one.
     """
     if booking.rental_amount is not None:
         return Decimal(booking.rental_amount)
-    return Decimal(booking.listing.price_per_day) * booking.rental_days
+    return Decimal(booking.listing.price_per_hour) * booking.duration_hours
 
 
 def has_overlapping_acceptance(
-    listing_id: int, start_date: date, end_date: date, *, exclude_booking_id: int | None = None
+    listing_id: int, start_dt: datetime, end_dt: datetime, *,
+    exclude_booking_id: int | None = None,
 ) -> bool:
-    """True if the listing already has a committed booking overlapping this range.
+    """True if the listing already has a committed booking whose hour range
+    overlaps ``[start_dt, end_dt)``.
 
     "Committed" = any status past REQUESTED that hasn't been cancelled/completed
     (see :data:`BLOCKING_STATUSES`), so a second request can't be accepted onto
-    dates an in-flight rental already holds.
+    hours an in-flight rental already holds.
     """
     q = Booking.query.filter(
         Booking.listing_id == listing_id,
@@ -96,39 +110,49 @@ def has_overlapping_acceptance(
     if exclude_booking_id is not None:
         q = q.filter(Booking.id != exclude_booking_id)
     return any(
-        _dates_overlap(start_date, end_date, b.rental_date_start, b.rental_date_end)
+        _ranges_overlap(start_dt, end_dt, b.start_datetime, b.end_datetime)
         for b in q.all()
     )
 
 
 def request_to_rent(
-    listing: Listing, renter: User, *, start_date: date, end_date: date,
+    listing: Listing, renter: User, *, start_datetime: datetime, duration_hours,
     message: str | None = None,
 ) -> Booking:
     """Create a REQUESTED booking for ``listing``.
 
-    :raises InvalidBookingRequest: bad dates, or the renter owns the listing.
+    ``start_datetime`` is when the rental begins (hour precision) and
+    ``duration_hours`` is how long it runs for (minimum :data:`MIN_RENTAL_HOURS`).
+
+    :raises InvalidBookingRequest: bad start/duration, or the renter owns the
+        listing.
     """
     if renter.id == listing.owner_id:
         raise InvalidBookingRequest("You can't rent your own listing.")
-    if start_date is None or end_date is None:
-        raise InvalidBookingRequest("Please choose start and end dates.")
-    if start_date < date.today():
-        raise InvalidBookingRequest("Start date can't be in the past.")
-    if end_date < start_date:
-        raise InvalidBookingRequest("End date must be on or after the start date.")
+    if start_datetime is None:
+        raise InvalidBookingRequest("Please choose a start date and time.")
+    try:
+        duration_hours = int(duration_hours)
+    except (TypeError, ValueError):
+        raise InvalidBookingRequest("Enter how many hours you need the item for.")
+    if duration_hours < MIN_RENTAL_HOURS:
+        raise InvalidBookingRequest(
+            f"Rentals are a minimum of {MIN_RENTAL_HOURS} hour."
+        )
+    if start_datetime < datetime.now():
+        raise InvalidBookingRequest("Start time can't be in the past.")
 
     booking = Booking(
         listing_id=listing.id,
         renter_id=renter.id,
         owner_id=listing.owner_id,
         status=STATUS_REQUESTED,
-        rental_date_start=start_date,
-        rental_date_end=end_date,
+        start_datetime=start_datetime,
+        duration_hours=duration_hours,
         deposit_amount=listing.deposit_amount,
         message_from_renter=(message or "").strip() or None,
     )
-    booking.rental_amount = Decimal(listing.price_per_day) * booking.rental_days
+    booking.rental_amount = Decimal(listing.price_per_hour) * duration_hours
     db.session.add(booking)
     db.session.commit()
     notifications.booking_requested(booking)
@@ -209,7 +233,7 @@ def active_for_owner(owner: User) -> list[Booking]:
             Booking.owner_id == owner.id,
             Booking.status.in_(BLOCKING_STATUSES),
         )
-        .order_by(Booking.rental_date_end.asc())
+        .order_by(Booking.start_datetime.asc())
         .all()
     )
 
@@ -242,7 +266,7 @@ def active_for_renter(renter: User) -> list[Booking]:
             Booking.renter_id == renter.id,
             Booking.status.in_(BLOCKING_STATUSES),
         )
-        .order_by(Booking.rental_date_start.asc())
+        .order_by(Booking.start_datetime.asc())
         .all()
     )
 
@@ -271,10 +295,10 @@ def accept(booking: Booking, *, owner: User) -> Booking:
     if booking.status != STATUS_REQUESTED:
         raise InvalidBookingTransition("Only pending requests can be accepted.")
     if has_overlapping_acceptance(
-        booking.listing_id, booking.rental_date_start, booking.rental_date_end,
+        booking.listing_id, booking.start_datetime, booking.end_datetime,
         exclude_booking_id=booking.id,
     ):
-        raise BookingConflict("This item is already booked for overlapping dates.")
+        raise BookingConflict("This item is already booked for overlapping hours.")
 
     booking.status = STATUS_ACCEPTED
     db.session.commit()

@@ -10,7 +10,7 @@ Stage-dependent rules:
 
 The other party is emailed whenever a cancellation happens or is requested.
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -39,8 +39,8 @@ from app.services import ledger as ledger_service
 from app.services import payments as payments_service
 
 TODAY = date.today()
-START = TODAY + timedelta(days=3)
-END = TODAY + timedelta(days=5)  # inclusive -> 3 rental days
+START = datetime.combine(TODAY + timedelta(days=3), datetime.min.time()).replace(hour=9)
+DURATION = 3  # hours — 800/hr * 3 = 2400 rental
 
 
 @pytest.fixture()
@@ -78,13 +78,13 @@ def _scenario(app):
         listing = Listing(
             owner_id=owner.id, title="Bosch Hammer Drill", description="d",
             category_id=cat.id, city="Islamabad", area="F-8",
-            price_per_day=800, deposit_amount=5000, status="active",
+            price_per_hour=800, deposit_amount=5000, status="active",
         )
         db.session.add(listing)
         db.session.commit()
 
         b = booking_service.request_to_rent(
-            listing, renter, start_date=START, end_date=END, message="hi"
+            listing, renter, start_datetime=START, duration_hours=DURATION, message="hi"
         )
         return {
             "owner": owner.id, "renter": renter.id,
