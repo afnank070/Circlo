@@ -33,6 +33,7 @@
             <p class="m-0 mt-0.5 text-sm text-neutral-600">
               Opened by {{ d.opener.name }} on {{ d.created_at.strftime('%d %b %Y, %H:%M') }} ·
               Renter {{ d.booking.renter.name }} · Owner {{ d.booking.owner.name }} ·
+              Rental {{ d.booking.start_datetime.strftime('%d %b %Y, %I:%M %p') }} for {{ d.booking.duration_hours }} hour{{ 's' if d.booking.duration_hours != 1 }} ·
               Deposit {{ money(d.booking.deposit_amount) }}
             </p>
             <p class="m-0 mt-2 text-sm italic text-ink">“{{ d.reason }}”</p>

@@ -196,6 +196,18 @@
       {% endif %}
     {% endwith %}
 
+    {# Nudge users with no phone on file (e.g. Google sign-ups, which skip the
+       signup phone step) — the other party needs it for handover. #}
+    {% if current_user.is_authenticated and not current_user.phone %}
+    <div class="mx-auto max-w-[1440px] px-4 pt-4 sm:px-14">
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <span>Add a phone number so renters and owners can reach you to arrange handover.</span>
+        <a href="{{ url_for('web.user_profile', user_id=current_user.id) }}#account-details"
+           class="rounded-full bg-amber-600 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide text-white hover:bg-amber-700">Add phone</a>
+      </div>
+    </div>
+    {% endif %}
+
     {% block content %}{% endblock %}
   </main>
 

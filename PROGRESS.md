@@ -4,6 +4,67 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Rental unit: days → hours — Phase 2 (DONE ✅, 2026-09-09)
+
+Finishes the rollout: display copy, phone capture, deposit clarification.
+
+### 1. Every remaining display now says hours, not days
+- **Browse cards** (`index.html`) — already "/ hr" from Phase 1; hero copy
+  "rented by the day" → "rented by the hour".
+- **Listing detail** — price header "per hour", subtotal line
+  `Rs price_per_hour × N hour(s)` + `Subtotal` row (live JS), deposit row
+  unchanged. "Also nearby" cards say "/ hr". Confirmed end-to-end.
+- **My Rentals booking cards** (`rentals/my_rentals.html`) — now
+  `03 Sep 2026 · 9:00 AM – 12:00 PM` + `3 hours` (uses the new
+  `Booking.end_datetime` property), was a bare start datetime.
+- **Admin** — `payments_queue.html` (Phase 1) start datetime + `N hour(s)`;
+  `disputes_queue.html` gains a `Rental <start> for N hour(s)` line in the
+  open-dispute summary.
+- **Emails** (`notifications.py`) — `booking_accepted` now states
+  `<start datetime> for N hour(s)`; `booking_requested` / `booking_cancelled` /
+  `cancellation_requested` already carried hours from Phase 1. No "day" copy
+  left in any notification.
+- **`/how-it-works`** — renting steps 1–2 reworded ("pick a start date and
+  time and the number of hours … billed by the hour" / "Request the time slot
+  you want"); listing step already said "hourly rate".
+
+### 2. Phone number capture (pickup coordination)
+- **Signup already requires a phone** (`app/web/auth.py`) — the gap was
+  **Google OAuth sign-ups**, which skip that step and land with `phone = NULL`.
+- **Service-layer gate** (`app/services/booking.py`): `request_to_rent` raises
+  `InvalidBookingRequest` if the **renter** has no phone; `accept` raises
+  `InvalidBookingTransition` if the **owner** has no phone — so a booking can
+  never reach the contact-reveal stage with a party unreachable. Both messages
+  point the user at their profile. Routes already surface these as flashes.
+- **Prompts**: a site-wide amber banner in `base.html` for any logged-in user
+  with no phone ("Add phone" → `/users/<id>#account-details`), plus an inline
+  amber note above the phone field on the profile page when it's empty.
+- **Contact reveal verified** with the hourly flow —
+  `test_contact_reveal.py::test_contact_revealed_after_acceptance` asserts the
+  owner sees the renter's phone and the renter sees the owner's, after an
+  hourly booking is accepted (and neither before).
+
+### 3. Refundable-deposit clarification
+- **Listing form** (`listings/form.html`) — helper text under the deposit
+  field: it's the **owner's** protection, not a CIRCLO fee; held from the
+  renter and returned in full on a clean return; CIRCLO's cut is the separate
+  20% commission. Set it to cover the item's value.
+- **`/trust-deposits`** — the "Refundable security deposit" paragraph reworded
+  to match (owner's protection, CIRCLO only escrows it, commission is separate).
+- No logic change — the deposit was already a flat owner-set snapshot
+  (`Booking.deposit_amount`), never hourly-scaled or taken as revenue.
+
+### Verification
+- **`tests/test_hourly_rental.py`** +2 (now 10): request rejected when the
+  renter has no phone; accept rejected when the owner has no phone.
+- Three test helpers that built users without a phone now pass one (they call
+  `request_to_rent`).
+- **157 tests pass** (was 155).
+
+### Manual test — see the "commands to test" block below.
+
+---
+
 ## Rental unit: days → hours (Phase 1 DONE ✅, 2026-09-09)
 
 Real architectural change (see BACKLOG "hourly rentals"). Phase 2 = display

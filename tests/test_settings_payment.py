@@ -14,7 +14,7 @@ DURATION = 3  # hours — 800/hr * 3 = 2400 rental
 
 
 def _verified(email, *, admin=False):
-    u = auth_service.create_user(email.split("@")[0], email, "supersecret")
+    u = auth_service.create_user(email.split("@")[0], email, "supersecret", phone="03001234567")
     u.verification_status = VERIFICATION_APPROVED
     if admin:
         u.role = ROLE_ADMIN

@@ -129,6 +129,11 @@ def request_to_rent(
     """
     if renter.id == listing.owner_id:
         raise InvalidBookingRequest("You can't rent your own listing.")
+    if not (renter.phone or "").strip():
+        raise InvalidBookingRequest(
+            "Add a phone number to your profile first — the owner needs it to "
+            "arrange handover."
+        )
     if start_datetime is None:
         raise InvalidBookingRequest("Please choose a start date and time.")
     try:
@@ -287,13 +292,19 @@ def accept(booking: Booking, *, owner: User) -> Booking:
     """Owner accepts a REQUESTED booking.
 
     :raises BookingPermissionError: ``owner`` isn't this booking's owner.
-    :raises InvalidBookingTransition: the booking isn't REQUESTED.
-    :raises BookingConflict: the dates overlap an already-ACCEPTED booking.
+    :raises InvalidBookingTransition: the booking isn't REQUESTED, or the owner
+        has no phone number on file (the renter needs it for handover).
+    :raises BookingConflict: the hours overlap an already-committed booking.
     """
     if booking.owner_id != owner.id:
         raise BookingPermissionError("You don't own this listing.")
     if booking.status != STATUS_REQUESTED:
         raise InvalidBookingTransition("Only pending requests can be accepted.")
+    if not (owner.phone or "").strip():
+        raise InvalidBookingTransition(
+            "Add a phone number to your profile before accepting — the renter "
+            "needs it to arrange handover."
+        )
     if has_overlapping_acceptance(
         booking.listing_id, booking.start_datetime, booking.end_datetime,
         exclude_booking_id=booking.id,

@@ -48,7 +48,7 @@ def _mock_email(monkeypatch):
 
 
 def _user(name, email, *, admin=False):
-    u = auth_service.create_user(name, email, "supersecret")
+    u = auth_service.create_user(name, email, "supersecret", phone="03001234567")
     u.verification_status = VERIFICATION_APPROVED
     if admin:
         u.role = ROLE_ADMIN

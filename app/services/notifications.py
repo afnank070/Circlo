@@ -107,7 +107,9 @@ def booking_accepted(booking) -> None:
         booking.renter.email, f"Your rental request was accepted: {booking.listing.title}",
         f"<p>Hi {_first_name(booking.renter)},</p><p><strong>{booking.owner.name}"
         f"</strong> accepted your request for <strong>{booking.listing.title}"
-        f"</strong>. Next step: pay the rental + deposit so CIRCLO can hold it.</p>"
+        f"</strong> — {booking.start_datetime:%d %b %Y, %I:%M %p} for "
+        f"{booking.duration_hours} hour{'s' if booking.duration_hours != 1 else ''}. "
+        f"Next step: pay the rental + deposit so CIRCLO can hold it.</p>"
         f'<p><a href="{_abs_url("web.my_rentals")}">Go to My Rentals</a></p>',
     )
 

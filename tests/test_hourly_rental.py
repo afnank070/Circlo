@@ -29,9 +29,9 @@ def world(app):
     with app.app_context():
         cat = Category(name="Tools", slug="tools")
         owner = User(name="Owen Owner", email="owner@h.test",
-                     verification_status="approved")
+                     phone="03001112222", verification_status="approved")
         renter = User(name="Rita Renter", email="renter@h.test",
-                      verification_status="approved")
+                      phone="03003334444", verification_status="approved")
         owner.set_password("x"); renter.set_password("x")
         db.session.add_all([cat, owner, renter])
         db.session.flush()
@@ -98,6 +98,28 @@ def test_minimum_rental_is_one_hour(app, world):
             booking_service.request_to_rent(
                 listing, renter, start_datetime=_at(9), duration_hours=0,
             )
+
+
+def test_request_requires_renter_phone(app, world):
+    with app.app_context():
+        listing = db.session.get(Listing, world["listing_id"])
+        renter = db.session.get(User, world["renter_id"])
+        renter.phone = None
+        db.session.commit()
+        with pytest.raises(booking_service.InvalidBookingRequest):
+            booking_service.request_to_rent(
+                listing, renter, start_datetime=_at(9), duration_hours=2,
+            )
+
+
+def test_accept_requires_owner_phone(app, world):
+    with app.app_context():
+        owner = db.session.get(User, world["owner_id"])
+        b = _book(world, start_hour=9, hours=2)
+        owner.phone = ""
+        db.session.commit()
+        with pytest.raises(booking_service.InvalidBookingTransition):
+            booking_service.accept(b, owner=owner)
 
 
 def test_start_time_in_the_past_is_rejected(app, world):

@@ -59,10 +59,16 @@ Update it every time something is deferred — don't rely on chat history alone.
     unchanged (they already worked off `rental_amount_for`).
   - Smoke tests: `tests/test_hourly_rental.py` (subtotal, flat deposit, min-hours,
     hour-level overlap incl. back-to-back allowed) + `tests/test_booking.py` overlap test.
-- [ ] Phase 2 — display polish: My Rentals cards, admin panels, and notification
-      emails show start datetime + hours but could be formatted better; browse
-      cards / listing detail "Also nearby" now say "/ hr" — review the copy pass.
-      "Rent for a full day" convenience shortcut (e.g. 24h button) not built.
+- Phase 2 DONE (2026-09-09) — all displays say hours (browse hero, listing
+  detail subtotal, My Rentals cards show `date · start–end` + `N hours`, admin
+  payments/disputes summaries, `booking_accepted` email, /how-it-works copy);
+  phone capture gated in `booking_service` (request needs renter phone, accept
+  needs owner phone) with a site-wide banner + profile prompt for the Google
+  OAuth NULL-phone gap; deposit helper text added to the listing form +
+  /trust-deposits (owner's protection, not a CIRCLO fee).
+- [ ] Not built: a "rent for a full day" (24h) convenience shortcut on the
+      request form. Google OAuth still has no dedicated onboarding step — the
+      banner/prompt is the mitigation, not a fix.
 
 ## Explicitly rejected / not doing
 - In-app real-time chat — decided against for now; using phone number reveal +
