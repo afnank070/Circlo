@@ -46,43 +46,58 @@ CATEGORIES = [
 ]
 
 # --- Seed listings ----------------------------------------------------------
+# The rental unit is HOURS. Hourly rates are hand-set per listing so browse
+# shows realistic, varied numbers — never identical, never zero — roughly within
+# these per-category bands (PKR/hour):
+#
+#   tools        Rs  60 – 160    camping      Rs  40 – 130
+#   gaming       Rs 130 – 260    cameras      Rs 180 – 400
+#   formal-wear  Rs 200 – 420    events       Rs 350 – 650
+#
+# `deposit` is INDEPENDENT of the hourly rate — it tracks the item's replacement
+# value (what makes the owner whole if it's lost/broken), so a Rs 90/hr drill
+# still carries a Rs 5,000 deposit and a Rs 350/hr camera a Rs 40,000 one.
+#
 # (title, category_slug, city, area, price_per_hour, deposit, owner, rating, verified, description)
-# The rental unit is hours — these are hourly rates in PKR (deposits stay flat).
 LISTINGS = [
-    ("Bosch Hammer Drill (Corded)", "tools", "Islamabad", "F-8", 150, 5000,
+    ("Bosch Hammer Drill (Corded)", "tools", "Islamabad", "F-8", 90, 5000,
      "Ahmed Raza", 4.8, True,
      "Powerful 750W corded hammer drill, great for concrete and masonry. Comes with a full bit set and carry case."),
-    ("Makita Angle Grinder 4\"", "tools", "Rawalpindi", "Satellite Town", 120, 4000,
+    ("Makita Angle Grinder 4\"", "tools", "Rawalpindi", "Satellite Town", 70, 4000,
      "Bilal Khan", 4.5, True,
      "Reliable Makita angle grinder for cutting and polishing. Two spare discs included."),
-    ("Canon EOS R6 Mirrorless Kit", "cameras", "Islamabad", "F-7", 600, 40000,
+    ("Canon EOS R6 Mirrorless Kit", "cameras", "Islamabad", "F-7", 350, 40000,
      "Sara Malik", 4.9, True,
      "Full-frame Canon EOS R6 with 24-105mm lens, two batteries and a 64GB card. Perfect for weddings and shoots."),
-    ("DJI Mavic Air 2 Drone", "cameras", "Rawalpindi", "Bahria Town", 700, 50000,
+    ("DJI Mavic Air 2 Drone", "cameras", "Rawalpindi", "Bahria Town", 280, 45000,
      "Hamza Sheikh", 4.7, True,
      "4K camera drone with three batteries and ND filters. Ideal for aerial video around the twin cities."),
-    ("4-Person Camping Tent", "camping", "Islamabad", "E-11", 200, 6000,
+    ("4-Person Camping Tent", "camping", "Islamabad", "E-11", 110, 6000,
      "Usman Tariq", 4.6, True,
      "Waterproof dome tent that sleeps four. Easy 10-minute setup — tested on trips to Nathia Gali."),
-    ("Coleman Sleeping Bag Set (x2)", "camping", "Islamabad", "DHA Phase 2", 90, 2000,
+    ("Coleman Sleeping Bag Set (x2)", "camping", "Islamabad", "DHA Phase 2", 45, 2000,
      "Ayesha Noor", 4.4, False,
      "Pair of warm 3-season sleeping bags, freshly cleaned. Rated comfortable down to 5°C."),
-    ("PlayStation 5 + 2 Controllers", "gaming", "Islamabad", "Gulberg Greens", 300, 25000,
+    ("PlayStation 5 + 2 Controllers", "gaming", "Islamabad", "Gulberg Greens", 240, 25000,
      "Fahad Iqbal", 4.9, True,
      "PS5 disc edition with two DualSense controllers and FIFA + Spider-Man. Great for weekend tournaments."),
-    ("Xbox Series X Console", "gaming", "Rawalpindi", "Chaklala Scheme 3", 280, 24000,
+    ("Xbox Series X Console", "gaming", "Rawalpindi", "Chaklala Scheme 3", 190, 22000,
      "Zain Ali", 4.6, True,
      "Xbox Series X with wireless controller and Game Pass installed. 1TB storage, like new."),
-    ("Party Sound System + Speakers", "events", "Islamabad", "G-11", 900, 15000,
+    ("Party Sound System + Speakers", "events", "Islamabad", "G-11", 550, 15000,
      "Imran Yousaf", 4.5, True,
      "1000W PA system with two speakers, a mixer and two wireless mics. Covers birthdays and small events."),
-    ("Wedding Sherwani (Maroon)", "formal-wear", "Rawalpindi", "Saddar", 400, 10000,
+    ("Wedding Sherwani (Maroon)", "formal-wear", "Rawalpindi", "Saddar", 260, 10000,
      "Danish Aziz", 4.7, False,
      "Elegant maroon sherwani, size L, with matching khussa and turban. Dry-cleaned after every rental."),
-    ("Designer Bridal Lehenga", "formal-wear", "Islamabad", "F-10", 1000, 30000,
+    ("Designer Bridal Lehenga", "formal-wear", "Islamabad", "F-10", 400, 30000,
      "Mahnoor Sattar", 4.8, True,
      "Hand-embroidered bridal lehenga in deep red, size M. A fraction of the price of buying one."),
 ]
+
+# Guard: the day->hour column swap left old rows at the DB default of 0 — seeding
+# must never publish a zero/negative hourly rate.
+assert all(row[4] > 0 for row in LISTINGS), "every seed listing needs a real hourly rate"
 
 # --- Real cover photos (Unsplash CDN, no API key needed) --------------------
 # One hand-picked photo id per listing title — matched to the specific item, not

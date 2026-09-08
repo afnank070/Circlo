@@ -4,6 +4,25 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Seed hourly pricing — realistic varied rates (DONE ✅, 2026-09-09)
+
+The day→hour column swap left pre-existing listing rows at the DB default
+(`price_per_hour = 0`); browse showed "Rs 0 / hr" for anything not re-seeded.
+
+- **`app/services/seed.py`** — the 11 demo listings now carry hand-set hourly
+  rates within per-category bands (tools 60–160, camping 40–130, gaming
+  130–260, cameras 180–400, formal-wear 200–420, events 350–650). Actual
+  values: 45 / 70 / 90 / 110 / 190 / 240 / 260 / 280 / 350 / 400 / 550 — all
+  distinct, none zero. `deposit` left tracking replacement value (independent
+  of the rate): e.g. Rs 90/hr drill → Rs 5,000 deposit, Rs 350/hr camera →
+  Rs 40,000. A module-level `assert` now fails the seed if any rate is ≤ 0.
+- Re-ran `seed_all()` against a scratch DB: browse (`/`) renders 11 varied
+  "Rs N / hr" prices, no "Rs 0". **157 tests pass.**
+- **Action for the running dev DB**: `flask seed` (or
+  `docker-compose run --rm app flask seed`) to replace the 0-priced rows.
+
+---
+
 ## Rental unit: days → hours — Phase 2 (DONE ✅, 2026-09-09)
 
 Finishes the rollout: display copy, phone capture, deposit clarification.
