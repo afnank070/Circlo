@@ -4,6 +4,29 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## TEMPORARY: /debug/reprice-listings — fix live prices without shell (2026-09-09)
+
+Same pattern as the old `/debug/test-email` (commit `479402f`, since removed).
+
+- **`GET /debug/reprice-listings?key=<DEBUG_REPRICE_KEY>`** (`app/web/debug.py`)
+  — 404s unless the `DEBUG_REPRICE_KEY` env var is set and the `key` param
+  matches (`hmac.compare_digest`). On success it calls the new
+  **`seed_service.seed_pricing()`**, which re-applies the `price_per_hour` /
+  `deposit_amount` from `seed.py`'s `LISTINGS` to any existing rows with a
+  matching title (never creates/deletes/otherwise mutates), and returns a
+  plain-text report (changed / already-correct / in-seed-but-not-in-DB).
+  Idempotent.
+- Config: `DEBUG_REPRICE_KEY` added to `Config`, `.env.example`, `render.yaml`
+  (`sync: false`). Blueprint import line in `app/web/__init__.py`.
+- Tests: `tests/test_debug_reprice.py` (4) — 404 without/with wrong key;
+  reprices a matching row and leaves non-seed rows alone; idempotent.
+- **TO REMOVE after confirming on live**: delete `app/web/debug.py`, the
+  `from . import debug` line, the `DEBUG_REPRICE_KEY` config block,
+  `tests/test_debug_reprice.py`, and the `.env.example` / `render.yaml` lines.
+  `seed_service.seed_pricing()` can stay (harmless, reusable).
+
+---
+
 ## Seed hourly pricing — realistic varied rates (DONE ✅, 2026-09-09)
 
 The day→hour column swap left pre-existing listing rows at the DB default

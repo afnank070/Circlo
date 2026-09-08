@@ -268,3 +268,43 @@ def seed_all() -> dict[str, int]:
         "listings": len(LISTINGS),
         "images": image_count,
     }
+
+
+def seed_pricing() -> dict[str, list[str]]:
+    """Re-apply the seed listings' ``price_per_hour`` / ``deposit_amount`` to any
+    existing rows with a matching title, without touching images/owners/anything
+    else.
+
+    Used to correct a live database after the day→hour column swap left old rows
+    at ``price_per_hour = 0`` — the seed values in :data:`LISTINGS` are the
+    source of truth. Idempotent: rows already at the target values are reported
+    as ``unchanged``. Never creates or deletes rows.
+    """
+    wanted = {
+        title: (price, deposit)
+        for (title, _cs, _city, _a, price, deposit, *_rest) in LISTINGS
+    }
+
+    rows = Listing.query.filter(Listing.title.in_(list(wanted))).all()
+    changed: list[str] = []
+    unchanged: list[str] = []
+    for listing in rows:
+        price, deposit = wanted[listing.title]
+        old_price = int(listing.price_per_hour) if listing.price_per_hour is not None else None
+        old_deposit = int(listing.deposit_amount) if listing.deposit_amount is not None else None
+        if old_price == price and old_deposit == deposit:
+            unchanged.append(f"{listing.title}: Rs {price}/hr, dep Rs {deposit} (already correct)")
+            continue
+        listing.price_per_hour = price
+        listing.deposit_amount = deposit
+        changed.append(
+            f"{listing.title}: Rs {old_price}/hr -> Rs {price}/hr, "
+            f"deposit Rs {old_deposit} -> Rs {deposit}"
+        )
+
+    if changed:
+        db.session.commit()
+
+    matched_titles = {l.title for l in rows}
+    not_in_db = [t for t in wanted if t not in matched_titles]
+    return {"changed": changed, "unchanged": unchanged, "missing_from_db": not_in_db}

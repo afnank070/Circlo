@@ -74,6 +74,12 @@ class Config:
     # Logging verbosity for app.logger (INFO surfaces best-effort email diagnostics).
     LOG_LEVEL = _env("LOG_LEVEL", "INFO")
 
+    # TEMPORARY: secret gating GET /debug/reprice-listings — a one-shot admin
+    # tool to re-apply the seed script's hourly prices/deposits to existing rows
+    # on a deploy with no shell access. Unset => the route 404s. Remove this and
+    # app/web/debug.py once production pricing is corrected.
+    DEBUG_REPRICE_KEY = _env("DEBUG_REPRICE_KEY")
+
     # --- Google OAuth2 / OpenID Connect ("Sign in with Google") ---
     # Client ID + secret come from a Google Cloud OAuth 2.0 "Web application"
     # credential. Leave both blank to hide the Google button and disable the
