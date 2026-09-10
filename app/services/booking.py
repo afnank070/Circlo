@@ -180,6 +180,29 @@ def has_booking_on_listing(user_id: int, listing_id: int) -> bool:
     ).scalar()
 
 
+def contact_reveal_booking(viewer_id: int | None, listing_id: int) -> Booking | None:
+    """The viewer's own booking on this listing whose stage reveals contact info.
+
+    Used by the listing-detail owner card: if the signed-in viewer is a party on
+    an accepted-or-later booking for this listing, the owner's phone is already
+    shared with them (blueprint: phone reveal after acceptance, not chat), so the
+    card links them to that booking instead of showing a dead "Message" button.
+    Returns the most recent qualifying booking, or ``None`` (not signed in, no
+    booking, or only still-pending / cancelled ones).
+    """
+    if not viewer_id:
+        return None
+    return (
+        Booking.query.filter(
+            Booking.listing_id == listing_id,
+            or_(Booking.renter_id == viewer_id, Booking.owner_id == viewer_id),
+            Booking.status.in_(CONTACT_REVEAL_STATUSES),
+        )
+        .order_by(Booking.start_datetime.desc(), Booking.id.desc())
+        .first()
+    )
+
+
 def listing_ids_with_bookings(listing_ids: list[int]) -> set[int]:
     """Which of these listing ids have at least one booking against them.
 

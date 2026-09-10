@@ -4,6 +4,30 @@ _Claude Code: read this at the START of each session to restore state, and UPDAT
 at the END (what got done, what's next, any blockers). Keep it short and current.
 The real source of truth is the code + git history; this file just helps orient fast._
 
+## Listing-detail owner card: dead "Message" button → real contact link (DONE ✅, 2026-09-11)
+
+The owner card had a static `<button>Message</button>` that did nothing (chat
+was rejected in favour of phone-reveal-after-acceptance). Replaced:
+
+- **Service** — `booking_service.contact_reveal_booking(viewer_id, listing_id)`:
+  the viewer's own most-recent booking on this listing whose status is in
+  `CONTACT_REVEAL_STATUSES` (accepted → completed), else `None` (not signed in,
+  no booking, or only pending/cancelled). Reuses the existing reveal-stage set.
+- **Route** — `web.listing_detail` passes `contact_booking` to the template.
+- **Template** — the button is gone. When `contact_booking` exists: show the
+  owner's phone as a `tel:` pill + a "Booking details →" link to
+  `/my-rentals#booking-<id>` (new `id="booking-<id>"` + `scroll-mt-24` anchor on
+  each My Rentals row card); if the owner somehow has no phone, just the
+  "View contact info" link. Otherwise nothing renders — no dead control.
+- Swept the templates: the only other `<button type="button">`s are the
+  Cropper.js modal buttons, all wired to JS listeners. No dead buttons remain.
+- **Tests** — `tests/test_listing_contact_card.py` (6): no link for anon / no
+  booking / still-pending; phone + `#booking-<id>` link once accepted; still
+  shown when completed; service returns `None` until accepted and again after
+  cancel. **170 tests pass** (was 164). BACKLOG "Known bugs" item removed.
+
+---
+
 ## Header logo image + favicons (DONE ✅, 2026-09-09)
 
 - `app/static/images/circlo-logo.png` (896×243) replaces the text

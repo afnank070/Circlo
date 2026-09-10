@@ -336,7 +336,7 @@
   {% set d = booking_detail.get(b.id) %}
   {% set other = b.renter if viewer == 'owner' else b.owner %}
   {% set other_id = b.renter_id if viewer == 'owner' else b.owner_id %}
-  <div class="row-card overflow-hidden rounded-2xl border border-divider bg-white">
+  <div id="booking-{{ b.id }}" class="row-card scroll-mt-24 overflow-hidden rounded-2xl border border-divider bg-white">
     <div class="flex flex-col gap-3 p-3.5 sm:grid sm:grid-cols-[76px_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-5 sm:px-5">
       {{ thumb(b.listing) }}
 

@@ -89,7 +89,17 @@ def listing_detail(listing_id: int):
         if l.id != listing.id
     ][:4]
 
-    return render_template("listing_detail.html", listing=listing, related=related)
+    # If the viewer already has an accepted-or-later booking on this listing, the
+    # owner's contact details are already shared with them — the owner card links
+    # to that booking instead of showing a dead "Message" button.
+    contact_booking = booking_service.contact_reveal_booking(
+        current_user.id if current_user.is_authenticated else None, listing.id
+    )
+
+    return render_template(
+        "listing_detail.html", listing=listing, related=related,
+        contact_booking=contact_booking,
+    )
 
 
 @web_bp.route("/how-it-works")

@@ -6,8 +6,7 @@ Update it every time something is deferred — don't rely on chat history alone.
 ## Account & Profile
 - [ ] Profile page: add profile picture upload
 - [ ] Profile page: consider a separate "Settings" page for users (currently minimal)
-- [ ] Admin settings page: has payment config + user management (promote/revoke admin,
-      2026-09-09) — expand further as needed
+- [ ] Admin settings page: currently only contains payment-related config — expand as needed
 - [ ] Admin settings: commission rate — currently hardcoded at 20%, deferred until real
       transaction volume / real payment gateway makes it worth making dynamically
       configurable (need to decide retroactive vs new-bookings-only when this becomes real)
@@ -40,6 +39,8 @@ Update it every time something is deferred — don't rely on chat history alone.
       no actual form/channel embedded in the product.
 - [ ] Replace/clean seed/demo data before real users see the site (currently shows test
       listings like "Bosch drill", "Canon camera" etc. with fake reviews).
+- [ ] Add social media links (Instagram/Facebook/etc., whichever CIRCLO ends up using) to
+      the landing page footer, alongside the existing Privacy/Terms/Contact links.
 
 ## Infrastructure & Hardening
 - [ ] Confirm Google OAuth consent screen moved from Testing → Production (unverified).
@@ -47,12 +48,6 @@ Update it every time something is deferred — don't rely on chat history alone.
 - [ ] Mobile responsiveness — never explicitly tested on a real phone across core flows.
 - [ ] Email deliverability — confirm notifications land in inbox (not spam) across providers
       other than the one used for testing so far.
-
-## Known bugs — non-functional UI found during testing
-- [ ] "Message" button on the owner card (listing detail page, `/listings/<id>`) is
-      static/non-functional — leftover from before in-app chat was rejected in favor of
-      phone reveal + pickup location. Either remove the button, or repoint it to the
-      phone-reveal flow (post-acceptance), or hide it until a booking is accepted.
 
 ## Booking model change — hourly rentals (real feature, not a quick patch)
 - [ ] **Change minimum rental unit from days to hours.** Currently bookings are date-range
@@ -80,4 +75,3 @@ Update it every time something is deferred — don't rely on chat history alone.
 _Whenever an item here gets built, move it to PROGRESS.md's "Done" history and delete it
 from this file. Whenever something new gets deferred mid-task, add it here immediately —
 don't wait._
-

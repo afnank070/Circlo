@@ -167,9 +167,25 @@
             {% endif %}
           </div>
         </div>
-        <button type="button" class="shrink-0 rounded-full border border-divider bg-white px-[22px] py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.05em] text-ink hover:bg-neutral-100">
-          Message
-        </button>
+        {# Phone reveal after acceptance — not chat. Only shown when the viewer
+           actually has an accepted-or-later booking with this owner. #}
+        {% if contact_booking is defined and contact_booking %}
+        <div class="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+          {% if listing.owner.phone %}
+          <a href="tel:{{ listing.owner.phone }}"
+             class="rounded-full border border-accent-200 bg-accent-100 px-[22px] py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.05em] text-accent-700 hover:bg-accent-200">
+            {{ listing.owner.phone }}
+          </a>
+          <a href="{{ url_for('web.my_rentals') }}#booking-{{ contact_booking.id }}"
+             class="text-[12px] font-semibold text-neutral-600 hover:text-accent-700">Booking details →</a>
+          {% else %}
+          <a href="{{ url_for('web.my_rentals') }}#booking-{{ contact_booking.id }}"
+             class="rounded-full border border-divider bg-white px-[22px] py-2.5 font-display text-[15px] font-semibold uppercase tracking-[0.05em] text-ink hover:bg-neutral-100">
+            View contact info
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
 
       <!-- Also nearby -->
